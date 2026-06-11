@@ -1,0 +1,142 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Level.gd" id="1_level"]
+[ext_resource type="Script" path="res://scripts/Platform.gd" id="2_platform"]
+[ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="3_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/Goal.tscn" id="4_goal"]
+[ext_resource type="PackedScene" path="res://scenes/Coin.tscn" id="5_coin"]
+
+[sub_resource type="RectangleShape2D" id="shape_120x40"]
+size = Vector2(120, 40)
+
+[sub_resource type="RectangleShape2D" id="shape_80x20"]
+size = Vector2(80, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_130x20"]
+size = Vector2(130, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_100x20"]
+size = Vector2(100, 20)
+
+[node name="Level3" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(30, 460)
+
+[node name="Platforms" type="Node2D" parent="."]
+
+[node name="Start" type="StaticBody2D" parent="Platforms"]
+position = Vector2(60, 520)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Start"]
+shape = SubResource("shape_120x40")
+
+[node name="Step1" type="StaticBody2D" parent="Platforms"]
+position = Vector2(220, 480)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step1"]
+shape = SubResource("shape_80x20")
+
+[node name="Step2" type="StaticBody2D" parent="Platforms"]
+position = Vector2(350, 430)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step2"]
+shape = SubResource("shape_80x20")
+
+[node name="Step3" type="StaticBody2D" parent="Platforms"]
+position = Vector2(480, 380)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step3"]
+shape = SubResource("shape_80x20")
+
+[node name="Step4" type="StaticBody2D" parent="Platforms"]
+position = Vector2(610, 330)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step4"]
+shape = SubResource("shape_80x20")
+
+[node name="Step5" type="StaticBody2D" parent="Platforms"]
+position = Vector2(740, 280)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step5"]
+shape = SubResource("shape_80x20")
+
+[node name="TopRight" type="StaticBody2D" parent="Platforms"]
+position = Vector2(895, 230)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/TopRight"]
+shape = SubResource("shape_130x20")
+
+[node name="MidLeft" type="StaticBody2D" parent="Platforms"]
+position = Vector2(360, 230)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/MidLeft"]
+shape = SubResource("shape_100x20")
+
+[node name="TopLeft" type="StaticBody2D" parent="Platforms"]
+position = Vector2(170, 170)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/TopLeft"]
+shape = SubResource("shape_100x20")
+
+[node name="Enemy1" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(220, 450)
+patrol_range = 30.0
+
+[node name="Enemy2" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(480, 350)
+patrol_range = 30.0
+
+[node name="Enemy3" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(740, 250)
+patrol_range = 30.0
+
+[node name="Enemy4" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(360, 200)
+patrol_range = 40.0
+
+[node name="Goal" parent="." instance=ExtResource("4_goal")]
+position = Vector2(880, 190)
+
+[node name="Coin1" parent="." instance=ExtResource("5_coin")]
+position = Vector2(30, 430)
+
+[node name="Coin2" parent="." instance=ExtResource("5_coin")]
+position = Vector2(480, 345)
+
+[node name="Coin3" parent="." instance=ExtResource("5_coin")]
+position = Vector2(740, 245)
+
+[node name="Coin4" parent="." instance=ExtResource("5_coin")]
+position = Vector2(170, 135)
+
+[node name="Coin5" parent="." instance=ExtResource("5_coin")]
+position = Vector2(895, 195)

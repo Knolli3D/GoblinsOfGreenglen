@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/sprite_goblin.png" id="2_goblin"]
+
+[sub_resource type="RectangleShape2D" id="shape_enemy"]
+size = Vector2(22, 26)
+
+[node name="Enemy" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_enemy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("shape_enemy")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_goblin")
+scale = Vector2(0.0304, 0.0304)
+position = Vector2(0, -2)

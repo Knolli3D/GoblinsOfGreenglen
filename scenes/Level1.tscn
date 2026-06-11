@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Level.gd" id="1_level"]
+[ext_resource type="Script" path="res://scripts/Platform.gd" id="2_platform"]
+[ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="3_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/Goal.tscn" id="4_goal"]
+[ext_resource type="PackedScene" path="res://scenes/Coin.tscn" id="5_coin"]
+
+[sub_resource type="RectangleShape2D" id="shape_ground"]
+size = Vector2(960, 40)
+
+[sub_resource type="RectangleShape2D" id="shape_160x20"]
+size = Vector2(160, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_200x20"]
+size = Vector2(200, 20)
+
+[node name="Level1" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(60, 460)
+
+[node name="Platforms" type="Node2D" parent="."]
+
+[node name="Ground" type="StaticBody2D" parent="Platforms"]
+position = Vector2(480, 520)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Ground"]
+shape = SubResource("shape_ground")
+
+[node name="Platform1" type="StaticBody2D" parent="Platforms"]
+position = Vector2(260, 410)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform1"]
+shape = SubResource("shape_160x20")
+
+[node name="Platform2" type="StaticBody2D" parent="Platforms"]
+position = Vector2(500, 340)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform2"]
+shape = SubResource("shape_160x20")
+
+[node name="Platform3" type="StaticBody2D" parent="Platforms"]
+position = Vector2(760, 260)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Platform3"]
+shape = SubResource("shape_200x20")
+
+[node name="Enemy1" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(260, 380)
+patrol_range = 60.0
+
+[node name="Enemy2" parent="." instance=ExtResource("3_enemy")]
+position = Vector2(760, 230)
+patrol_range = 80.0
+
+[node name="Goal" parent="." instance=ExtResource("4_goal")]
+position = Vector2(880, 210)
+
+[node name="Coin1" parent="." instance=ExtResource("5_coin")]
+position = Vector2(140, 430)
+
+[node name="Coin2" parent="." instance=ExtResource("5_coin")]
+position = Vector2(260, 365)
+
+[node name="Coin3" parent="." instance=ExtResource("5_coin")]
+position = Vector2(500, 295)
+
+[node name="Coin4" parent="." instance=ExtResource("5_coin")]
+position = Vector2(760, 215)
+
+[node name="Coin5" parent="." instance=ExtResource("5_coin")]
+position = Vector2(820, 215)
