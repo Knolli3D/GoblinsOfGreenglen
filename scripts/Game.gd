@@ -255,14 +255,15 @@ func _spawn_pow(pos: Vector2) -> void:
 	add_child(lyr)
 	var lbl := Label.new()
 	lbl.text = "POW!"
-	lbl.position = pos + Vector2(-36, -60)
+	var screen_pos: Vector2 = get_viewport().get_canvas_transform() * pos
+	lbl.position = screen_pos + Vector2(-36, -60)
 	lbl.add_theme_font_size_override("font_size", 38)
 	lbl.add_theme_color_override("font_color", Color.WHITE)
 	lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.1, 0.12))
 	lbl.add_theme_constant_override("outline_size", 8)
 	lyr.add_child(lbl)
 	var tw := create_tween()
-	tw.tween_property(lbl, "position", pos + Vector2(-36, -120), 0.35).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lbl, "position", screen_pos + Vector2(-36, -120), 0.35).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(lbl, "scale", Vector2(1.5, 1.5), 0.2).set_ease(Tween.EASE_OUT)
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.25)
 	tw.tween_callback(lyr.queue_free)
