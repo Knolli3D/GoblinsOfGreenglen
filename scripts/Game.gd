@@ -7,6 +7,7 @@ const LEVELS := [
 	"res://scenes/Level1.tscn",
 	"res://scenes/Level2.tscn",
 	"res://scenes/Level3.tscn",
+	"res://scenes/Level4.tscn",
 ]
 
 var current_level := 0
@@ -232,6 +233,13 @@ func _load_level(idx: int) -> void:
 	player.hit_enemy.connect(damage_player)
 	player.fell_off.connect(fell_off_world)
 	player.reached_goal.connect(reach_goal)
+
+	var cam := Camera2D.new()
+	cam.limit_left = 0
+	cam.limit_top = 0
+	cam.limit_right = level_root.level_width
+	cam.limit_bottom = 540
+	player.add_child(cam)
 
 	_update_hud()
 
