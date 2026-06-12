@@ -60,11 +60,11 @@ script = ExtResource("2_platform")
 shape = SubResource("shape_200x20")
 
 [node name="Enemy1" parent="." instance=ExtResource("3_enemy")]
-position = Vector2(260, 380)
+position = Vector2(260, 387)
 patrol_range = 60.0
 
 [node name="Enemy2" parent="." instance=ExtResource("3_enemy")]
-position = Vector2(760, 230)
+position = Vector2(760, 237)
 patrol_range = 80.0
 
 [node name="Goal" parent="." instance=ExtResource("4_goal")]

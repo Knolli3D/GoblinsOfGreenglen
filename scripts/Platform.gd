@@ -1,3 +1,4 @@
+@tool
 extends StaticBody2D
 
 const PLATFORM_PNG := preload("res://assets/sprite_platform.png")
@@ -11,8 +12,14 @@ func _ready() -> void:
 		return
 	var size := rect_shape.size
 	var tex := PLATFORM_PNG
+
+	var existing := get_node_or_null("PlatformSprite")
+	if existing:
+		existing.free()
+
 	var sprite := Sprite2D.new()
+	sprite.name = "PlatformSprite"
 	sprite.texture = tex
 	sprite.scale = Vector2(size.x / float(tex.get_width()), max(size.y + 12.0, 28.0) / float(tex.get_height()))
-	sprite.position = Vector2(0, -6)
+	sprite.position = shape_node.position + Vector2(0, -6)
 	add_child(sprite)

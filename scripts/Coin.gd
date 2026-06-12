@@ -1,6 +1,9 @@
+@tool
 extends Area2D
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body: Node2D) -> void:

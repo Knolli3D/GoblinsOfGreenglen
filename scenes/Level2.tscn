@@ -45,76 +45,71 @@ script = ExtResource("2_platform")
 shape = SubResource("shape_110x20")
 
 [node name="Step3" type="StaticBody2D" parent="Platforms" unique_id=213933010]
-position = Vector2(605, 360)
+position = Vector2(652, 362)
 collision_mask = 0
 script = ExtResource("2_platform")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step3" unique_id=1064930826]
-position = Vector2(47, 2)
 shape = SubResource("shape_110x20")
 
 [node name="Step4" type="StaticBody2D" parent="Platforms" unique_id=1897338253]
-position = Vector2(755, 310)
+position = Vector2(482, 289)
 collision_mask = 0
 script = ExtResource("2_platform")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step4" unique_id=379759212]
-position = Vector2(-225, -23)
 shape = SubResource("shape_110x20")
 
 [node name="Step6" type="StaticBody2D" parent="Platforms" unique_id=2088034425]
-position = Vector2(435, 200)
+position = Vector2(383, 225)
 collision_mask = 0
 script = ExtResource("2_platform")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step6" unique_id=887614111]
-position = Vector2(-52, 25)
 shape = SubResource("shape_110x20")
 
 [node name="Step7" type="StaticBody2D" parent="Platforms" unique_id=1710137229]
-position = Vector2(265, 250)
+position = Vector2(237, 324)
 collision_mask = 0
 script = ExtResource("2_platform")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step7" unique_id=137689188]
-position = Vector2(-28, 74)
 shape = SubResource("shape_110x20")
 
 [node name="Step8" type="StaticBody2D" parent="Platforms" unique_id=898040039]
-position = Vector2(112, 291)
+position = Vector2(111, 392)
 collision_mask = 0
 script = ExtResource("2_platform")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Step8" unique_id=1598075673]
-position = Vector2(-1, 101)
 shape = SubResource("shape_110x20")
 
 [node name="Enemy1" parent="." unique_id=2111999944 instance=ExtResource("3_enemy")]
-position = Vector2(305, 430)
+position = Vector2(305, 437)
 patrol_range = 30.0
 
 [node name="Enemy2" parent="." unique_id=625715529 instance=ExtResource("3_enemy")]
-position = Vector2(650, 328)
+position = Vector2(650, 339)
 patrol_range = 30.0
 
 [node name="Enemy3" parent="." unique_id=1893859346 instance=ExtResource("3_enemy")]
-position = Vector2(244, 284)
+position = Vector2(244, 301)
 patrol_range = 30.0
 
 [node name="Goal" parent="." unique_id=1466822982 instance=ExtResource("4_goal")]
 position = Vector2(381, 156)
 
-[node name="Coin1" parent="." instance=ExtResource("5_coin")]
+[node name="Coin1" parent="." unique_id=1180603376 instance=ExtResource("5_coin")]
 position = Vector2(60, 430)
 
-[node name="Coin2" parent="." instance=ExtResource("5_coin")]
+[node name="Coin2" parent="." unique_id=1530673567 instance=ExtResource("5_coin")]
 position = Vector2(305, 415)
 
-[node name="Coin3" parent="." instance=ExtResource("5_coin")]
+[node name="Coin3" parent="." unique_id=1415473557 instance=ExtResource("5_coin")]
 position = Vector2(605, 315)
 
-[node name="Coin4" parent="." instance=ExtResource("5_coin")]
+[node name="Coin4" parent="." unique_id=404129196 instance=ExtResource("5_coin")]
 position = Vector2(435, 155)
 
-[node name="Coin5" parent="." instance=ExtResource("5_coin")]
+[node name="Coin5" parent="." unique_id=1705078654 instance=ExtResource("5_coin")]
 position = Vector2(265, 210)

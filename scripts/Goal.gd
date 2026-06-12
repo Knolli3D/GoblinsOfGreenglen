@@ -1,6 +1,9 @@
+@tool
 extends Area2D
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	add_to_group("goals")
 
 func _draw() -> void:
