@@ -69,7 +69,7 @@ script = ExtResource("2_platform")
 shape = SubResource("shape_110x20")
 
 [node name="Step7" type="StaticBody2D" parent="Platforms" unique_id=1710137229]
-position = Vector2(237, 324)
+position = Vector2(237, 309.84)
 collision_mask = 0
 script = ExtResource("2_platform")
 
@@ -77,7 +77,7 @@ script = ExtResource("2_platform")
 shape = SubResource("shape_110x20")
 
 [node name="Step8" type="StaticBody2D" parent="Platforms" unique_id=898040039]
-position = Vector2(111, 392)
+position = Vector2(111, 401.33)
 collision_mask = 0
 script = ExtResource("2_platform")
 
@@ -93,14 +93,14 @@ position = Vector2(650, 339)
 patrol_range = 30.0
 
 [node name="Enemy3" parent="." unique_id=1893859346 instance=ExtResource("3_enemy")]
-position = Vector2(244, 301)
+position = Vector2(244, 278.61)
 patrol_range = 30.0
 
 [node name="Goal" parent="." unique_id=1466822982 instance=ExtResource("4_goal")]
 position = Vector2(381, 156)
 
 [node name="Coin1" parent="." unique_id=1180603376 instance=ExtResource("5_coin")]
-position = Vector2(60, 430)
+position = Vector2(60, 358.165)
 
 [node name="Coin2" parent="." unique_id=1530673567 instance=ExtResource("5_coin")]
 position = Vector2(305, 415)
