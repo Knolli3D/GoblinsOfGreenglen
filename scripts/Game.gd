@@ -211,7 +211,6 @@ func _load_level(idx: int) -> void:
 		level_root.queue_free()
 	current_level = idx
 	health = MAX_HEALTH
-	coin_count = 0
 	transitioning = false
 	win_label.visible = false
 
