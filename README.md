@@ -43,7 +43,7 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/ianpotta/cloude-game.git
+   git clone https://github.com/Knolli3D/cloude-game.git
    ```
 2. Open Godot 4.6 and choose **Import Project**
 3. Select the `project.godot` file in the cloned folder
