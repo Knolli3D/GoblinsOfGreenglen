@@ -24,6 +24,7 @@ const SFX_FILES := {
 }
 const MUSIC_FILE := "res://assets/audio/music.wav"
 const SFX_VOICES := 8
+const SAVE_PATH := "user://highscore.cfg"
 
 var current_level := 0
 var health := MAX_HEALTH
@@ -43,10 +44,15 @@ var music_player: AudioStreamPlayer
 var sfx_players: Array[AudioStreamPlayer] = []
 var sfx_streams := {}
 var sfx_next := 0
+var best_score := 0
+var best_coins := 0
+var has_highscore := false
+var highscore_label: Label
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("game")
+	_load_highscore()
 	_build_audio()
 	_build_hud()
 	_build_pause_menu()
@@ -86,6 +92,31 @@ func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
 	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
 	p.stream = stream
 	p.play()
+
+func _load_highscore() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE_PATH) != OK:
+		return
+	has_highscore = true
+	best_score = cfg.get_value("highscore", "score", 0)
+	best_coins = cfg.get_value("highscore", "coins", 0)
+
+func _save_highscore() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("highscore", "score", best_score)
+	cfg.set_value("highscore", "coins", best_coins)
+	cfg.save(SAVE_PATH)
+
+# true wenn der aktuelle Run ein neuer Highscore ist (und dann gespeichert wurde)
+func _submit_run(run_score: int, run_coins: int) -> bool:
+	var is_new := not has_highscore or run_score > best_score \
+		or (run_score == best_score and run_coins > best_coins)
+	if is_new:
+		best_score = run_score
+		best_coins = run_coins
+		has_highscore = true
+		_save_highscore()
+	return is_new
 
 func _build_pause_menu() -> void:
 	var layer := CanvasLayer.new()
@@ -164,6 +195,13 @@ func _build_main_menu() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(title)
 
+	highscore_label = Label.new()
+	highscore_label.add_theme_font_size_override("font_size", 18)
+	highscore_label.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	highscore_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	highscore_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(highscore_label)
+
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(0, 20)
 	box.add_child(spacer)
@@ -190,6 +228,7 @@ func _show_main_menu() -> void:
 	if level_root:
 		level_root.queue_free()
 		level_root = null
+	highscore_label.text = "Best: Score %d   🪙 %d" % [best_score, best_coins] if has_highscore else "No highscore yet"
 	main_menu.visible = true
 	music_player.stop()
 
@@ -388,7 +427,9 @@ func reach_goal() -> void:
 	else:
 		play_sfx("win")
 		music_player.stop()
-		_show_message("You Win!\nCoins: %d   Score: %d\nPress R to replay" % [coin_count, score])
+		var record_line := "★ New Highscore! ★" if _submit_run(score, coin_count) \
+			else "Best: Score %d   🪙 %d" % [best_score, best_coins]
+		_show_message("You Win!\nCoins: %d   Score: %d\n%s\nPress R to replay" % [coin_count, score, record_line])
 
 func _show_message(msg: String) -> void:
 	win_label.text = msg

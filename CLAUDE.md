@@ -118,6 +118,15 @@ Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` →
 - **Jump-Sounds**: Player emittiert `jumped`/`double_jumped`, Game.gd verbindet sie in `_load_level()`.
 - Events: jump, double_jump, coin, stomp, hit, death, level_clear, win, click (UI-Buttons).
 
+## Highscore (lokal)
+
+Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFile, Sektion
+`[highscore]` mit `score` + `coins`). Nur lokal — kein Online-Leaderboard (geplant: später via Website).
+- **Game.gd**: `_load_highscore()` in `_ready()`, `_submit_run(score, coins)` beim Win-Screen
+  (speichert nur, wenn besser: höherer Score, bei Gleichstand mehr Coins) → zeigt "★ New Highscore! ★"
+  bzw. den bestehenden Bestwert an. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
+- Für das spätere Web-Leaderboard ist `_submit_run()` der einzige Hook-Punkt.
+
 ## Viewport
 
 960×540 intern, Fenster 1280×720 (canvas_items stretch).
