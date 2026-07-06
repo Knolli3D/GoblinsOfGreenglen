@@ -11,6 +11,20 @@ const LEVELS := [
 	"res://scenes/Level5.tscn",
 ]
 
+const SFX_FILES := {
+	"jump": "res://assets/audio/jump.wav",
+	"double_jump": "res://assets/audio/double_jump.wav",
+	"coin": "res://assets/audio/coin.wav",
+	"stomp": "res://assets/audio/stomp.wav",
+	"hit": "res://assets/audio/hit.wav",
+	"death": "res://assets/audio/death.wav",
+	"level_clear": "res://assets/audio/level_clear.wav",
+	"win": "res://assets/audio/win.wav",
+	"click": "res://assets/audio/click.wav",
+}
+const MUSIC_FILE := "res://assets/audio/music.wav"
+const SFX_VOICES := 8
+
 var current_level := 0
 var health := MAX_HEALTH
 var score := 0
@@ -25,14 +39,53 @@ var level_root: Node2D
 var player: CharacterBody2D
 var main_menu: Control
 var in_main_menu: bool = true
+var music_player: AudioStreamPlayer
+var sfx_players: Array[AudioStreamPlayer] = []
+var sfx_streams := {}
+var sfx_next := 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("game")
+	_build_audio()
 	_build_hud()
 	_build_pause_menu()
 	_build_main_menu()
 	_show_main_menu()
+
+func _build_audio() -> void:
+	music_player = AudioStreamPlayer.new()
+	music_player.bus = "Music"
+	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	if ResourceLoader.exists(MUSIC_FILE):
+		var music: AudioStreamWAV = load(MUSIC_FILE)
+		music.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		music.loop_begin = 0
+		# loop_end in Frames — aus Länge berechnen (Import kann QOA-komprimieren)
+		music.loop_end = int(music.get_length() * music.mix_rate)
+		music_player.stream = music
+	add_child(music_player)
+
+	for i in range(SFX_VOICES):
+		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
+		p.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(p)
+		sfx_players.append(p)
+
+	for key: String in SFX_FILES:
+		if ResourceLoader.exists(SFX_FILES[key]):
+			sfx_streams[key] = load(SFX_FILES[key])
+
+func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
+	var stream: AudioStream = sfx_streams.get(sfx_name)
+	if stream == null:
+		return
+	var p := sfx_players[sfx_next]
+	sfx_next = (sfx_next + 1) % sfx_players.size()
+	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
+	p.stream = stream
+	p.play()
 
 func _build_pause_menu() -> void:
 	var layer := CanvasLayer.new()
@@ -138,32 +191,42 @@ func _show_main_menu() -> void:
 		level_root.queue_free()
 		level_root = null
 	main_menu.visible = true
+	music_player.stop()
 
 func _start_game() -> void:
+	play_sfx("click")
 	in_main_menu = false
 	main_menu.visible = false
 	hud_label.visible = true
 	coin_label.visible = true
 	score = 0
 	coin_count = 0
+	music_player.play()
 	_load_level(0)
 
 func _quit_game() -> void:
 	get_tree().quit()
 
 func _exit_to_main_menu() -> void:
+	play_sfx("click")
 	_show_main_menu()
 
 func _toggle_pause() -> void:
+	play_sfx("click")
 	var paused := not get_tree().paused
 	get_tree().paused = paused
 	pause_menu.visible = paused
+	music_player.volume_db = -14.0 if paused else 0.0
 
 func _restart_level_from_menu() -> void:
+	play_sfx("click")
 	get_tree().paused = false
 	pause_menu.visible = false
+	music_player.volume_db = 0.0
 	score = 0
 	coin_count = 0
+	if not music_player.playing:
+		music_player.play()
 	_load_level(0)
 
 func _build_hud() -> void:
@@ -206,6 +269,7 @@ func _update_hud() -> void:
 
 func coin_collected() -> void:
 	coin_count += 1
+	play_sfx("coin", 0.06)
 	_update_hud()
 
 func _load_level(idx: int) -> void:
@@ -234,6 +298,8 @@ func _load_level(idx: int) -> void:
 	player.hit_enemy.connect(damage_player)
 	player.fell_off.connect(fell_off_world)
 	player.reached_goal.connect(reach_goal)
+	player.jumped.connect(play_sfx.bind("jump", 0.04))
+	player.double_jumped.connect(play_sfx.bind("double_jump", 0.04))
 
 	var cam := Camera2D.new()
 	cam.limit_left = 0
@@ -248,6 +314,7 @@ func _on_player_stomped_enemy(enemy: CharacterBody2D) -> void:
 	var pos := enemy.position
 	enemy.call("kill")
 	enemy_killed()
+	play_sfx("stomp", 0.08)
 	_spawn_pow(pos)
 
 func _spawn_pow(pos: Vector2) -> void:
@@ -284,8 +351,11 @@ func damage_player() -> void:
 	score -= 1
 	_update_hud()
 	if health <= 0:
+		play_sfx("death")
+		music_player.stop()
 		_show_message("Ouch!\nPress R to retry")
 	else:
+		play_sfx("hit")
 		player.velocity.y = 0
 
 func fell_off_world() -> void:
@@ -295,8 +365,11 @@ func fell_off_world() -> void:
 	score -= 1
 	_update_hud()
 	if health <= 0:
+		play_sfx("death")
+		music_player.stop()
 		_show_message("Ouch!\nPress R to retry")
 	else:
+		play_sfx("hit")
 		var spawn_marker := level_root.find_child("PlayerSpawn", true, false) as Marker2D
 		if spawn_marker:
 			player.position = spawn_marker.position
@@ -308,10 +381,13 @@ func reach_goal() -> void:
 		return
 	transitioning = true
 	if current_level + 1 < LEVELS.size():
+		play_sfx("level_clear")
 		_show_message("Level Cleared!")
 		await get_tree().create_timer(1.0).timeout
 		_load_level(current_level + 1)
 	else:
+		play_sfx("win")
+		music_player.stop()
 		_show_message("You Win!\nCoins: %d   Score: %d\nPress R to replay" % [coin_count, score])
 
 func _show_message(msg: String) -> void:
@@ -329,6 +405,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		get_tree().paused = false
 		pause_menu.visible = false
+		music_player.volume_db = 0.0
+		if not music_player.playing:
+			music_player.play()
 		score = 0
 		coin_count = 0
 		_load_level(0)

@@ -47,6 +47,12 @@ assets/
   sprite_platform.png # Plattform-Textur (4128×496)
   sky.png             # Himmel-Hintergrund (Parallax)
   knight.png / goblin.png / platform.png  # Original-Uploads (Backup)
+  audio/              # Generierte Chiptune-WAVs (SFX + music.wav Loop)
+
+tools/
+  generate_audio.py   # Erzeugt alle WAVs in assets/audio/ (Python-Stdlib)
+
+default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 ```
 
 ## Architektur
@@ -55,7 +61,7 @@ assets/
 - **Game.gd** ist der zentrale Controller; lädt Level-Scenes via `load(LEVELS[idx]).instantiate()`
 - **Player** wird von Game.gd per `find_child("PlayerSpawn")` im Level platziert
 - **Kommunikation per Signals** (nicht get_parent().get_parent()):
-  - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`
+  - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`, `jumped`, `double_jumped`
   - `Coin` ruft `game.coin_collected()` via `get_tree().get_first_node_in_group("game")`
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
 
@@ -99,6 +105,19 @@ Sprites werden in `_ready()` der jeweiligen Scripts skaliert (kein White-Keying 
 
 `Game.gd._spawn_pow(pos)` erstellt einen animierten `Label`-Node auf einem temporären `CanvasLayer` (layer=20), der hochschwebt und ausfadet.
 
+## Audio
+
+Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` → `assets/audio/`).
+- **Busse** (`default_bus_layout.tres`): `Master` → `Music` (-6 dB), `SFX`
+- **Game.gd** besitzt alle Audio-Nodes: 1× `AudioStreamPlayer` für Musik (Bus Music),
+  8 Round-Robin-Voices für SFX (Bus SFX). `play_sfx(name, pitch_jitter)` spielt aus `SFX_FILES`;
+  `pitch_jitter` variiert `pitch_scale` leicht gegen Monotonie (Coin, Stomp, Jump).
+- **Musik**: `music.wav` loopt via `AudioStreamWAV.LOOP_FORWARD` (loop_end aus `get_length() × mix_rate`
+  berechnet, da der Import QOA-komprimiert). Start bei Spielstart, Stop bei Tod/Win/Hauptmenü,
+  Ducking auf -14 dB im Pause-Menü.
+- **Jump-Sounds**: Player emittiert `jumped`/`double_jumped`, Game.gd verbindet sie in `_load_level()`.
+- Events: jump, double_jump, coin, stomp, hit, death, level_clear, win, click (UI-Buttons).
+
 ## Viewport
 
-960×540 intern, Fenster 1280×720 (canvas_items stretch). Kein Audio implementiert.
+960×540 intern, Fenster 1280×720 (canvas_items stretch).

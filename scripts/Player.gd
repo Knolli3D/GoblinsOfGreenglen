@@ -4,6 +4,8 @@ signal stomped_enemy(enemy: CharacterBody2D)
 signal hit_enemy
 signal fell_off
 signal reached_goal
+signal jumped
+signal double_jumped
 
 const GRAVITY := 1400.0
 const MOVE_SPEED := 220.0
@@ -28,7 +30,12 @@ func _physics_process(delta: float) -> void:
 		velocity.y += GRAVITY * delta
 
 	if Input.is_action_just_pressed("jump") and jumps_remaining > 0:
-		velocity.y = JUMP_VELOCITY if jumps_remaining == MAX_JUMPS else DOUBLE_JUMP_VELOCITY
+		if jumps_remaining == MAX_JUMPS:
+			velocity.y = JUMP_VELOCITY
+			jumped.emit()
+		else:
+			velocity.y = DOUBLE_JUMP_VELOCITY
+			double_jumped.emit()
 		jumps_remaining -= 1
 
 	var dir := 0.0
