@@ -191,9 +191,21 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
 - **Claim**: Keys werden nicht automatisch vergeben — im Quests-Menü muss ein fertiger Quest
   per Button bestätigt werden (`Progression.claim_quest(slot)` / `claim_weekly(slot)`).
   Das Quests-Menü hat zwei Sektionen (Daily/Weekly) mit Statuszeile für Bonus-Modus/Fragmente.
-- **Cases**: 1 Key = 1 Case-Opening. Rewards sind Skins mit gewichteten Rarity-Tiers
-  (`SKIN_TIERS`: Common/Rare/Epic), Duplikate sind erlaubt (kein Pity-/Dust-System).
-  Reveal-Animation (`Game._spawn_skin_reveal()`) nutzt das gleiche Tween-Muster wie `_spawn_pow()`.
+- **Cases**: Regulär 1 Key (Tier-Gewichte 70/25/5), Premium 3 Keys (`PREMIUM_WEIGHTS` 80/20
+  Rare/Epic, keine Commons — "Skip-Commons"-Beschleuniger für Completion). Duplikate geben
+  1 Shard (`dup_shards`, `SHARDS_PER_KEY` 10 = 1 Key, Auto-Konvertierung) — bewusst schwächer
+  als Quest-Fragmente (3 = 1), damit Dupes Trostpreis bleiben. Kein Pity-System.
+  Stats in Sektion `[stats]` (`cases_opened`, `best_pull` via `TIER_RANK`-Vergleich);
+  Cases-Menü zeigt Shards, Collection X/Y, Opened-Count und Best Pull.
+- **Reel-Animation**: CS:GO-Stil im Cases-Menü — `reel_strip` (40 Karten à 100px,
+  Gewinner fest an `WIN_INDEX` 34, Rest zufällige Füller) scrollt per Tween
+  (`TRANS_QUINT`/`EASE_OUT`, 2.8s) unter eine Gold-Markierung; Tick-SFX in `_process`
+  bei Kartenwechsel; Buttons (beide Cases + Back) via `is_spinning` gesperrt.
+  Karten-Art nutzt das gleiche Textur/Tint-Muster wie die Skins-Preview.
+- **Reveal-Effekte pro Tier** (`Game._spawn_skin_reveal()`, Tween-Muster wie `_spawn_pow()`):
+  Common = Float-Label; Rare = + Farb-Flash (`TIER_COLORS`) + `level_clear`-SFX;
+  Epic = stärkerer Flash + Shake am `reel_frame` + `win`-SFX. Dupe-Label zeigt
+  "+1 Shard" bzw. "+1 Key from Shards!" bei Konvertierung.
 - **Skins**: zwei Varianten je nach `SKIN_TIERS`-Eintrag. Common-Skins (Bronze/Silber) sind reine
   Farb-Tints (`Sprite2D.modulate`) ohne neues Artwork — funktioniert nur für Helligkeits-/Sättigungs-
   Verschiebungen der Basis-Palette. Rare/Epic-Skins (Gold/Emerald/Blood) nutzen echtes Artwork

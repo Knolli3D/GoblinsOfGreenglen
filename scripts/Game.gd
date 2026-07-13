@@ -57,6 +57,17 @@ var quests_list: VBoxContainer
 var cases_menu: Control
 var cases_keys_label: Label
 var open_case_btn: Button
+var premium_case_btn: Button
+var cases_stats_label: Label
+var cases_back_btn: Button
+var reel_frame: Control
+var reel_strip: Control
+var is_spinning := false
+var reel_last_tick_idx := 0
+
+const CARD_W := 100.0
+const CARD_COUNT := 40
+const WIN_INDEX := 34
 var skins_menu: Control
 var skins_list: VBoxContainer
 var skins_preview_sprite: TextureRect
@@ -477,16 +488,100 @@ func _build_cases_menu() -> void:
 	shell.box.add_child(cases_keys_label)
 
 	open_case_btn = Button.new()
-	open_case_btn.text = "Open Case"
+	open_case_btn.text = "Open Case (1 🔑)"
 	open_case_btn.custom_minimum_size = Vector2(300, 44)
-	open_case_btn.pressed.connect(_on_open_case_pressed)
+	open_case_btn.pressed.connect(_on_open_case_pressed.bind(false))
 	shell.box.add_child(open_case_btn)
 
-	var back_btn := Button.new()
-	back_btn.text = "Back"
-	back_btn.custom_minimum_size = Vector2(300, 40)
-	back_btn.pressed.connect(_hide_submenus)
-	shell.box.add_child(back_btn)
+	premium_case_btn = Button.new()
+	premium_case_btn.text = "Premium Case (3 🔑) — Rare+"
+	premium_case_btn.custom_minimum_size = Vector2(300, 44)
+	premium_case_btn.pressed.connect(_on_open_case_pressed.bind(true))
+	shell.box.add_child(premium_case_btn)
+
+	cases_stats_label = Label.new()
+	cases_stats_label.add_theme_font_size_override("font_size", 14)
+	cases_stats_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
+	cases_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cases_stats_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.box.add_child(cases_stats_label)
+
+	cases_back_btn = Button.new()
+	cases_back_btn.text = "Back"
+	cases_back_btn.custom_minimum_size = Vector2(300, 40)
+	cases_back_btn.pressed.connect(_hide_submenus)
+	shell.box.add_child(cases_back_btn)
+
+	_build_case_reel()
+
+func _build_case_reel() -> void:
+	reel_frame = Control.new()
+	reel_frame.position = Vector2(VIEW.x * 0.5 - 335, 380)
+	reel_frame.custom_minimum_size = Vector2(670, 120)
+	reel_frame.visible = false
+	cases_menu.add_child(reel_frame)
+
+	var frame_bg := ColorRect.new()
+	frame_bg.color = Color(0.06, 0.07, 0.1, 0.9)
+	frame_bg.size = Vector2(670, 120)
+	reel_frame.add_child(frame_bg)
+
+	var clip := Control.new()
+	clip.position = Vector2(5, 10)
+	clip.size = Vector2(660, 100)
+	clip.clip_contents = true
+	reel_frame.add_child(clip)
+
+	reel_strip = Control.new()
+	reel_strip.size = Vector2(CARD_W * CARD_COUNT, 100)
+	clip.add_child(reel_strip)
+
+	var marker := ColorRect.new()
+	marker.color = Color(1.0, 0.85, 0.2)
+	marker.position = Vector2(334, 0)
+	marker.size = Vector2(2, 120)
+	reel_frame.add_child(marker)
+
+func _all_skins_flat() -> Array:
+	var result: Array = []
+	for tier: String in Progression.SKIN_TIERS:
+		for skin: Dictionary in Progression.SKIN_TIERS[tier].skins:
+			var entry: Dictionary = skin.duplicate()
+			entry["tier"] = tier
+			result.append(entry)
+	return result
+
+func _make_reel_card(skin: Dictionary, idx: int) -> Control:
+	var card := Control.new()
+	card.position = Vector2(idx * CARD_W, 0)
+	card.size = Vector2(CARD_W, 100)
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.12, 0.13, 0.18)
+	bg.position = Vector2(2, 2)
+	bg.size = Vector2(96, 96)
+	card.add_child(bg)
+
+	var art := TextureRect.new()
+	art.position = Vector2(15, 4)
+	art.size = Vector2(70, 84)
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var texture_path: String = skin.get("texture", "")
+	if texture_path != "" and ResourceLoader.exists(texture_path):
+		art.texture = load(texture_path)
+		art.modulate = Color.WHITE
+	else:
+		art.texture = load("res://assets/sprite_knight.png")
+		art.modulate = skin.get("color", Color.WHITE)
+	card.add_child(art)
+
+	var stripe := ColorRect.new()
+	stripe.color = TIER_COLORS.get(skin.tier, Color.WHITE)
+	stripe.position = Vector2(2, 92)
+	stripe.size = Vector2(96, 6)
+	card.add_child(stripe)
+	return card
 
 func _show_cases_menu() -> void:
 	play_sfx("click")
@@ -495,25 +590,104 @@ func _show_cases_menu() -> void:
 	_refresh_cases_menu()
 
 func _refresh_cases_menu() -> void:
-	var keys := Progression.get_keys()
-	cases_keys_label.text = "🔑 %d" % keys
-	open_case_btn.disabled = keys <= 0
+	var k: int = Progression.get_keys()
+	cases_keys_label.text = "🔑 %d    Shards: %d/%d" % [k, Progression.get_shards(), Progression.SHARDS_PER_KEY]
+	open_case_btn.disabled = k < 1 or is_spinning
+	premium_case_btn.disabled = k < Progression.PREMIUM_CASE_COST or is_spinning
+	cases_back_btn.disabled = is_spinning
+	var best: String = Progression.get_best_pull()
+	var best_text := "—" if best == "" else best.capitalize()
+	cases_stats_label.text = "Collection: %d/%d    Cases opened: %d    Best pull: %s" % [
+		Progression.owned_skins.size(), Progression.get_total_skin_count(),
+		Progression.get_cases_opened(), best_text,
+	]
 
-func _on_open_case_pressed() -> void:
-	var skin := Progression.open_case()
+func _on_open_case_pressed(premium: bool) -> void:
+	if is_spinning:
+		return
+	var skin := Progression.open_case(premium)
 	if skin.is_empty():
 		return
+	_start_case_spin(skin)
+
+func _start_case_spin(result: Dictionary) -> void:
+	is_spinning = true
 	play_sfx("coin", 0.05)
-	_spawn_skin_reveal(skin)
+	open_case_btn.disabled = true
+	premium_case_btn.disabled = true
+	cases_back_btn.disabled = true
+
+	for child in reel_strip.get_children():
+		child.queue_free()
+	var pool := _all_skins_flat()
+	for i in range(CARD_COUNT):
+		var card_skin: Dictionary = result if i == WIN_INDEX else pool[randi() % pool.size()]
+		reel_strip.add_child(_make_reel_card(card_skin, i))
+
+	reel_frame.visible = true
+	reel_strip.position.x = 330.0 - CARD_W * 0.5
+	reel_last_tick_idx = 0
+
+	var target_x: float = 330.0 - (float(WIN_INDEX) * CARD_W + CARD_W * 0.5) + randf_range(-30.0, 30.0)
+	var tw := create_tween()
+	tw.tween_property(reel_strip, "position:x", target_x, 2.8) \
+		.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.3)
+	tw.tween_callback(_on_reel_finished.bind(result))
+
+func _process(_delta: float) -> void:
+	if not is_spinning or reel_strip == null:
+		return
+	var idx := int((330.0 - reel_strip.position.x) / CARD_W)
+	if idx != reel_last_tick_idx:
+		reel_last_tick_idx = idx
+		play_sfx("click", 0.1)
+
+func _on_reel_finished(result: Dictionary) -> void:
+	is_spinning = false
+	_spawn_skin_reveal(result)
 	_refresh_cases_menu()
 
 func _spawn_skin_reveal(skin: Dictionary) -> void:
 	var lyr := CanvasLayer.new()
 	lyr.layer = 21
 	add_child(lyr)
+
+	var tier: String = skin.get("tier", "common")
+	var is_dup: bool = skin.get("duplicate", false)
+
+	# Rarity-Flash hinter dem Label (Rare/Epic)
+	if tier == "rare" or tier == "epic":
+		var flash := ColorRect.new()
+		var flash_color: Color = TIER_COLORS.get(tier, Color.WHITE)
+		flash_color.a = 0.55 if tier == "epic" else 0.35
+		flash.color = flash_color
+		flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		lyr.add_child(flash)
+		var flash_tw := create_tween()
+		flash_tw.tween_property(flash, "color:a", 0.0, 0.8 if tier == "epic" else 0.5) \
+			.set_ease(Tween.EASE_OUT)
+		play_sfx("win" if tier == "epic" else "level_clear")
+
+	# Screen-Shake am Reel-Rahmen (nur Epic)
+	if tier == "epic" and reel_frame != null:
+		var base: Vector2 = reel_frame.position
+		var shake_tw := create_tween()
+		var amp := 8.0
+		for i in range(6):
+			var offset := Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * amp
+			shake_tw.tween_property(reel_frame, "position", base + offset, 0.04)
+			amp = maxf(amp - 1.2, 2.0)
+		shake_tw.tween_property(reel_frame, "position", base, 0.04)
+
 	var lbl := Label.new()
-	lbl.text = "New Skin: %s!" % skin.name
-	lbl.position = Vector2(VIEW.x * 0.5 - 140, VIEW.y * 0.5 - 20)
+	var text := "%s — Duplicate (+1 Shard)" % skin.name if is_dup else "New Skin: %s!" % skin.name
+	if skin.get("key_from_shards", false):
+		text += "\n+1 Key from Shards!"
+	lbl.text = text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(VIEW.x * 0.5 - 180, VIEW.y * 0.5 - 20)
+	lbl.custom_minimum_size = Vector2(360, 0)
 	lbl.add_theme_font_size_override("font_size", 30)
 	lbl.add_theme_color_override("font_color", skin.color)
 	lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.1, 0.12))
@@ -523,7 +697,7 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 	var tw := create_tween()
 	tw.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.3).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(lbl, "position:y", lbl.position.y - 40, 0.3).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(0.6)
+	tw.tween_interval(0.9)
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(lyr.queue_free)
 

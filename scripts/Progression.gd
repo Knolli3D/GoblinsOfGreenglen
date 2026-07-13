@@ -39,8 +39,18 @@ const DAILY_FULL_KEY_CLAIMS := 6
 const FRAGMENTS_PER_KEY := 3
 const WEEKLY_REWARD := 3
 
+# Duplikat-Skins geben Shards (10 = 1 Key) — bewusst schwächer als Quest-Fragmente (3 = 1),
+# damit Dupes ein Trostpreis bleiben und kein Farm-Einkommen werden.
+const SHARDS_PER_KEY := 10
+const PREMIUM_CASE_COST := 3
+const PREMIUM_WEIGHTS := {"rare": 80, "epic": 20}
+const TIER_RANK := {"": 0, "common": 1, "rare": 2, "epic": 3}
+
 var keys := 0
 var key_fragments := 0
+var dup_shards := 0
+var cases_opened := 0
+var best_pull := ""
 var last_reset := ""
 var daily_claims_today := 0
 var active_ids: Array = []
@@ -206,28 +216,70 @@ func get_keys() -> int:
 func get_fragments() -> int:
 	return key_fragments
 
-func open_case() -> Dictionary:
-	if keys <= 0:
+func _tier_rank(tier: String) -> int:
+	return int(TIER_RANK.get(tier, 0))
+
+func open_case(premium: bool = false) -> Dictionary:
+	var cost: int = PREMIUM_CASE_COST if premium else 1
+	if keys < cost:
 		return {}
-	keys -= 1
+	keys -= cost
+	var weights := {}
+	if premium:
+		weights = PREMIUM_WEIGHTS
+	else:
+		for tier: String in SKIN_TIERS:
+			weights[tier] = SKIN_TIERS[tier].weight
 	var total_weight := 0
-	for tier: String in SKIN_TIERS:
-		total_weight += SKIN_TIERS[tier].weight
+	for tier: String in weights:
+		total_weight += int(weights[tier])
 	var roll := randi_range(1, total_weight)
 	var picked_tier := ""
 	var acc := 0
-	for tier: String in SKIN_TIERS:
-		acc += SKIN_TIERS[tier].weight
+	for tier: String in weights:
+		acc += int(weights[tier])
 		if roll <= acc:
 			picked_tier = tier
 			break
 	var skins: Array = SKIN_TIERS[picked_tier].skins
 	var skin: Dictionary = skins[randi() % skins.size()].duplicate()
 	skin["tier"] = picked_tier
-	if skin.id not in owned_skins:
+	var is_dup: bool = skin.id in owned_skins
+	var shards_gained := 0
+	var key_from_shards := false
+	if is_dup:
+		dup_shards += 1
+		shards_gained = 1
+		if dup_shards >= SHARDS_PER_KEY:
+			dup_shards -= SHARDS_PER_KEY
+			keys += 1
+			key_from_shards = true
+	else:
 		owned_skins.append(skin.id)
+	cases_opened += 1
+	if _tier_rank(picked_tier) > _tier_rank(best_pull):
+		best_pull = picked_tier
 	_save()
+	skin["duplicate"] = is_dup
+	skin["shards_gained"] = shards_gained
+	skin["key_from_shards"] = key_from_shards
 	return skin
+
+func get_shards() -> int:
+	return dup_shards
+
+func get_cases_opened() -> int:
+	return cases_opened
+
+func get_best_pull() -> String:
+	return best_pull
+
+func get_total_skin_count() -> int:
+	var total := 0
+	for tier: String in SKIN_TIERS:
+		var skins: Array = SKIN_TIERS[tier].skins
+		total += skins.size()
+	return total
 
 func get_owned_skins() -> Array:
 	var result: Array = []
@@ -260,6 +312,9 @@ func _load() -> void:
 		return
 	keys = cfg.get_value("currency", "keys", 0)
 	key_fragments = cfg.get_value("currency", "key_fragments", 0)
+	dup_shards = cfg.get_value("currency", "dup_shards", 0)
+	cases_opened = cfg.get_value("stats", "cases_opened", 0)
+	best_pull = cfg.get_value("stats", "best_pull", "")
 	last_reset = cfg.get_value("quests", "last_reset", "")
 	daily_claims_today = cfg.get_value("quests", "daily_claims_today", 0)
 	active_ids = cfg.get_value("quests", "active_ids", [])
@@ -278,6 +333,9 @@ func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("currency", "keys", keys)
 	cfg.set_value("currency", "key_fragments", key_fragments)
+	cfg.set_value("currency", "dup_shards", dup_shards)
+	cfg.set_value("stats", "cases_opened", cases_opened)
+	cfg.set_value("stats", "best_pull", best_pull)
 	cfg.set_value("quests", "last_reset", last_reset)
 	cfg.set_value("quests", "daily_claims_today", daily_claims_today)
 	cfg.set_value("quests", "active_ids", active_ids)
