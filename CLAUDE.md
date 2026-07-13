@@ -211,8 +211,8 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
 - **Claim**: Keys werden nicht automatisch vergeben — im Quests-Menü muss ein fertiger Quest
   per Button bestätigt werden (`Progression.claim_quest(slot)` / `claim_weekly(slot)`).
   Das Quests-Menü hat zwei Sektionen (Daily/Weekly) mit Statuszeile für Bonus-Modus/Fragmente.
-- **Cases**: Regulär 1 Key (Tier-Gewichte 70/25/5), Premium 3 Keys (`PREMIUM_WEIGHTS` 80/20
-  Rare/Epic, keine Commons — "Skip-Commons"-Beschleuniger für Completion). Duplikate geben
+- **Cases**: Regulär 1 Key (Tier-Gewichte 60/24/12/4), Premium 3 Keys (`PREMIUM_WEIGHTS` 55/30/15
+  Rare/Epic/Legendary, keine Commons — "Skip-Commons"-Beschleuniger für Completion). Duplikate geben
   1 Shard (`dup_shards`, `SHARDS_PER_KEY` 10 = 1 Key, Auto-Konvertierung) — bewusst schwächer
   als Quest-Fragmente (3 = 1), damit Dupes Trostpreis bleiben. Kein Pity-System.
   Stats in Sektion `[stats]` (`cases_opened`, `best_pull` via `TIER_RANK`-Vergleich);

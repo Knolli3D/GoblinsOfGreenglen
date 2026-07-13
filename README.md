@@ -163,12 +163,12 @@ A meta-progression loop layered on top of the core game, all saved locally to `u
 - **Weekly quests** — 2 bigger challenges per week (e.g. finish 10 runs, stomp 50 goblins), worth more.
 - **Keys** — earned only by claiming quests (not buyable with coins, so cases stay meaningful). The first 6 daily claims each day pay a full key; further claims pay key fragments (3 = 1 key).
 - **Cases** — spend keys to open a case and win a cosmetic **skin**, revealed via a CS:GO-style spinning reel that decelerates onto the reward.
-  - **Regular case** (1 key): weighted rarity tiers (Common 70% / Rare 25% / Epic 5%).
-  - **Premium case** (3 keys): Rare-or-better only (Rare 80% / Epic 20%) — a "skip the Commons" completion accelerator.
+  - **Regular case** (1 key): weighted rarity tiers (Common 60% / Rare 24% / Epic 12% / Legendary 4%).
+  - **Premium case** (3 keys): Rare-or-better only (Rare 55% / Epic 30% / Legendary 15%) — a "skip the Commons" completion accelerator.
   - **Duplicate shards** — rolling a skin you already own grants 1 shard; 10 shards auto-convert to 1 key (deliberately weaker than quest fragments, so dupes are a consolation, not income).
-  - **Reveal flair scales with rarity** — Rare adds a colored flash + fanfare, Epic adds a bigger flash, screen shake, and the win jingle.
+  - **Reveal flair scales with rarity** — Rare adds a colored flash + fanfare, Epic/Legendary add a bigger flash, screen shake, and the win jingle.
   - The Cases menu shows your keys, shard progress, collection completion (X/Y skins), total cases opened, and best pull.
-- **Skins** — recolored knight variants. The Skins menu has a two-column layout: a rarity-colored list on the left and a live preview on the right showing the character art, name, tier, and equipped status. Selecting previews; a separate button equips. The equipped skin is applied to the knight on every level load.
+- **Skins** — cosmetic character variants across four rarity tiers: **Common** knights (Bronze/Silver, simple color tints), **Rare** and **Epic** knights (Gold, Emerald, Pink, Blood, Black — hand-painted art), and a **Legendary** tier of princesses (Golden, Emerald, Amethyst, Ruby — rarer than any knight). The **Sapphire Princess** is a free starter skin owned from the very beginning, alongside the default knight. The Skins menu has a two-column layout: a rarity-colored list on the left and a live preview on the right showing the character art, name, tier, and equipped status. Selecting previews; a separate button equips. The equipped skin is applied on every level load.
 
 ---
 
