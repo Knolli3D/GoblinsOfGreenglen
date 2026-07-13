@@ -155,6 +155,18 @@ Your best completed run (score + coins) is saved locally to `user://highscore.cf
 
 ---
 
+## Quests, Keys, Cases & Skins
+
+A meta-progression loop layered on top of the core game, all saved locally to `user://progression.cfg`:
+
+- **Daily quests** — 3 active from a pool of 7 (stomp goblins, collect coins, clear levels, double-jumps, etc.), reset on the real calendar day. Claiming all three immediately rolls a fresh set.
+- **Weekly quests** — 2 bigger challenges per week (e.g. finish 10 runs, stomp 50 goblins), worth more.
+- **Keys** — earned only by claiming quests (not buyable with coins, so cases stay meaningful). The first 6 daily claims each day pay a full key; further claims pay key fragments (3 = 1 key).
+- **Cases** — spend 1 key to open a case and reveal a cosmetic **skin**, with weighted rarity tiers (Common / Rare / Epic).
+- **Skins** — recolored knight variants. The Skins menu has a two-column layout: a rarity-colored list on the left and a live preview on the right showing the character art, name, tier, and equipped status. Selecting previews; a separate button equips. The equipped skin is applied to the knight on every level load.
+
+---
+
 ## Level Design (editing)
 
 Open any `scenes/Level*.tscn` in the Godot 2D editor:

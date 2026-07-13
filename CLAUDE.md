@@ -204,9 +204,19 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
   sonst nur `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in
   `Game._load_level()` via `player.apply_skin(Progression.get_equipped_skin())` bei jedem
   Levelstart. Ohne ausgerüsteten Skin bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
-- **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. "Quit Game" ist
-  bewusst nicht Teil der VBoxContainer-Button-Liste, sondern unten rechts fix verankert
-  (`PRESET_BOTTOM_RIGHT` + `offset_*`), damit neue Menü-Buttons es nicht aus dem Fenster schieben.
+- **Skins-Menü (Preview)**: Zwei-Spalten-Layout — links scrollbare Skin-Liste (Buttons, Text in
+  Rarity-Farbe via `TIER_COLORS`, ausgewählter mit `▶`-Präfix), rechts Preview-Panel mit großem
+  Sprite, Name, Rarity-Tier und `✓ Equipped`-Indikator. Klick auf einen Listeneintrag setzt nur
+  `selected_skin_id` und aktualisiert die Preview (`_update_skin_preview()`); erst der separate
+  Equip-Button ruft `Progression.equip_skin()`. Preview rendert Textur-Skins direkt, Tint-Skins als
+  Basis-Ritter + `modulate` — gleiche Logik wie `Player.apply_skin()`. Default-Auswahl beim Öffnen:
+  ausgerüsteter Skin, sonst erster besessener.
+- **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. Der Hauptmenü-VBox
+  spannt die volle Viewport-Breite (`custom_minimum_size.x = VIEW.x`), Buttons zentriert via
+  `SIZE_SHRINK_CENTER` — sonst würde das breite Titel-Label die Box-Breite aufblähen und Titel +
+  Buttons aus der Mitte schieben. "Quit Game" ist bewusst nicht Teil der Button-Liste, sondern unten
+  rechts fix verankert (`PRESET_BOTTOM_RIGHT` + `offset_*`), damit neue Menü-Buttons es nicht
+  aus dem Fenster schieben.
 - **Out of scope (bewusst)**: Gameplay-Perks (nur Skins in v1), Keys mit Coins kaufen,
   weitere Level für mehr Quest-Varianz — siehe Plan-Historie für Details.
 

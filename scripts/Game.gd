@@ -59,6 +59,18 @@ var cases_keys_label: Label
 var open_case_btn: Button
 var skins_menu: Control
 var skins_list: VBoxContainer
+var skins_preview_sprite: TextureRect
+var skins_preview_name: Label
+var skins_preview_tier: Label
+var skins_preview_equipped: Label
+var skins_equip_btn: Button
+var selected_skin_id := ""
+
+const TIER_COLORS := {
+	"common": Color(0.55, 0.85, 0.55),
+	"rare": Color(0.4, 0.6, 1.0),
+	"epic": Color(0.8, 0.45, 0.95),
+}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -201,10 +213,12 @@ func _build_main_menu() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main_menu.add_child(dim)
 
+	# Box über die volle Breite, damit Titel/Buttons echt zentriert sind (ein breites
+	# Label würde sonst die Box-Breite aufblähen und alles aus der Mitte schieben)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
-	box.position = Vector2(VIEW.x * 0.5 - 130, VIEW.y * 0.5 - 120)
-	box.custom_minimum_size = Vector2(260, 0)
+	box.position = Vector2(0, VIEW.y * 0.5 - 120)
+	box.custom_minimum_size = Vector2(VIEW.x, 0)
 	main_menu.add_child(box)
 
 	var title := Label.new()
@@ -231,24 +245,28 @@ func _build_main_menu() -> void:
 	var start_btn := Button.new()
 	start_btn.text = "Start Game"
 	start_btn.custom_minimum_size = Vector2(260, 48)
+	start_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	start_btn.pressed.connect(_start_game)
 	box.add_child(start_btn)
 
 	var quests_btn := Button.new()
 	quests_btn.text = "Quests"
 	quests_btn.custom_minimum_size = Vector2(260, 40)
+	quests_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	quests_btn.pressed.connect(_show_quests_menu)
 	box.add_child(quests_btn)
 
 	var cases_btn := Button.new()
 	cases_btn.text = "Cases"
 	cases_btn.custom_minimum_size = Vector2(260, 40)
+	cases_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	cases_btn.pressed.connect(_show_cases_menu)
 	box.add_child(cases_btn)
 
 	var skins_btn := Button.new()
 	skins_btn.text = "Skins"
 	skins_btn.custom_minimum_size = Vector2(260, 40)
+	skins_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	skins_btn.pressed.connect(_show_skins_menu)
 	box.add_child(skins_btn)
 
@@ -512,20 +530,83 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 func _build_skins_menu() -> void:
 	var shell := _build_submenu_shell(13, "Skins", "res://assets/skins_background.png")
 	skins_menu = shell.menu
+
+	# Linke Spalte: scrollbare Skin-Liste
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(80, 120)
+	scroll.custom_minimum_size = Vector2(340, 360)
+	scroll.size = Vector2(340, 360)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	skins_menu.add_child(scroll)
+
 	skins_list = VBoxContainer.new()
-	skins_list.add_theme_constant_override("separation", 10)
-	shell.box.add_child(skins_list)
+	skins_list.add_theme_constant_override("separation", 8)
+	skins_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(skins_list)
+
+	# Rechte Spalte: Preview-Panel
+	var preview := VBoxContainer.new()
+	preview.position = Vector2(540, 120)
+	preview.custom_minimum_size = Vector2(340, 360)
+	preview.add_theme_constant_override("separation", 10)
+	preview.alignment = BoxContainer.ALIGNMENT_CENTER
+	skins_menu.add_child(preview)
+
+	skins_preview_sprite = TextureRect.new()
+	skins_preview_sprite.custom_minimum_size = Vector2(340, 230)
+	skins_preview_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	skins_preview_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.add_child(skins_preview_sprite)
+
+	skins_preview_name = Label.new()
+	skins_preview_name.add_theme_font_size_override("font_size", 24)
+	skins_preview_name.add_theme_color_override("font_color", Color.WHITE)
+	skins_preview_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skins_preview_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview.add_child(skins_preview_name)
+
+	skins_preview_tier = Label.new()
+	skins_preview_tier.add_theme_font_size_override("font_size", 18)
+	skins_preview_tier.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skins_preview_tier.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview.add_child(skins_preview_tier)
+
+	skins_preview_equipped = Label.new()
+	skins_preview_equipped.text = "✓ Equipped"
+	skins_preview_equipped.add_theme_font_size_override("font_size", 16)
+	skins_preview_equipped.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
+	skins_preview_equipped.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skins_preview_equipped.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview.add_child(skins_preview_equipped)
+
+	skins_equip_btn = Button.new()
+	skins_equip_btn.custom_minimum_size = Vector2(200, 40)
+	skins_equip_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	skins_equip_btn.pressed.connect(_on_equip_selected)
+	preview.add_child(skins_equip_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Back"
-	back_btn.custom_minimum_size = Vector2(300, 40)
+	back_btn.custom_minimum_size = Vector2(120, 40)
+	back_btn.position = Vector2(80, 490)
 	back_btn.pressed.connect(_hide_submenus)
-	shell.box.add_child(back_btn)
+	skins_menu.add_child(back_btn)
 
 func _show_skins_menu() -> void:
 	play_sfx("click")
 	main_menu.visible = false
 	skins_menu.visible = true
+	# Default-Auswahl: ausgerüsteter Skin, sonst erster besessener
+	var owned := Progression.get_owned_skins()
+	if not owned.is_empty():
+		selected_skin_id = Progression.equipped_skin
+		var owns_selected := false
+		for skin: Dictionary in owned:
+			if skin.id == selected_skin_id:
+				owns_selected = true
+				break
+		if not owns_selected:
+			selected_skin_id = owned[0].id
 	_refresh_skins_menu()
 
 func _refresh_skins_menu() -> void:
@@ -534,41 +615,59 @@ func _refresh_skins_menu() -> void:
 	var owned := Progression.get_owned_skins()
 	if owned.is_empty():
 		var empty_lbl := Label.new()
-		empty_lbl.text = "No skins yet — open a case!"
+		empty_lbl.text = "No skins yet —\nopen a case!"
 		empty_lbl.add_theme_font_size_override("font_size", 16)
-		empty_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		empty_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 		skins_list.add_child(empty_lbl)
+		skins_preview_sprite.texture = null
+		skins_preview_name.text = ""
+		skins_preview_tier.text = ""
+		skins_preview_equipped.visible = false
+		skins_equip_btn.visible = false
 		return
 	for skin: Dictionary in owned:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		skins_list.add_child(row)
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(320, 36)
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var prefix := "▶ " if skin.id == selected_skin_id else "    "
+		btn.text = "%s%s" % [prefix, skin.name]
+		btn.add_theme_color_override("font_color", TIER_COLORS.get(skin.tier, Color.WHITE))
+		btn.pressed.connect(_on_select_skin.bind(skin.id))
+		skins_list.add_child(btn)
+	_update_skin_preview()
 
-		var swatch := ColorRect.new()
-		swatch.color = skin.color
-		swatch.custom_minimum_size = Vector2(24, 24)
-		row.add_child(swatch)
-
-		var lbl := Label.new()
-		lbl.text = skin.name
-		lbl.custom_minimum_size = Vector2(160, 0)
-		lbl.add_theme_font_size_override("font_size", 16)
-		lbl.add_theme_color_override("font_color", Color.WHITE)
-		row.add_child(lbl)
-
-		var equip_btn := Button.new()
-		equip_btn.custom_minimum_size = Vector2(100, 32)
-		if skin.id == Progression.equipped_skin:
-			equip_btn.text = "Equipped"
-			equip_btn.disabled = true
-		else:
-			equip_btn.text = "Equip"
-			equip_btn.pressed.connect(_on_equip_skin.bind(skin.id))
-		row.add_child(equip_btn)
-
-func _on_equip_skin(id: String) -> void:
+func _on_select_skin(id: String) -> void:
 	play_sfx("click")
-	Progression.equip_skin(id)
+	selected_skin_id = id
+	_refresh_skins_menu()
+
+func _update_skin_preview() -> void:
+	var selected := {}
+	for skin: Dictionary in Progression.get_owned_skins():
+		if skin.id == selected_skin_id:
+			selected = skin
+			break
+	if selected.is_empty():
+		return
+	var texture_path: String = selected.get("texture", "")
+	if texture_path != "" and ResourceLoader.exists(texture_path):
+		skins_preview_sprite.texture = load(texture_path)
+		skins_preview_sprite.modulate = Color.WHITE
+	else:
+		skins_preview_sprite.texture = load("res://assets/sprite_knight.png")
+		skins_preview_sprite.modulate = selected.get("color", Color.WHITE)
+	skins_preview_name.text = selected.name
+	skins_preview_tier.text = String(selected.tier).capitalize()
+	skins_preview_tier.add_theme_color_override("font_color", TIER_COLORS.get(selected.tier, Color.WHITE))
+	var is_equipped: bool = selected.id == Progression.equipped_skin
+	skins_preview_equipped.visible = is_equipped
+	skins_equip_btn.visible = true
+	skins_equip_btn.text = "Equipped" if is_equipped else "Equip"
+	skins_equip_btn.disabled = is_equipped
+
+func _on_equip_selected() -> void:
+	play_sfx("click")
+	Progression.equip_skin(selected_skin_id)
 	_refresh_skins_menu()
 
 func _hide_submenus() -> void:
