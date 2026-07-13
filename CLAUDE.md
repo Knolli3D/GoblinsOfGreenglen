@@ -224,18 +224,24 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
   Karten-Art nutzt das gleiche Textur/Tint-Muster wie die Skins-Preview.
 - **Reveal-Effekte pro Tier** (`Game._spawn_skin_reveal()`, Tween-Muster wie `_spawn_pow()`):
   Common = Float-Label; Rare = + Farb-Flash (`TIER_COLORS`) + `level_clear`-SFX;
-  Epic = stärkerer Flash + Shake am `reel_frame` + `win`-SFX. Dupe-Label zeigt
-  "+1 Shard" bzw. "+1 Key from Shards!" bei Konvertierung.
-- **Skins**: zwei Varianten je nach `SKIN_TIERS`-Eintrag. Common-Skins (Bronze/Silber) sind reine
-  Farb-Tints (`Sprite2D.modulate`) ohne neues Artwork — funktioniert nur für Helligkeits-/Sättigungs-
-  Verschiebungen der Basis-Palette. Rare/Epic-Skins (Gold/Emerald/Blood) nutzen echtes Artwork
-  (`texture`-Feld mit Pfad zu `assets/sprite_knight_*.png`), da Tinting bei neuen Farbtönen falsche
-  Ergebnisse liefert (z.B. blauer Umhang wird unter Gold-Tint grün statt gold). `Player.apply_skin(skin)`
-  bekommt das komplette Skin-Dictionary, tauscht bei vorhandenem `texture`-Feld die Sprite-Textur
-  (inkl. Neuberechnung der Skalierung, da die Artwork-Dateien unterschiedliche Pixelmaße haben),
-  sonst nur `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in
-  `Game._load_level()` via `player.apply_skin(Progression.get_equipped_skin())` bei jedem
-  Levelstart. Ohne ausgerüsteten Skin bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
+  Epic/Legendary = stärkerer Flash + Shake am `reel_frame` + `win`-SFX (Legendary am kräftigsten).
+  Dupe-Label zeigt "+1 Shard" bzw. "+1 Key from Shards!" bei Konvertierung.
+- **Tiers & Skins** (`SKIN_TIERS`, Gewichte regulär 60/24/12/4): **Common** (Bronze/Silber, reine
+  `modulate`-Tints ohne Artwork), **Rare** (Gold/Emerald/Pink Knight), **Epic** (Blood/Black Knight),
+  **Legendary** (4 Prinzessinnen: Golden/Emerald/Amethyst/Ruby — seltener als alle Ritter).
+  Zusätzlich ein **`starter`-Tier mit weight 0** (nie aus Cases): die **Sapphire Princess**
+  (`princess_blue`) ist über `STARTER_SKINS` von Anfang an besessen (neben dem Default-Ritter ohne
+  Skin). `_ensure_starter_skins()` in `_ready()` garantiert das auch für Alt-Saves. Premium-Case-
+  Gewichte (`PREMIUM_WEIGHTS`) 55/30/15 Rare/Epic/Legendary (keine Commons/Starter).
+- **Texture- vs. Tint-Skins**: Tint-Skins (Common) nur `Sprite2D.modulate` (funktioniert nur für
+  Helligkeits-/Sättigungs-Verschiebungen der Basis-Palette). Alle anderen nutzen echtes Artwork
+  (`texture`-Feld → `assets/sprite_knight_*.png` / `sprite_princess_*.png`), da Tinting bei neuen
+  Farbtönen falsche Ergebnisse liefert. `Player.apply_skin(skin)` bekommt das komplette Skin-
+  Dictionary, tauscht bei `texture` die Sprite-Textur (inkl. Neu-Skalierung, da die Dateien
+  unterschiedliche Pixelmaße haben — Prinzessinnen sind z.B. schmaler/höher als Ritter), sonst nur
+  `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via
+  `player.apply_skin(Progression.get_equipped_skin())` bei jedem Levelstart. Ohne ausgerüsteten Skin
+  bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
 - **Skins-Menü (Preview)**: Zwei-Spalten-Layout — links scrollbare Skin-Liste (Buttons, Text in
   Rarity-Farbe via `TIER_COLORS`, ausgewählter mit `▶`-Präfix), rechts Preview-Panel mit großem
   Sprite, Name, Rarity-Tier und `✓ Equipped`-Indikator. Klick auf einen Listeneintrag setzt nur

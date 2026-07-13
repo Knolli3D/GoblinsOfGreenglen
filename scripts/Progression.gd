@@ -20,18 +20,34 @@ const WEEKLY_POOL := [
 ]
 
 const SKIN_TIERS := {
-	"common": {"weight": 70, "skins": [
+	"common": {"weight": 60, "skins": [
 		{"id": "bronze_knight", "name": "Bronze Knight", "color": Color(0.8, 0.55, 0.3)},
 		{"id": "silver_knight", "name": "Silver Knight", "color": Color(0.78, 0.8, 0.85)},
 	]},
-	"rare": {"weight": 25, "skins": [
+	"rare": {"weight": 24, "skins": [
 		{"id": "gold_knight", "name": "Gold Knight", "color": Color(1.0, 0.85, 0.2), "texture": "res://assets/sprite_knight_gold.png"},
 		{"id": "emerald_knight", "name": "Emerald Knight", "color": Color(0.2, 0.85, 0.45), "texture": "res://assets/sprite_knight_emerald.png"},
+		{"id": "pink_knight", "name": "Pink Knight", "color": Color(0.95, 0.45, 0.7), "texture": "res://assets/sprite_knight_pink.png"},
 	]},
-	"epic": {"weight": 5, "skins": [
+	"epic": {"weight": 12, "skins": [
 		{"id": "blood_knight", "name": "Blood Knight", "color": Color(0.55, 0.05, 0.08), "texture": "res://assets/sprite_knight_blood.png"},
+		{"id": "black_knight", "name": "Black Knight", "color": Color(0.35, 0.3, 0.4), "texture": "res://assets/sprite_knight_black.png"},
+	]},
+	# Prinzessinnen — seltener als alle Ritter-Skins.
+	"legendary": {"weight": 4, "skins": [
+		{"id": "princess_gold", "name": "Golden Princess", "color": Color(1.0, 0.8, 0.2), "texture": "res://assets/sprite_princess_gold.png"},
+		{"id": "princess_green", "name": "Emerald Princess", "color": Color(0.3, 0.8, 0.4), "texture": "res://assets/sprite_princess_green.png"},
+		{"id": "princess_purple", "name": "Amethyst Princess", "color": Color(0.7, 0.4, 0.9), "texture": "res://assets/sprite_princess_purple.png"},
+		{"id": "princess_red", "name": "Ruby Princess", "color": Color(0.9, 0.25, 0.35), "texture": "res://assets/sprite_princess_red.png"},
+	]},
+	# Starter-Tier: weight 0 → nie aus Cases, aber von Anfang an besessen (STARTER_SKINS).
+	"starter": {"weight": 0, "skins": [
+		{"id": "princess_blue", "name": "Sapphire Princess", "color": Color(0.25, 0.5, 0.95), "texture": "res://assets/sprite_princess_blue.png"},
 	]},
 }
+
+# Skins, die jeder Spieler von Anfang an besitzt (neben dem Default-Ritter ohne Skin).
+const STARTER_SKINS := ["princess_blue"]
 
 # Nur die ersten 6 Daily-Claims pro Tag geben volle Keys; danach Fragmente (3 = 1 Key),
 # damit unbegrenztes Weiterspielen belohnt bleibt, aber 3x weniger effizient ist.
@@ -43,8 +59,8 @@ const WEEKLY_REWARD := 3
 # damit Dupes ein Trostpreis bleiben und kein Farm-Einkommen werden.
 const SHARDS_PER_KEY := 10
 const PREMIUM_CASE_COST := 3
-const PREMIUM_WEIGHTS := {"rare": 80, "epic": 20}
-const TIER_RANK := {"": 0, "common": 1, "rare": 2, "epic": 3}
+const PREMIUM_WEIGHTS := {"rare": 55, "epic": 30, "legendary": 15}
+const TIER_RANK := {"": 0, "common": 1, "rare": 2, "epic": 3, "legendary": 4}
 
 var keys := 0
 var key_fragments := 0
@@ -67,8 +83,20 @@ var equipped_skin := ""
 
 func _ready() -> void:
 	_load()
+	_ensure_starter_skins()
 	check_daily_reset()
 	check_weekly_reset()
+
+# Garantiert, dass Starter-Skins besessen sind — auch bei frischer Installation oder
+# Alt-Saves von vor dem Starter-Feature.
+func _ensure_starter_skins() -> void:
+	var changed := false
+	for id: String in STARTER_SKINS:
+		if id not in owned_skins:
+			owned_skins.append(id)
+			changed = true
+	if changed:
+		_save()
 
 func _def_in(pool: Array, id: String) -> Dictionary:
 	for q: Dictionary in pool:

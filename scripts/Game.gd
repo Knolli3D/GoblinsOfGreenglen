@@ -81,6 +81,8 @@ const TIER_COLORS := {
 	"common": Color(0.55, 0.85, 0.55),
 	"rare": Color(0.4, 0.6, 1.0),
 	"epic": Color(0.8, 0.45, 0.95),
+	"legendary": Color(1.0, 0.65, 0.15),
+	"starter": Color(0.55, 0.8, 0.85),
 }
 
 func _ready() -> void:
@@ -656,21 +658,29 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 	var tier: String = skin.get("tier", "common")
 	var is_dup: bool = skin.get("duplicate", false)
 
-	# Rarity-Flash hinter dem Label (Rare/Epic)
-	if tier == "rare" or tier == "epic":
+	# Rarity-Flash hinter dem Label — Flair skaliert mit Seltenheit.
+	var big_tier: bool = tier == "epic" or tier == "legendary"
+	if tier == "rare" or big_tier:
 		var flash := ColorRect.new()
 		var flash_color: Color = TIER_COLORS.get(tier, Color.WHITE)
-		flash_color.a = 0.55 if tier == "epic" else 0.35
+		var flash_alpha := 0.35
+		var flash_dur := 0.5
+		if tier == "epic":
+			flash_alpha = 0.55
+			flash_dur = 0.8
+		elif tier == "legendary":
+			flash_alpha = 0.65
+			flash_dur = 0.9
+		flash_color.a = flash_alpha
 		flash.color = flash_color
 		flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 		lyr.add_child(flash)
 		var flash_tw := create_tween()
-		flash_tw.tween_property(flash, "color:a", 0.0, 0.8 if tier == "epic" else 0.5) \
-			.set_ease(Tween.EASE_OUT)
-		play_sfx("win" if tier == "epic" else "level_clear")
+		flash_tw.tween_property(flash, "color:a", 0.0, flash_dur).set_ease(Tween.EASE_OUT)
+		play_sfx("level_clear" if tier == "rare" else "win")
 
-	# Screen-Shake am Reel-Rahmen (nur Epic)
-	if tier == "epic" and reel_frame != null:
+	# Screen-Shake am Reel-Rahmen (Epic + Legendary)
+	if big_tier and reel_frame != null:
 		var base: Vector2 = reel_frame.position
 		var shake_tw := create_tween()
 		var amp := 8.0
