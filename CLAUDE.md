@@ -165,15 +165,29 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
 `user://progression.cfg` (ConfigFile, gleiches Muster wie `highscore.cfg`), Sektionen `[currency]`,
 `[quests]`, `[inventory]`.
 
-- **Daily Quests**: 3 aktive Quests aus einem Pool von 4 (`QUEST_POOL`), Reset am echten
+- **Daily Quests**: 3 aktive Quests aus einem Pool von 7 (`QUEST_POOL`), Reset am echten
   Kalendertag (`Time.get_date_string_from_system()` Vergleich gegen `last_reset`) — passiert in
-  `_ready()` und beim Öffnen des Quests-Menüs. Quest-Typen: Goblins stompen, Coins sammeln,
-  Ziel ohne Schaden erreichen, kompletten Run beenden.
-- **Progress-Tracking**: `Progression.add_quest_progress(stat)` wird von Game.gd an bestehenden
-  Hook-Punkten aufgerufen (`coin_collected()`, `_on_player_stomped_enemy()`, `reach_goal()`).
-  `took_damage_this_level` (Game.gd, pro Level zurückgesetzt) trackt den Schadenlos-Quest.
+  `_ready()` und beim Öffnen des Quests-Menüs. Quest-Typen: Goblins stompen, Coins sammeln (2 Größen),
+  Ziel ohne Schaden erreichen, kompletten Run beenden, Double-Jumps, Level clearen.
+- **Refill & Fragmente**: Sobald alle 3 Dailies geclaimed sind, rollt sofort ein frisches Set
+  (in `claim_quest()`; `_refill_if_all_claimed()` als Safety-Net für Alt-Saves). Die ersten 6
+  Daily-Claims pro Tag (`DAILY_FULL_KEY_CLAIMS`) geben je 1 Key; danach je 1 Key-Fragment
+  (`key_fragments`, 3 = 1 Key, `FRAGMENTS_PER_KEY`) — unbegrenztes Grinden bleibt möglich,
+  ist aber 3x weniger effizient. `daily_claims_today` wird beim Tagesreset genullt.
+- **Weekly Quests**: 2 aktive aus `WEEKLY_POOL` (4 Typen: 10 Runs, 50 Goblins, 100 Coins,
+  3 schadenfreie Runs), je 3 Keys (`WEEKLY_REWARD`), kein Refill innerhalb der Woche.
+  Wochen-Identität: Montag-basierter Wochenindex seit Epoch (`_current_week_id()`,
+  Unix-Zeit / 86400 + 3 Tage Offset / 7), Reset via `check_weekly_reset()`.
+- **Progress-Tracking**: `Progression.add_quest_progress(stat)` aktualisiert Dailies UND Weeklies;
+  Hooks in Game.gd: `coin_collected()`, `_on_player_stomped_enemy()`, `reach_goal()`
+  (auch `level_clear` pro Ziel), `double_jumped`-Signal (in `_load_level()` verbunden).
+  `took_damage_this_level` (pro Level) trackt den Schadenlos-Level-Quest,
+  `took_damage_this_run` (pro Run, Reset an allen Run-Start-Stellen) den schadenfreien Run-Weekly.
+  Wichtig: Tod erzwingt Neustart ab Level 1, d.h. jeder *abgeschlossene* Run ist automatisch
+  todlos — deshalb gibt es "Finish X runs" (Volumen) und "ohne Schaden" (Skill) statt "ohne Tod".
 - **Claim**: Keys werden nicht automatisch vergeben — im Quests-Menü muss ein fertiger Quest
-  per Button bestätigt werden (`Progression.claim_quest(slot)`).
+  per Button bestätigt werden (`Progression.claim_quest(slot)` / `claim_weekly(slot)`).
+  Das Quests-Menü hat zwei Sektionen (Daily/Weekly) mit Statuszeile für Bonus-Modus/Fragmente.
 - **Cases**: 1 Key = 1 Case-Opening. Rewards sind Skins mit gewichteten Rarity-Tiers
   (`SKIN_TIERS`: Common/Rare/Epic), Duplikate sind erlaubt (kein Pity-/Dust-System).
   Reveal-Animation (`Game._spawn_skin_reveal()`) nutzt das gleiche Tween-Muster wie `_spawn_pow()`.

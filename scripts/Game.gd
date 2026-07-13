@@ -50,6 +50,7 @@ var best_coins := 0
 var has_highscore := false
 var highscore_label: Label
 var took_damage_this_level := false
+var took_damage_this_run := false
 var keys_label: Label
 var quests_menu: Control
 var quests_list: VBoxContainer
@@ -289,6 +290,7 @@ func _start_game() -> void:
 	keys_label.visible = true
 	score = 0
 	coin_count = 0
+	took_damage_this_run = false
 	music_player.play()
 	_load_level(0)
 
@@ -313,6 +315,7 @@ func _restart_level_from_menu() -> void:
 	music_player.volume_db = 0.0
 	score = 0
 	coin_count = 0
+	took_damage_this_run = false
 	if not music_player.playing:
 		music_player.play()
 	_load_level(0)
@@ -364,40 +367,74 @@ func _build_quests_menu() -> void:
 func _show_quests_menu() -> void:
 	play_sfx("click")
 	Progression.check_daily_reset()
+	Progression.check_weekly_reset()
 	main_menu.visible = false
 	quests_menu.visible = true
 	_refresh_quests_menu()
 
+func _add_quest_section_header(text: String) -> void:
+	var header := Label.new()
+	header.text = text
+	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", Color(1, 0.95, 0.6))
+	quests_list.add_child(header)
+
+func _add_quest_row(quest: Dictionary, claim_text: String, claim_handler: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	quests_list.add_child(row)
+
+	var lbl := Label.new()
+	lbl.text = "%s (%d/%d)" % [quest.desc, quest.progress, quest.target]
+	lbl.custom_minimum_size = Vector2(230, 0)
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	row.add_child(lbl)
+
+	var claim_btn := Button.new()
+	claim_btn.custom_minimum_size = Vector2(100, 32)
+	if quest.claimed:
+		claim_btn.text = "Claimed"
+		claim_btn.disabled = true
+	else:
+		claim_btn.text = claim_text
+		if quest.completed:
+			claim_btn.pressed.connect(claim_handler.bind(quest.slot))
+		else:
+			claim_btn.disabled = true
+	row.add_child(claim_btn)
+
 func _refresh_quests_menu() -> void:
 	for child in quests_list.get_children():
 		child.queue_free()
+
+	_add_quest_section_header("Daily")
+
+	var reward_line := Label.new()
+	var bonus_mode: bool = Progression.daily_claims_today >= Progression.DAILY_FULL_KEY_CLAIMS
+	var reward_text := "Bonus quests: 1/3 🔑 each" if bonus_mode else "1 🔑 per quest"
+	if Progression.get_fragments() > 0:
+		reward_text += "   Fragments: %d/%d" % [Progression.get_fragments(), Progression.FRAGMENTS_PER_KEY]
+	reward_line.text = reward_text
+	reward_line.add_theme_font_size_override("font_size", 13)
+	reward_line.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85))
+	quests_list.add_child(reward_line)
+
 	for quest: Dictionary in Progression.get_active_quests():
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		quests_list.add_child(row)
+		_add_quest_row(quest, "Claim", _on_claim_quest)
 
-		var lbl := Label.new()
-		lbl.text = "%s (%d/%d)" % [quest.desc, quest.progress, quest.target]
-		lbl.custom_minimum_size = Vector2(200, 0)
-		lbl.add_theme_font_size_override("font_size", 16)
-		lbl.add_theme_color_override("font_color", Color.WHITE)
-		row.add_child(lbl)
-
-		var claim_btn := Button.new()
-		claim_btn.custom_minimum_size = Vector2(90, 32)
-		if quest.claimed:
-			claim_btn.text = "Claimed"
-			claim_btn.disabled = true
-		elif quest.completed:
-			claim_btn.text = "Claim"
-			claim_btn.pressed.connect(_on_claim_quest.bind(quest.slot))
-		else:
-			claim_btn.text = "Claim"
-			claim_btn.disabled = true
-		row.add_child(claim_btn)
+	_add_quest_section_header("Weekly")
+	for quest: Dictionary in Progression.get_weekly_quests():
+		_add_quest_row(quest, "Claim %d🔑" % Progression.WEEKLY_REWARD, _on_claim_weekly)
 
 func _on_claim_quest(slot: int) -> void:
 	if Progression.claim_quest(slot):
+		play_sfx("click")
+		_refresh_quests_menu()
+		_update_hud()
+
+func _on_claim_weekly(slot: int) -> void:
+	if Progression.claim_weekly(slot):
 		play_sfx("click")
 		_refresh_quests_menu()
 		_update_hud()
@@ -617,6 +654,7 @@ func _load_level(idx: int) -> void:
 	player.reached_goal.connect(reach_goal)
 	player.jumped.connect(play_sfx.bind("jump", 0.04))
 	player.double_jumped.connect(play_sfx.bind("double_jump", 0.04))
+	player.double_jumped.connect(Progression.add_quest_progress.bind("double_jump"))
 	player.call("apply_skin", Progression.get_equipped_skin())
 
 	var cam := Camera2D.new()
@@ -669,6 +707,7 @@ func damage_player() -> void:
 	health -= 1
 	score -= 1
 	took_damage_this_level = true
+	took_damage_this_run = true
 	_update_hud()
 	if health <= 0:
 		play_sfx("death")
@@ -684,6 +723,7 @@ func fell_off_world() -> void:
 	health -= 1
 	score -= 1
 	took_damage_this_level = true
+	took_damage_this_run = true
 	_update_hud()
 	if health <= 0:
 		play_sfx("death")
@@ -703,6 +743,7 @@ func reach_goal() -> void:
 	transitioning = true
 	if not took_damage_this_level:
 		Progression.add_quest_progress("no_damage_goal")
+	Progression.add_quest_progress("level_clear")
 	if current_level + 1 < LEVELS.size():
 		play_sfx("level_clear")
 		_show_message("Level Cleared!")
@@ -710,6 +751,8 @@ func reach_goal() -> void:
 		_load_level(current_level + 1)
 	else:
 		Progression.add_quest_progress("finish_run")
+		if not took_damage_this_run:
+			Progression.add_quest_progress("no_damage_run")
 		play_sfx("win")
 		music_player.stop()
 		var record_line := "★ New Highscore! ★" if _submit_run(score, coin_count) \
@@ -736,4 +779,5 @@ func _unhandled_input(event: InputEvent) -> void:
 			music_player.play()
 		score = 0
 		coin_count = 0
+		took_damage_this_run = false
 		_load_level(0)

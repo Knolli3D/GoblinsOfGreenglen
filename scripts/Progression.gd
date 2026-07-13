@@ -7,6 +7,16 @@ const QUEST_POOL := [
 	{"id": "collect_coins", "desc": "Collect %d coins", "stat": "coin", "target": 15},
 	{"id": "no_damage_goal", "desc": "Reach a goal without taking damage", "stat": "no_damage_goal", "target": 1},
 	{"id": "finish_run", "desc": "Finish a full run", "stat": "finish_run", "target": 1},
+	{"id": "double_jumps", "desc": "Double-jump %d times", "stat": "double_jump", "target": 15},
+	{"id": "clear_levels", "desc": "Clear %d levels", "stat": "level_clear", "target": 5},
+	{"id": "coin_hunter", "desc": "Collect %d coins", "stat": "coin", "target": 30},
+]
+
+const WEEKLY_POOL := [
+	{"id": "w_finish_runs", "desc": "Finish %d runs", "stat": "finish_run", "target": 10},
+	{"id": "w_stomp", "desc": "Stomp %d goblins", "stat": "stomp", "target": 50},
+	{"id": "w_coins", "desc": "Collect %d coins", "stat": "coin", "target": 100},
+	{"id": "w_no_damage_run", "desc": "Finish %d runs without taking damage", "stat": "no_damage_run", "target": 3},
 ]
 
 const SKIN_TIERS := {
@@ -23,21 +33,35 @@ const SKIN_TIERS := {
 	]},
 }
 
+# Nur die ersten 6 Daily-Claims pro Tag geben volle Keys; danach Fragmente (3 = 1 Key),
+# damit unbegrenztes Weiterspielen belohnt bleibt, aber 3x weniger effizient ist.
+const DAILY_FULL_KEY_CLAIMS := 6
+const FRAGMENTS_PER_KEY := 3
+const WEEKLY_REWARD := 3
+
 var keys := 0
+var key_fragments := 0
 var last_reset := ""
+var daily_claims_today := 0
 var active_ids: Array = []
 var progress: Array = [0, 0, 0]
 var completed: Array = [false, false, false]
 var claimed: Array = [false, false, false]
+var week_id := 0
+var weekly_ids: Array = []
+var weekly_progress: Array = [0, 0]
+var weekly_completed: Array = [false, false]
+var weekly_claimed: Array = [false, false]
 var owned_skins: Array = []
 var equipped_skin := ""
 
 func _ready() -> void:
 	_load()
 	check_daily_reset()
+	check_weekly_reset()
 
-func _quest_def(id: String) -> Dictionary:
-	for q: Dictionary in QUEST_POOL:
+func _def_in(pool: Array, id: String) -> Dictionary:
+	for q: Dictionary in pool:
 		if q.id == id:
 			return q
 	return {}
@@ -45,10 +69,35 @@ func _quest_def(id: String) -> Dictionary:
 func check_daily_reset() -> void:
 	var today := Time.get_date_string_from_system()
 	if last_reset == today:
+		_refill_if_all_claimed()
 		return
 	last_reset = today
+	daily_claims_today = 0
 	_roll_new_quests()
 	_save()
+
+# Safety net für Saves, bei denen alle Dailies bereits geclaimed sind (z.B. Migration
+# von vor dem Refill-Feature) — der reguläre Refill passiert direkt in claim_quest().
+func _refill_if_all_claimed() -> void:
+	if active_ids.is_empty():
+		return
+	for c in claimed:
+		if not c:
+			return
+	_roll_new_quests()
+	_save()
+
+func check_weekly_reset() -> void:
+	var current := _current_week_id()
+	if week_id == current:
+		return
+	week_id = current
+	_roll_new_weeklies()
+	_save()
+
+# Montag-basierter Wochenindex seit Epoch (Tag 0 war ein Donnerstag, +3 verschiebt auf Montag)
+func _current_week_id() -> int:
+	return int((Time.get_unix_time_from_system() / 86400.0 + 3.0) / 7.0)
 
 func _roll_new_quests() -> void:
 	var indices := range(QUEST_POOL.size())
@@ -60,33 +109,59 @@ func _roll_new_quests() -> void:
 	completed = [false, false, false]
 	claimed = [false, false, false]
 
-func get_active_quests() -> Array:
+func _roll_new_weeklies() -> void:
+	var indices := range(WEEKLY_POOL.size())
+	indices.shuffle()
+	weekly_ids = []
+	for i in range(min(2, indices.size())):
+		weekly_ids.append(WEEKLY_POOL[indices[i]].id)
+	weekly_progress = [0, 0]
+	weekly_completed = [false, false]
+	weekly_claimed = [false, false]
+
+func _quest_views(pool: Array, ids: Array, prog: Array, comp: Array, clm: Array) -> Array:
 	var result: Array = []
-	for i in range(active_ids.size()):
-		var def := _quest_def(active_ids[i])
+	for i in range(ids.size()):
+		var def := _def_in(pool, ids[i])
 		if def.is_empty():
 			continue
 		result.append({
 			"desc": def.desc % def.target if "%d" in def.desc else def.desc,
-			"progress": progress[i],
+			"progress": prog[i],
 			"target": def.target,
-			"completed": completed[i],
-			"claimed": claimed[i],
+			"completed": comp[i],
+			"claimed": clm[i],
 			"slot": i,
 		})
 	return result
+
+func get_active_quests() -> Array:
+	return _quest_views(QUEST_POOL, active_ids, progress, completed, claimed)
+
+func get_weekly_quests() -> Array:
+	return _quest_views(WEEKLY_POOL, weekly_ids, weekly_progress, weekly_completed, weekly_claimed)
 
 func add_quest_progress(stat: String, amount: int = 1) -> void:
 	var changed := false
 	for i in range(active_ids.size()):
 		if completed[i]:
 			continue
-		var def := _quest_def(active_ids[i])
+		var def := _def_in(QUEST_POOL, active_ids[i])
 		if def.is_empty() or def.stat != stat:
 			continue
 		progress[i] = min(progress[i] + amount, def.target)
 		if progress[i] >= def.target:
 			completed[i] = true
+		changed = true
+	for i in range(weekly_ids.size()):
+		if weekly_completed[i]:
+			continue
+		var def := _def_in(WEEKLY_POOL, weekly_ids[i])
+		if def.is_empty() or def.stat != stat:
+			continue
+		weekly_progress[i] = min(weekly_progress[i] + amount, def.target)
+		if weekly_progress[i] >= def.target:
+			weekly_completed[i] = true
 		changed = true
 	if changed:
 		_save()
@@ -97,12 +172,39 @@ func claim_quest(slot_idx: int) -> bool:
 	if not completed[slot_idx] or claimed[slot_idx]:
 		return false
 	claimed[slot_idx] = true
-	keys += 1
+	if daily_claims_today < DAILY_FULL_KEY_CLAIMS:
+		keys += 1
+	else:
+		key_fragments += 1
+		if key_fragments >= FRAGMENTS_PER_KEY:
+			key_fragments -= FRAGMENTS_PER_KEY
+			keys += 1
+	daily_claims_today += 1
+	var all_claimed := true
+	for c in claimed:
+		if not c:
+			all_claimed = false
+			break
+	if all_claimed:
+		_roll_new_quests()
+	_save()
+	return true
+
+func claim_weekly(slot_idx: int) -> bool:
+	if slot_idx < 0 or slot_idx >= weekly_ids.size():
+		return false
+	if not weekly_completed[slot_idx] or weekly_claimed[slot_idx]:
+		return false
+	weekly_claimed[slot_idx] = true
+	keys += WEEKLY_REWARD
 	_save()
 	return true
 
 func get_keys() -> int:
 	return keys
+
+func get_fragments() -> int:
+	return key_fragments
 
 func open_case() -> Dictionary:
 	if keys <= 0:
@@ -157,22 +259,36 @@ func _load() -> void:
 	if cfg.load(SAVE_PATH) != OK:
 		return
 	keys = cfg.get_value("currency", "keys", 0)
+	key_fragments = cfg.get_value("currency", "key_fragments", 0)
 	last_reset = cfg.get_value("quests", "last_reset", "")
+	daily_claims_today = cfg.get_value("quests", "daily_claims_today", 0)
 	active_ids = cfg.get_value("quests", "active_ids", [])
 	progress = cfg.get_value("quests", "progress", [0, 0, 0])
 	completed = cfg.get_value("quests", "completed", [false, false, false])
 	claimed = cfg.get_value("quests", "claimed", [false, false, false])
+	week_id = cfg.get_value("quests", "week_id", 0)
+	weekly_ids = cfg.get_value("quests", "weekly_ids", [])
+	weekly_progress = cfg.get_value("quests", "weekly_progress", [0, 0])
+	weekly_completed = cfg.get_value("quests", "weekly_completed", [false, false])
+	weekly_claimed = cfg.get_value("quests", "weekly_claimed", [false, false])
 	owned_skins = cfg.get_value("inventory", "owned_skins", [])
 	equipped_skin = cfg.get_value("inventory", "equipped_skin", "")
 
 func _save() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("currency", "keys", keys)
+	cfg.set_value("currency", "key_fragments", key_fragments)
 	cfg.set_value("quests", "last_reset", last_reset)
+	cfg.set_value("quests", "daily_claims_today", daily_claims_today)
 	cfg.set_value("quests", "active_ids", active_ids)
 	cfg.set_value("quests", "progress", progress)
 	cfg.set_value("quests", "completed", completed)
 	cfg.set_value("quests", "claimed", claimed)
+	cfg.set_value("quests", "week_id", week_id)
+	cfg.set_value("quests", "weekly_ids", weekly_ids)
+	cfg.set_value("quests", "weekly_progress", weekly_progress)
+	cfg.set_value("quests", "weekly_completed", weekly_completed)
+	cfg.set_value("quests", "weekly_claimed", weekly_claimed)
 	cfg.set_value("inventory", "owned_skins", owned_skins)
 	cfg.set_value("inventory", "equipped_skin", equipped_skin)
 	cfg.save(SAVE_PATH)
