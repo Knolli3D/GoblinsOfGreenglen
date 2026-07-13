@@ -48,6 +48,15 @@ var best_score := 0
 var best_coins := 0
 var has_highscore := false
 var highscore_label: Label
+var took_damage_this_level := false
+var keys_label: Label
+var quests_menu: Control
+var quests_list: VBoxContainer
+var cases_menu: Control
+var cases_keys_label: Label
+var open_case_btn: Button
+var skins_menu: Control
+var skins_list: VBoxContainer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -57,6 +66,9 @@ func _ready() -> void:
 	_build_hud()
 	_build_pause_menu()
 	_build_main_menu()
+	_build_quests_menu()
+	_build_cases_menu()
+	_build_skins_menu()
 	_show_main_menu()
 
 func _build_audio() -> void:
@@ -212,11 +224,34 @@ func _build_main_menu() -> void:
 	start_btn.pressed.connect(_start_game)
 	box.add_child(start_btn)
 
+	var quests_btn := Button.new()
+	quests_btn.text = "Quests"
+	quests_btn.custom_minimum_size = Vector2(260, 40)
+	quests_btn.pressed.connect(_show_quests_menu)
+	box.add_child(quests_btn)
+
+	var cases_btn := Button.new()
+	cases_btn.text = "Cases"
+	cases_btn.custom_minimum_size = Vector2(260, 40)
+	cases_btn.pressed.connect(_show_cases_menu)
+	box.add_child(cases_btn)
+
+	var skins_btn := Button.new()
+	skins_btn.text = "Skins"
+	skins_btn.custom_minimum_size = Vector2(260, 40)
+	skins_btn.pressed.connect(_show_skins_menu)
+	box.add_child(skins_btn)
+
 	var quit_btn := Button.new()
 	quit_btn.text = "Quit Game"
-	quit_btn.custom_minimum_size = Vector2(260, 48)
+	quit_btn.custom_minimum_size = Vector2(140, 40)
+	quit_btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	quit_btn.offset_left = -156
+	quit_btn.offset_top = -56
+	quit_btn.offset_right = -16
+	quit_btn.offset_bottom = -16
 	quit_btn.pressed.connect(_quit_game)
-	box.add_child(quit_btn)
+	main_menu.add_child(quit_btn)
 
 func _show_main_menu() -> void:
 	in_main_menu = true
@@ -224,12 +259,16 @@ func _show_main_menu() -> void:
 	pause_menu.visible = false
 	hud_label.visible = false
 	coin_label.visible = false
+	keys_label.visible = false
 	win_label.visible = false
 	if level_root:
 		level_root.queue_free()
 		level_root = null
 	highscore_label.text = "Best: Score %d   🪙 %d" % [best_score, best_coins] if has_highscore else "No highscore yet"
 	main_menu.visible = true
+	quests_menu.visible = false
+	cases_menu.visible = false
+	skins_menu.visible = false
 	music_player.stop()
 
 func _start_game() -> void:
@@ -238,6 +277,7 @@ func _start_game() -> void:
 	main_menu.visible = false
 	hud_label.visible = true
 	coin_label.visible = true
+	keys_label.visible = true
 	score = 0
 	coin_count = 0
 	music_player.play()
@@ -268,6 +308,222 @@ func _restart_level_from_menu() -> void:
 		music_player.play()
 	_load_level(0)
 
+func _build_submenu_shell(layer_index: int, title_text: String) -> Dictionary:
+	var layer := CanvasLayer.new()
+	layer.layer = layer_index
+	add_child(layer)
+	var menu := Control.new()
+	menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	menu.visible = false
+	layer.add_child(menu)
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.1, 0.12, 0.18)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(bg)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	box.position = Vector2(VIEW.x * 0.5 - 150, 60)
+	box.custom_minimum_size = Vector2(300, 0)
+	menu.add_child(box)
+
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(1, 0.95, 0.6))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(title)
+
+	return {"menu": menu, "box": box}
+
+func _build_quests_menu() -> void:
+	var shell := _build_submenu_shell(11, "Daily Quests")
+	quests_menu = shell.menu
+	quests_list = VBoxContainer.new()
+	quests_list.add_theme_constant_override("separation", 10)
+	shell.box.add_child(quests_list)
+
+	var back_btn := Button.new()
+	back_btn.text = "Back"
+	back_btn.custom_minimum_size = Vector2(300, 40)
+	back_btn.pressed.connect(_hide_submenus)
+	shell.box.add_child(back_btn)
+
+func _show_quests_menu() -> void:
+	play_sfx("click")
+	Progression.check_daily_reset()
+	main_menu.visible = false
+	quests_menu.visible = true
+	_refresh_quests_menu()
+
+func _refresh_quests_menu() -> void:
+	for child in quests_list.get_children():
+		child.queue_free()
+	for quest: Dictionary in Progression.get_active_quests():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		quests_list.add_child(row)
+
+		var lbl := Label.new()
+		lbl.text = "%s (%d/%d)" % [quest.desc, quest.progress, quest.target]
+		lbl.custom_minimum_size = Vector2(200, 0)
+		lbl.add_theme_font_size_override("font_size", 16)
+		lbl.add_theme_color_override("font_color", Color.WHITE)
+		row.add_child(lbl)
+
+		var claim_btn := Button.new()
+		claim_btn.custom_minimum_size = Vector2(90, 32)
+		if quest.claimed:
+			claim_btn.text = "Claimed"
+			claim_btn.disabled = true
+		elif quest.completed:
+			claim_btn.text = "Claim"
+			claim_btn.pressed.connect(_on_claim_quest.bind(quest.slot))
+		else:
+			claim_btn.text = "Claim"
+			claim_btn.disabled = true
+		row.add_child(claim_btn)
+
+func _on_claim_quest(slot: int) -> void:
+	if Progression.claim_quest(slot):
+		play_sfx("click")
+		_refresh_quests_menu()
+		_update_hud()
+
+func _build_cases_menu() -> void:
+	var shell := _build_submenu_shell(12, "Cases")
+	cases_menu = shell.menu
+
+	cases_keys_label = Label.new()
+	cases_keys_label.add_theme_font_size_override("font_size", 20)
+	cases_keys_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	cases_keys_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cases_keys_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shell.box.add_child(cases_keys_label)
+
+	open_case_btn = Button.new()
+	open_case_btn.text = "Open Case"
+	open_case_btn.custom_minimum_size = Vector2(300, 44)
+	open_case_btn.pressed.connect(_on_open_case_pressed)
+	shell.box.add_child(open_case_btn)
+
+	var back_btn := Button.new()
+	back_btn.text = "Back"
+	back_btn.custom_minimum_size = Vector2(300, 40)
+	back_btn.pressed.connect(_hide_submenus)
+	shell.box.add_child(back_btn)
+
+func _show_cases_menu() -> void:
+	play_sfx("click")
+	main_menu.visible = false
+	cases_menu.visible = true
+	_refresh_cases_menu()
+
+func _refresh_cases_menu() -> void:
+	var keys := Progression.get_keys()
+	cases_keys_label.text = "🔑 %d" % keys
+	open_case_btn.disabled = keys <= 0
+
+func _on_open_case_pressed() -> void:
+	var skin := Progression.open_case()
+	if skin.is_empty():
+		return
+	play_sfx("coin", 0.05)
+	_spawn_skin_reveal(skin)
+	_refresh_cases_menu()
+
+func _spawn_skin_reveal(skin: Dictionary) -> void:
+	var lyr := CanvasLayer.new()
+	lyr.layer = 21
+	add_child(lyr)
+	var lbl := Label.new()
+	lbl.text = "New Skin: %s!" % skin.name
+	lbl.position = Vector2(VIEW.x * 0.5 - 140, VIEW.y * 0.5 - 20)
+	lbl.add_theme_font_size_override("font_size", 30)
+	lbl.add_theme_color_override("font_color", skin.color)
+	lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.1, 0.12))
+	lbl.add_theme_constant_override("outline_size", 8)
+	lbl.scale = Vector2(0.6, 0.6)
+	lyr.add_child(lbl)
+	var tw := create_tween()
+	tw.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.3).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(lbl, "position:y", lbl.position.y - 40, 0.3).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.6)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(lyr.queue_free)
+
+func _build_skins_menu() -> void:
+	var shell := _build_submenu_shell(13, "Skins")
+	skins_menu = shell.menu
+	skins_list = VBoxContainer.new()
+	skins_list.add_theme_constant_override("separation", 10)
+	shell.box.add_child(skins_list)
+
+	var back_btn := Button.new()
+	back_btn.text = "Back"
+	back_btn.custom_minimum_size = Vector2(300, 40)
+	back_btn.pressed.connect(_hide_submenus)
+	shell.box.add_child(back_btn)
+
+func _show_skins_menu() -> void:
+	play_sfx("click")
+	main_menu.visible = false
+	skins_menu.visible = true
+	_refresh_skins_menu()
+
+func _refresh_skins_menu() -> void:
+	for child in skins_list.get_children():
+		child.queue_free()
+	var owned := Progression.get_owned_skins()
+	if owned.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "No skins yet — open a case!"
+		empty_lbl.add_theme_font_size_override("font_size", 16)
+		empty_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		skins_list.add_child(empty_lbl)
+		return
+	for skin: Dictionary in owned:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		skins_list.add_child(row)
+
+		var swatch := ColorRect.new()
+		swatch.color = skin.color
+		swatch.custom_minimum_size = Vector2(24, 24)
+		row.add_child(swatch)
+
+		var lbl := Label.new()
+		lbl.text = skin.name
+		lbl.custom_minimum_size = Vector2(160, 0)
+		lbl.add_theme_font_size_override("font_size", 16)
+		lbl.add_theme_color_override("font_color", Color.WHITE)
+		row.add_child(lbl)
+
+		var equip_btn := Button.new()
+		equip_btn.custom_minimum_size = Vector2(100, 32)
+		if skin.id == Progression.equipped_skin:
+			equip_btn.text = "Equipped"
+			equip_btn.disabled = true
+		else:
+			equip_btn.text = "Equip"
+			equip_btn.pressed.connect(_on_equip_skin.bind(skin.id))
+		row.add_child(equip_btn)
+
+func _on_equip_skin(id: String) -> void:
+	play_sfx("click")
+	Progression.equip_skin(id)
+	_refresh_skins_menu()
+
+func _hide_submenus() -> void:
+	play_sfx("click")
+	quests_menu.visible = false
+	cases_menu.visible = false
+	skins_menu.visible = false
+	main_menu.visible = true
+
 func _build_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
@@ -290,6 +546,15 @@ func _build_hud() -> void:
 	coin_label.visible = false
 	layer.add_child(coin_label)
 
+	keys_label = Label.new()
+	keys_label.position = Vector2(VIEW.x - 120, 36)
+	keys_label.add_theme_font_size_override("font_size", 18)
+	keys_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	keys_label.add_theme_color_override("font_outline_color", Color(0.0, 0.15, 0.3))
+	keys_label.add_theme_constant_override("outline_size", 4)
+	keys_label.visible = false
+	layer.add_child(keys_label)
+
 	win_label = Label.new()
 	win_label.position = Vector2(VIEW.x * 0.5 - 180, VIEW.y * 0.5 - 30)
 	win_label.add_theme_font_size_override("font_size", 36)
@@ -305,10 +570,12 @@ func _update_hud() -> void:
 		hearts += "♥ " if i < health else "♡ "
 	hud_label.text = "Level %d   %s   Score: %d" % [current_level + 1, hearts, score]
 	coin_label.text = "🪙 %d" % coin_count
+	keys_label.text = "🔑 %d" % Progression.get_keys()
 
 func coin_collected() -> void:
 	coin_count += 1
 	play_sfx("coin", 0.06)
+	Progression.add_quest_progress("coin")
 	_update_hud()
 
 func _load_level(idx: int) -> void:
@@ -317,6 +584,7 @@ func _load_level(idx: int) -> void:
 	current_level = idx
 	health = MAX_HEALTH
 	transitioning = false
+	took_damage_this_level = false
 	win_label.visible = false
 
 	var packed: PackedScene = load(LEVELS[idx])
@@ -339,6 +607,7 @@ func _load_level(idx: int) -> void:
 	player.reached_goal.connect(reach_goal)
 	player.jumped.connect(play_sfx.bind("jump", 0.04))
 	player.double_jumped.connect(play_sfx.bind("double_jump", 0.04))
+	player.call("apply_skin", Progression.get_equipped_skin().color)
 
 	var cam := Camera2D.new()
 	cam.limit_left = 0
@@ -354,6 +623,7 @@ func _on_player_stomped_enemy(enemy: CharacterBody2D) -> void:
 	enemy.call("kill")
 	enemy_killed()
 	play_sfx("stomp", 0.08)
+	Progression.add_quest_progress("stomp")
 	_spawn_pow(pos)
 
 func _spawn_pow(pos: Vector2) -> void:
@@ -388,6 +658,7 @@ func damage_player() -> void:
 	invuln_until = now + 1.0
 	health -= 1
 	score -= 1
+	took_damage_this_level = true
 	_update_hud()
 	if health <= 0:
 		play_sfx("death")
@@ -402,6 +673,7 @@ func fell_off_world() -> void:
 		return
 	health -= 1
 	score -= 1
+	took_damage_this_level = true
 	_update_hud()
 	if health <= 0:
 		play_sfx("death")
@@ -419,12 +691,15 @@ func reach_goal() -> void:
 	if transitioning:
 		return
 	transitioning = true
+	if not took_damage_this_level:
+		Progression.add_quest_progress("no_damage_goal")
 	if current_level + 1 < LEVELS.size():
 		play_sfx("level_clear")
 		_show_message("Level Cleared!")
 		await get_tree().create_timer(1.0).timeout
 		_load_level(current_level + 1)
 	else:
+		Progression.add_quest_progress("finish_run")
 		play_sfx("win")
 		music_player.stop()
 		var record_line := "★ New Highscore! ★" if _submit_run(score, coin_count) \

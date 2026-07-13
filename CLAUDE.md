@@ -26,13 +26,14 @@ Ritter springt durch 5 Level (Level 4+5 mit horizontalem Scrolling), besiegt Gob
 
 ```
 scripts/
-  Game.gd       # Haupt-Controller: HUD, Menüs, Level laden, POW!-Effekt
-  Player.gd     # CharacterBody2D: Bewegung, Double-Jump, Stomp, Signals
-  Enemy.gd      # CharacterBody2D: Patrol (@export patrol_range), Kill-Logik
-  Coin.gd       # Area2D: Coin-Pickup, ruft game.coin_collected()
-  Goal.gd       # Area2D: add_to_group("goals"), _draw() Flag-Visual
-  Platform.gd   # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
-  Level.gd      # Node2D Basis: _draw() Himmel + Berge Hintergrund
+  Game.gd         # Haupt-Controller: HUD, Menüs, Level laden, POW!-Effekt, Quests/Cases/Skins-UI
+  Progression.gd  # Autoload-Singleton: Daily Quests, Keys-Währung, Case-Opening, Skin-Inventory
+  Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Stomp, Signals, apply_skin()
+  Enemy.gd        # CharacterBody2D: Patrol (@export patrol_range), Kill-Logik
+  Coin.gd         # Area2D: Coin-Pickup, ruft game.coin_collected()
+  Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
+  Platform.gd     # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
+  Level.gd        # Node2D Basis: _draw() Himmel + Berge Hintergrund
 
 scenes/
   Main.tscn         # Einstieg → lädt Game.gd
@@ -66,6 +67,8 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
   - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`, `jumped`, `double_jumped`
   - `Coin` ruft `game.coin_collected()` via `get_tree().get_first_node_in_group("game")`
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
+- **Progression.gd** ist der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
+  da Meta-Progression session-übergreifend und auch im Hauptmenü ohne geladenes Level lesbar sein muss)
 
 ## Kollisionslayer
 
@@ -128,6 +131,34 @@ Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFil
   (speichert nur, wenn besser: höherer Score, bei Gleichstand mehr Coins) → zeigt "★ New Highscore! ★"
   bzw. den bestehenden Bestwert an. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
 - Für das spätere Web-Leaderboard ist `_submit_run()` der einzige Hook-Punkt.
+
+## Quests, Keys & Cases (Progression.gd)
+
+Meta-Progression-Loop, unabhängig vom Coins/Score-System: Keys werden ausschließlich über Daily
+Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sind). Persistiert in
+`user://progression.cfg` (ConfigFile, gleiches Muster wie `highscore.cfg`), Sektionen `[currency]`,
+`[quests]`, `[inventory]`.
+
+- **Daily Quests**: 3 aktive Quests aus einem Pool von 4 (`QUEST_POOL`), Reset am echten
+  Kalendertag (`Time.get_date_string_from_system()` Vergleich gegen `last_reset`) — passiert in
+  `_ready()` und beim Öffnen des Quests-Menüs. Quest-Typen: Goblins stompen, Coins sammeln,
+  Ziel ohne Schaden erreichen, kompletten Run beenden.
+- **Progress-Tracking**: `Progression.add_quest_progress(stat)` wird von Game.gd an bestehenden
+  Hook-Punkten aufgerufen (`coin_collected()`, `_on_player_stomped_enemy()`, `reach_goal()`).
+  `took_damage_this_level` (Game.gd, pro Level zurückgesetzt) trackt den Schadenlos-Quest.
+- **Claim**: Keys werden nicht automatisch vergeben — im Quests-Menü muss ein fertiger Quest
+  per Button bestätigt werden (`Progression.claim_quest(slot)`).
+- **Cases**: 1 Key = 1 Case-Opening. Rewards sind Skins mit gewichteten Rarity-Tiers
+  (`SKIN_TIERS`: Common/Rare/Epic), Duplikate sind erlaubt (kein Pity-/Dust-System).
+  Reveal-Animation (`Game._spawn_skin_reveal()`) nutzt das gleiche Tween-Muster wie `_spawn_pow()`.
+- **Skins**: reine Farb-Tints (`Sprite2D.modulate`, kein neues Artwork). Ausrüsten über
+  `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via `player.apply_skin(color)`
+  bei jedem Levelstart. Ohne ausgerüsteten Skin bleibt der Ritter ungetintet (`Color.WHITE`).
+- **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. "Quit Game" ist
+  bewusst nicht Teil der VBoxContainer-Button-Liste, sondern unten rechts fix verankert
+  (`PRESET_BOTTOM_RIGHT` + `offset_*`), damit neue Menü-Buttons es nicht aus dem Fenster schieben.
+- **Out of scope (bewusst)**: Gameplay-Perks (nur Skins in v1), Keys mit Coins kaufen,
+  weitere Level für mehr Quest-Varianz — siehe Plan-Historie für Details.
 
 ## Viewport
 

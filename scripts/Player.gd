@@ -22,6 +22,9 @@ func _ready() -> void:
 		sprite.scale = Vector2.ONE * (52.0 / float(sprite.texture.get_height()))
 		sprite.position = Vector2(0, -2)
 
+func apply_skin(color: Color) -> void:
+	$Sprite2D.modulate = color
+
 func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		jumps_remaining = MAX_JUMPS
