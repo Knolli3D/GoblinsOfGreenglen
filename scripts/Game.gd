@@ -208,7 +208,7 @@ func _build_main_menu() -> void:
 	main_menu.add_child(box)
 
 	var title := Label.new()
-	title.text = "Cloude Game"
+	title.text = "Goblins of Greenglen"
 	title.add_theme_font_size_override("font_size", 44)
 	title.add_theme_color_override("font_color", Color(1, 0.95, 0.6))
 	title.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -320,7 +320,7 @@ func _restart_level_from_menu() -> void:
 		music_player.play()
 	_load_level(0)
 
-func _build_submenu_shell(layer_index: int, title_text: String) -> Dictionary:
+func _build_submenu_shell(layer_index: int, title_text: String, bg_path: String) -> Dictionary:
 	var layer := CanvasLayer.new()
 	layer.layer = layer_index
 	add_child(layer)
@@ -330,10 +330,18 @@ func _build_submenu_shell(layer_index: int, title_text: String) -> Dictionary:
 	menu.visible = false
 	layer.add_child(menu)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.12, 0.18)
+	var bg := TextureRect.new()
+	bg.texture = load(bg_path)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(bg)
+
+	# leichte Abdunklung, damit Titel/Buttons vor dem Bild lesbar bleiben
+	var dim := ColorRect.new()
+	dim.color = Color(0.05, 0.06, 0.1, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(dim)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
@@ -352,7 +360,7 @@ func _build_submenu_shell(layer_index: int, title_text: String) -> Dictionary:
 	return {"menu": menu, "box": box}
 
 func _build_quests_menu() -> void:
-	var shell := _build_submenu_shell(11, "Daily Quests")
+	var shell := _build_submenu_shell(11, "Daily Quests", "res://assets/quests_background.png")
 	quests_menu = shell.menu
 	quests_list = VBoxContainer.new()
 	quests_list.add_theme_constant_override("separation", 10)
@@ -440,7 +448,7 @@ func _on_claim_weekly(slot: int) -> void:
 		_update_hud()
 
 func _build_cases_menu() -> void:
-	var shell := _build_submenu_shell(12, "Cases")
+	var shell := _build_submenu_shell(12, "Cases", "res://assets/cases_background.png")
 	cases_menu = shell.menu
 
 	cases_keys_label = Label.new()
@@ -502,7 +510,7 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 	tw.tween_callback(lyr.queue_free)
 
 func _build_skins_menu() -> void:
-	var shell := _build_submenu_shell(13, "Skins")
+	var shell := _build_submenu_shell(13, "Skins", "res://assets/skins_background.png")
 	skins_menu = shell.menu
 	skins_list = VBoxContainer.new()
 	skins_list.add_theme_constant_override("separation", 10)

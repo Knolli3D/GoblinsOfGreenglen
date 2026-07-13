@@ -1,6 +1,8 @@
-# Cloude Game
+# Goblins of Greenglen
 
-A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 5 increasingly challenging levels — including two horizontally scrolling stages.
+> Repo/folder name remains `cloude-game`; "Goblins of Greenglen" is the in-game display name.
+
+A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 6 increasingly challenging levels — including two horizontally scrolling stages and a final level with randomized enemy/coin placement.
 
 **Status:** Fully playable end to end — all 5 levels, combat, coins, and win/death flow work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
 

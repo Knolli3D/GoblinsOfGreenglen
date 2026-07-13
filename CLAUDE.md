@@ -1,6 +1,9 @@
-# Cloude Game
+# Goblins of Greenglen
 
 Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
+(Repo/Ordner heißt weiterhin `cloude-game`; "Goblins of Greenglen" ist nur der In-Game-Anzeigename
+via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `user://`-Save-Pfad —
+bei Umbenennung müssen bestehende Saves aus `app_userdata/Cloude Game` migriert werden.)
 
 **Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, Win/Death-Flow). Der generierte Chiptune-Sound ist witzig und rundet das Ganze gut ab.
 
