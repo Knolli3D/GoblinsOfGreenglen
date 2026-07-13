@@ -187,10 +187,18 @@ func _build_main_menu() -> void:
 	main_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 	layer.add_child(main_menu)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.12, 0.18)
+	var bg := TextureRect.new()
+	bg.texture = load("res://assets/menubackground.png")
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main_menu.add_child(bg)
+
+	# leichte Abdunklung, damit Titel/Buttons vor dem hellen Himmel lesbar bleiben
+	var dim := ColorRect.new()
+	dim.color = Color(0.05, 0.06, 0.1, 0.45)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	main_menu.add_child(dim)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
