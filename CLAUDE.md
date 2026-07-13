@@ -37,7 +37,7 @@ scripts/
   Coin.gd         # Area2D: Coin-Pickup, ruft game.coin_collected()
   Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
   Platform.gd     # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
-  Level.gd        # Node2D Basis: _draw() Himmel + Berge Hintergrund, optionales randomize_level_spawns()
+  Level.gd        # Node2D Basis: Parallax-Hintergrund (mit _draw()-Fallback), optionales randomize_level_spawns()
 
 scenes/
   Main.tscn         # Einstieg → lädt Game.gd
@@ -53,7 +53,8 @@ assets/
   sprite_knight.png   # Ritter-Sprite (788×1674, transparent)
   sprite_goblin.png   # Goblin-Sprite (923×1318, transparent)
   sprite_platform.png # Plattform-Textur (4128×496)
-  sky.png             # Himmel-Hintergrund (Parallax)
+  level_bg_near.png   # Level-Parallax-Hintergrund (Landschaft, siehe Level.gd)
+  level_bg.png        # Wolken-Himmel (opak → aktuell ungenutzt, siehe Parallax-Abschnitt)
   knight.png / goblin.png / platform.png  # Original-Uploads (Backup)
   audio/              # Generierte Chiptune-WAVs (SFX + music.wav Loop)
 
@@ -127,6 +128,25 @@ Zufalls-Spawn-System (opt-in, Default aus — Level 1-5 bleiben unverändert han
   Y-Offsets (`ENEMY_Y_OFFSET = -13`, `COIN_Y_OFFSET = -35`) sind aus den handplatzierten
   Level-5-Koordinaten abgeleitet, damit prozedurale Spawns genauso aussehen wie handplatzierte.
   Ein Gegner pro Plattform (zyklisch bei Überschuss), Coins dürfen sich mehrfach eine Plattform teilen.
+
+## Level-Hintergrund (Parallax, Level.gd)
+
+Gemeinsamer, code-gebauter Parallax-Hintergrund für **alle** Level (keine Per-Level-.tscn-Änderung):
+- **`BG_LAYERS`** (Konstante in `Level.gd`): Liste von `{path, scroll_scale}`. `_ready()` ruft
+  `_build_parallax_background()`, das pro vorhandener Textur ein `Parallax2D` mit `Sprite2D`-Kind baut.
+  `scroll_scale < 1` = Layer scrollt langsamer als die Welt (Tiefenwirkung); `z_index = -20 + i`
+  (hinter Plattformen/Gegnern/Coins/Player). Sprite wird auf 540px Viewport-Höhe skaliert,
+  `repeat_size.x` = skalierte Breite → horizontales Tiling über die volle Levelbreite.
+- **`Parallax2D`** (Godot 4.6) trackt automatisch die aktive Kamera (Viewport-Canvas-Transform) —
+  die Kamera wird in `Game._load_level()` zur Laufzeit am Player erzeugt, **kein Wiring nötig**.
+- **Artwork**: aktuell ein Layer, `assets/level_bg_near.png` (komplette Landschaft: Himmel +
+  Wolken + Berge + Hügel, `scroll_scale 0.4`). Fehlt die Datei, greift der `_draw()`-Fallback
+  (flacher Himmel + Bodenband, wie zuvor); `_bg_active` schaltet um. Viewport-Clear-Color ist
+  bereits himmelblau, deckt also Lücken ab.
+- **Echte Mehr-Layer-Parallax** braucht einen vorderen Layer mit **transparentem Himmel** (Alpha),
+  sonst deckt der opake Vorder-Layer den hinteren komplett ab. `assets/level_bg.png` (Wolken-Himmel)
+  und `level_bg_near.png` sind beide opak → nur ein sichtbarer Layer möglich; `level_bg.png` daher
+  aktuell nicht in `BG_LAYERS`. Für Tiefe müsste ein Layer als Alpha-Cutout vorliegen.
 
 ## Sprite-Skalierung
 

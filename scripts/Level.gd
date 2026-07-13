@@ -12,8 +12,54 @@ const ENEMY_Y_OFFSET := -13.0
 const COIN_Y_OFFSET := -35.0
 const PATROL_MARGIN := 8.0
 const COIN_MARGIN := 6.0
+const VIEW_HEIGHT := 540.0
+
+# Gemeinsamer Parallax-Hintergrund für alle Level. Jeder Layer ist optional — fehlt die
+# Textur, wird er übersprungen, sodass Level ohne Artwork weiterhin den flachen _draw()-
+# Fallback zeigen. scroll_scale < 1 = Layer scrollt langsamer als die Welt (Tiefenwirkung).
+# Hinweis: Ein weiterer (vorderer) Layer würde nur sichtbare Tiefe bringen, wenn seine
+# Textur einen transparenten Himmel hat — level_bg.png/level_bg_near.png sind beide opak,
+# daher aktuell nur der komplette Landschafts-Layer.
+const BG_LAYERS := [
+	{"path": "res://assets/level_bg_near.png", "scroll_scale": 0.4},
+]
+var _bg_active := false
+
+func _ready() -> void:
+	_build_parallax_background()
+
+func _build_parallax_background() -> void:
+	for i in range(BG_LAYERS.size()):
+		var layer_def: Dictionary = BG_LAYERS[i]
+		var path: String = layer_def.path
+		if not ResourceLoader.exists(path):
+			continue
+		var tex: Texture2D = load(path)
+		if tex == null:
+			continue
+		var scale_factor: float = VIEW_HEIGHT / float(tex.get_height())
+		var scaled_width: float = tex.get_width() * scale_factor
+
+		var px := Parallax2D.new()
+		var scroll: float = layer_def.scroll_scale
+		px.scroll_scale = Vector2(scroll, 0.0)
+		px.repeat_size = Vector2(scaled_width, 0.0)
+		px.z_index = -20 + i
+
+		var spr := Sprite2D.new()
+		spr.texture = tex
+		spr.centered = false
+		spr.scale = Vector2(scale_factor, scale_factor)
+		px.add_child(spr)
+
+		add_child(px)
+		_bg_active = true
+	if _bg_active:
+		queue_redraw()
 
 func _draw() -> void:
+	if _bg_active:
+		return
 	draw_rect(Rect2(0, 0, level_width, 540), Color(0.45, 0.6, 0.85))
 	draw_rect(Rect2(0, 360, level_width, 180), Color(0.3, 0.35, 0.5))
 
