@@ -6,10 +6,11 @@ Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
 
 ## Spielprinzip
 
-Ritter springt durch 5 Level (Level 4+5 mit horizontalem Scrolling), besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
+Ritter springt durch 6 Level (Level 4+5 mit horizontalem Scrolling, Level 6 mit zufälliger
+Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
 - 3 Herzen (Health), Score +1 pro Kill, -1 pro Treffer/Fall
 - Coins sammelbar (+1 pro Coin), werden im Win-Screen angezeigt
-- Nach 5 Leveln: Gewinn-Screen mit Final Score + Coin-Count
+- Nach 6 Leveln: Gewinn-Screen mit Final Score + Coin-Count
 - Stirbt der Spieler (0 HP): Freeze + "Ouch! Press R to retry"
 
 ## Steuerung
@@ -33,7 +34,7 @@ scripts/
   Coin.gd         # Area2D: Coin-Pickup, ruft game.coin_collected()
   Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
   Platform.gd     # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
-  Level.gd        # Node2D Basis: _draw() Himmel + Berge Hintergrund
+  Level.gd        # Node2D Basis: _draw() Himmel + Berge Hintergrund, optionales randomize_level_spawns()
 
 scenes/
   Main.tscn         # Einstieg → lädt Game.gd
@@ -42,7 +43,8 @@ scenes/
   Coin.tscn         # Area2D + CircleShape2D
   Goal.tscn         # Area2D + RectangleShape2D
   Platform.tscn     # StaticBody2D + CollisionShape2D (Template)
-  Level1-3.tscn     # Visuelle Level (editierbar im 2D-Editor!)
+  Level1-5.tscn     # Visuelle Level, komplett handplatziert (editierbar im 2D-Editor!)
+  Level6.tscn       # Wie Level1-5, aber Gegner/Coins werden zur Laufzeit zufällig platziert
 
 assets/
   sprite_knight.png   # Ritter-Sprite (788×1674, transparent)
@@ -91,13 +93,37 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 
 ## Level editieren
 
-Level-Szenen (`scenes/Level1-3.tscn`) im Godot-Editor öffnen:
+Level-Szenen (`scenes/Level1-5.tscn`, handplatziert) im Godot-Editor öffnen:
 - **Plattform verschieben**: Node in Scene-Tree auswählen → Drag im 2D-View
 - **Plattform-Größe**: `CollisionShape2D` auswählen → Inspector → `Shape → Size`
 - **Gegner-Patrol**: Enemy-Instanz auswählen → Inspector → `Patrol Range`
 - **Neuer Gegner**: `Enemy.tscn` aus FileSystem in Level-Scene ziehen
 - **Neue Coin**: `Coin.tscn` aus FileSystem in Level-Scene ziehen
 - **PlayerSpawn**: `Marker2D` namens `PlayerSpawn` im Level bewegen
+
+Level6.tscn (zufällige Spawns) hat **keine** handplatzierten Enemy/Coin-Instanzen — dort stattdessen
+Plattformen zur Gruppe `spawn_platforms` hinzufügen (siehe Abschnitt oben).
+
+## Zufällige Gegner-/Coin-Platzierung (Level.gd, ab Level 6)
+
+`Level.gd` ist die Basis-Klasse für alle Level und trägt jetzt ein optionales, wiederverwendbares
+Zufalls-Spawn-System (opt-in, Default aus — Level 1-5 bleiben unverändert handplatziert):
+
+- **Aktivierung**: `@export var randomize_spawns: bool` auf dem Level-Root (`randomize_spawns = true`
+  in Level6.tscn), plus `@export var goblin_count`/`coin_count` (Default 8/10, passend zu Level 5s Dichte).
+- **Spawn-Plattformen markieren**: Plattformen, die als Spawn-Punkt in Frage kommen, werden im
+  Node-Dock → Groups-Tab zur Gruppe `"spawn_platforms"` hinzugefügt (kein neuer Node-Typ nötig).
+  Start- und Ziel-Plattform bleiben unmarkiert, damit kein Gegner direkt am Spawn oder Ziel steht.
+- **`Game._load_level()`** ruft direkt nach `add_child(level_root)` `level_root.call("randomize_level_spawns")`
+  auf — läuft bei jedem Levelstart/Retry neu, ohne gespeicherten Seed (jedes Mal anders).
+  Aufruf per `.call()`, da `level_root` statisch als `Node2D` typisiert ist.
+- **Platzierungslogik**: pro markierter Plattform wird die sichere X-Spanne aus
+  `CollisionShape2D.shape.size` berechnet — bei Gegnern abzüglich eines zufälligen
+  `patrol_range` (20–40, wie bei den handplatzierten Level-5-Gegnern) + Sicherheitsabstand,
+  damit `Enemy.gd`s Patrol (kein Kanten-Check!) nie über die Plattformkante hinausläuft.
+  Y-Offsets (`ENEMY_Y_OFFSET = -13`, `COIN_Y_OFFSET = -35`) sind aus den handplatzierten
+  Level-5-Koordinaten abgeleitet, damit prozedurale Spawns genauso aussehen wie handplatzierte.
+  Ein Gegner pro Plattform (zyklisch bei Überschuss), Coins dürfen sich mehrfach eine Plattform teilen.
 
 ## Sprite-Skalierung
 

@@ -1,0 +1,131 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" uid="uid://d16oo5woybv4x" path="res://scripts/Level.gd" id="1_level"]
+[ext_resource type="Script" uid="uid://dccnsbe8g4ea0" path="res://scripts/Platform.gd" id="2_platform"]
+[ext_resource type="PackedScene" path="res://scenes/Goal.tscn" id="3_goal"]
+
+[sub_resource type="RectangleShape2D" id="shape_160x40"]
+size = Vector2(160, 40)
+
+[sub_resource type="RectangleShape2D" id="shape_100x20"]
+size = Vector2(100, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_80x20"]
+size = Vector2(80, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_60x20"]
+size = Vector2(60, 20)
+
+[sub_resource type="RectangleShape2D" id="shape_120x20"]
+size = Vector2(120, 20)
+
+[node name="Level6" type="Node2D"]
+script = ExtResource("1_level")
+level_width = 2200
+randomize_spawns = true
+goblin_count = 8
+coin_count = 10
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(30, 460)
+
+[node name="Platforms" type="Node2D" parent="."]
+
+[node name="Start" type="StaticBody2D" parent="Platforms"]
+position = Vector2(80, 520)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/Start"]
+shape = SubResource("shape_160x40")
+
+[node name="P1" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(280, 460)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P1"]
+shape = SubResource("shape_100x20")
+
+[node name="P2" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(460, 500)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P2"]
+shape = SubResource("shape_80x20")
+
+[node name="P3" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(620, 420)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P3"]
+shape = SubResource("shape_80x20")
+
+[node name="P4" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(800, 460)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P4"]
+shape = SubResource("shape_100x20")
+
+[node name="P5" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(980, 380)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P5"]
+shape = SubResource("shape_80x20")
+
+[node name="P6" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(1160, 440)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P6"]
+shape = SubResource("shape_80x20")
+
+[node name="P7" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(1340, 340)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P7"]
+shape = SubResource("shape_60x20")
+
+[node name="P8" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(1520, 400)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P8"]
+shape = SubResource("shape_80x20")
+
+[node name="P9" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(1700, 300)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P9"]
+shape = SubResource("shape_80x20")
+
+[node name="P10" type="StaticBody2D" parent="Platforms" groups=["spawn_platforms"]]
+position = Vector2(1880, 360)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/P10"]
+shape = SubResource("shape_100x20")
+
+[node name="GoalPlatform" type="StaticBody2D" parent="Platforms"]
+position = Vector2(2060, 280)
+collision_mask = 0
+script = ExtResource("2_platform")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/GoalPlatform"]
+shape = SubResource("shape_120x20")
+
+[node name="Goal" parent="." instance=ExtResource("3_goal")]
+position = Vector2(2080, 240)

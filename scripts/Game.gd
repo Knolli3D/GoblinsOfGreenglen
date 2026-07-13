@@ -9,6 +9,7 @@ const LEVELS := [
 	"res://scenes/Level3.tscn",
 	"res://scenes/Level4.tscn",
 	"res://scenes/Level5.tscn",
+	"res://scenes/Level6.tscn",
 ]
 
 const SFX_FILES := {
@@ -591,6 +592,7 @@ func _load_level(idx: int) -> void:
 	level_root = packed.instantiate() as Node2D
 	level_root.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(level_root)
+	level_root.call("randomize_level_spawns")
 
 	var spawn_marker := level_root.find_child("PlayerSpawn", true, false) as Marker2D
 	var spawn_pos := Vector2(60, 460)
