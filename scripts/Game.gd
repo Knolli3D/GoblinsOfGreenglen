@@ -607,7 +607,7 @@ func _load_level(idx: int) -> void:
 	player.reached_goal.connect(reach_goal)
 	player.jumped.connect(play_sfx.bind("jump", 0.04))
 	player.double_jumped.connect(play_sfx.bind("double_jump", 0.04))
-	player.call("apply_skin", Progression.get_equipped_skin().color)
+	player.call("apply_skin", Progression.get_equipped_skin())
 
 	var cam := Camera2D.new()
 	cam.limit_left = 0

@@ -15,11 +15,11 @@ const SKIN_TIERS := {
 		{"id": "silver_knight", "name": "Silver Knight", "color": Color(0.78, 0.8, 0.85)},
 	]},
 	"rare": {"weight": 25, "skins": [
-		{"id": "gold_knight", "name": "Gold Knight", "color": Color(1.0, 0.85, 0.2)},
-		{"id": "emerald_knight", "name": "Emerald Knight", "color": Color(0.2, 0.85, 0.45)},
+		{"id": "gold_knight", "name": "Gold Knight", "color": Color(1.0, 0.85, 0.2), "texture": "res://assets/sprite_knight_gold.png"},
+		{"id": "emerald_knight", "name": "Emerald Knight", "color": Color(0.2, 0.85, 0.45), "texture": "res://assets/sprite_knight_emerald.png"},
 	]},
 	"epic": {"weight": 5, "skins": [
-		{"id": "shadow_knight", "name": "Shadow Knight", "color": Color(0.25, 0.22, 0.3)},
+		{"id": "blood_knight", "name": "Blood Knight", "color": Color(0.55, 0.05, 0.08), "texture": "res://assets/sprite_knight_blood.png"},
 	]},
 }
 

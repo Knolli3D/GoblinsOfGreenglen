@@ -22,8 +22,17 @@ func _ready() -> void:
 		sprite.scale = Vector2.ONE * (52.0 / float(sprite.texture.get_height()))
 		sprite.position = Vector2(0, -2)
 
-func apply_skin(color: Color) -> void:
-	$Sprite2D.modulate = color
+func apply_skin(skin: Dictionary) -> void:
+	var sprite := $Sprite2D
+	var texture_path: String = skin.get("texture", "")
+	if texture_path != "" and ResourceLoader.exists(texture_path):
+		sprite.texture = load(texture_path)
+		sprite.modulate = Color.WHITE
+	else:
+		sprite.modulate = skin.get("color", Color.WHITE)
+	if sprite.texture:
+		sprite.scale = Vector2.ONE * (52.0 / float(sprite.texture.get_height()))
+		sprite.position = Vector2(0, -2)
 
 func _physics_process(delta: float) -> void:
 	if is_on_floor():

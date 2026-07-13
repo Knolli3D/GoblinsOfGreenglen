@@ -151,9 +151,16 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
 - **Cases**: 1 Key = 1 Case-Opening. Rewards sind Skins mit gewichteten Rarity-Tiers
   (`SKIN_TIERS`: Common/Rare/Epic), Duplikate sind erlaubt (kein Pity-/Dust-System).
   Reveal-Animation (`Game._spawn_skin_reveal()`) nutzt das gleiche Tween-Muster wie `_spawn_pow()`.
-- **Skins**: reine Farb-Tints (`Sprite2D.modulate`, kein neues Artwork). Ausrüsten über
-  `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via `player.apply_skin(color)`
-  bei jedem Levelstart. Ohne ausgerüsteten Skin bleibt der Ritter ungetintet (`Color.WHITE`).
+- **Skins**: zwei Varianten je nach `SKIN_TIERS`-Eintrag. Common-Skins (Bronze/Silber) sind reine
+  Farb-Tints (`Sprite2D.modulate`) ohne neues Artwork — funktioniert nur für Helligkeits-/Sättigungs-
+  Verschiebungen der Basis-Palette. Rare/Epic-Skins (Gold/Emerald/Blood) nutzen echtes Artwork
+  (`texture`-Feld mit Pfad zu `assets/sprite_knight_*.png`), da Tinting bei neuen Farbtönen falsche
+  Ergebnisse liefert (z.B. blauer Umhang wird unter Gold-Tint grün statt gold). `Player.apply_skin(skin)`
+  bekommt das komplette Skin-Dictionary, tauscht bei vorhandenem `texture`-Feld die Sprite-Textur
+  (inkl. Neuberechnung der Skalierung, da die Artwork-Dateien unterschiedliche Pixelmaße haben),
+  sonst nur `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in
+  `Game._load_level()` via `player.apply_skin(Progression.get_equipped_skin())` bei jedem
+  Levelstart. Ohne ausgerüsteten Skin bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
 - **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. "Quit Game" ist
   bewusst nicht Teil der VBoxContainer-Button-Liste, sondern unten rechts fix verankert
   (`PRESET_BOTTOM_RIGHT` + `offset_*`), damit neue Menü-Buttons es nicht aus dem Fenster schieben.
