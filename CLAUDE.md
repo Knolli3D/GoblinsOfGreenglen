@@ -2,12 +2,14 @@
 
 Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
 
+**Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, Win/Death-Flow). Der generierte Chiptune-Sound ist witzig und rundet das Ganze gut ab.
+
 ## Spielprinzip
 
-Ritter springt durch 3 Level, besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
+Ritter springt durch 5 Level (Level 4+5 mit horizontalem Scrolling), besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
 - 3 Herzen (Health), Score +1 pro Kill, -1 pro Treffer/Fall
 - Coins sammelbar (+1 pro Coin), werden im Win-Screen angezeigt
-- Nach 3 Leveln: Gewinn-Screen mit Final Score + Coin-Count
+- Nach 5 Leveln: Gewinn-Screen mit Final Score + Coin-Count
 - Stirbt der Spieler (0 HP): Freeze + "Ouch! Press R to retry"
 
 ## Steuerung

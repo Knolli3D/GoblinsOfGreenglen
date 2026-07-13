@@ -2,6 +2,8 @@
 
 A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 5 increasingly challenging levels — including two horizontally scrolling stages.
 
+**Status:** Fully playable end to end — all 5 levels, combat, coins, and win/death flow work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
+
 ---
 
 ## Gameplay
@@ -138,6 +140,16 @@ The game uses a **signal-based, scene-driven** architecture with no singletons:
 | Pause menu | Resume, Try Again, Exit to Menu |
 | Win & death screens | Inline HUD messages; `R` to restart |
 | Scrolling levels | Camera clamps to `level_width` per level |
+
+---
+
+## Audio
+
+All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). A looping background track plays during gameplay, with round-robin SFX voices for jump, double-jump, coin pickup, stomp, hit, death, level clear, and win — pitch-jittered slightly so they don't feel repetitive. Music ducks during the pause menu.
+
+## Highscore
+
+Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win screen shows "★ New Highscore! ★"; the main menu displays your current best under the title.
 
 ---
 
