@@ -27,6 +27,13 @@ const MUSIC_FILE := "res://assets/audio/music.wav"
 const SFX_VOICES := 8
 const SAVE_PATH := "user://highscore.cfg"
 
+# music_player.volume_db ist der Player-Pegel und addiert sich auf den Music-Bus
+# (-6 dB in default_bus_layout.tres). Diese Werte sind also KEIN Gesamtausgang:
+#   normal  = 0 dB Player  + (-6 dB Bus) = -6 dB gesamt
+#   ducked  = -14 dB Player + (-6 dB Bus) = -20 dB gesamt (Ducking im Pause-Menü)
+const MUSIC_NORMAL_DB := 0.0
+const MUSIC_PAUSED_DB := -14.0
+
 var current_level := 0
 var health := MAX_HEALTH
 var score := 0
@@ -136,6 +143,10 @@ func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
 	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
 	p.stream = stream
 	p.play()
+
+# Einziger Ort, an dem der Musik-Pegel gesetzt wird — hält Pause/Resume/Menü/Neustart konsistent.
+func _set_music_ducked(ducked: bool) -> void:
+	music_player.volume_db = MUSIC_PAUSED_DB if ducked else MUSIC_NORMAL_DB
 
 func _load_highscore() -> void:
 	var cfg := ConfigFile.new()
@@ -321,6 +332,9 @@ func _show_main_menu() -> void:
 	cases_menu.visible = false
 	skins_menu.visible = false
 	music_player.stop()
+	# Ducking zurücknehmen — sonst startet die nächste Runde mit gedämpfter Musik
+	# (z.B. nach "Exit to Menu" aus dem Pause-Menü).
+	_set_music_ducked(false)
 
 func _start_game() -> void:
 	play_sfx("click")
@@ -332,6 +346,7 @@ func _start_game() -> void:
 	score = 0
 	coin_count = 0
 	took_damage_this_run = false
+	_set_music_ducked(false)
 	music_player.play()
 	_load_level(0)
 
@@ -347,13 +362,13 @@ func _toggle_pause() -> void:
 	var paused := not get_tree().paused
 	get_tree().paused = paused
 	pause_menu.visible = paused
-	music_player.volume_db = -14.0 if paused else 0.0
+	_set_music_ducked(paused)
 
 func _restart_level_from_menu() -> void:
 	play_sfx("click")
 	get_tree().paused = false
 	pause_menu.visible = false
-	music_player.volume_db = 0.0
+	_set_music_ducked(false)
 	score = 0
 	coin_count = 0
 	took_damage_this_run = false
@@ -1084,7 +1099,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		get_tree().paused = false
 		pause_menu.visible = false
-		music_player.volume_db = 0.0
+		_set_music_ducked(false)
 		if not music_player.playing:
 			music_player.play()
 		score = 0
