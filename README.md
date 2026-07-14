@@ -137,7 +137,7 @@ The game uses a **signal-based, scene-driven** architecture with no singletons:
 | Score | +1 per goblin stomped, −1 per hit or fall |
 | Coins | Persistent across levels, shown on win screen |
 | Double jump | Full second jump with slightly lower velocity |
-| Invincibility frames | 1 second after taking damage |
+| Invincibility frames | 1 second after taking damage or a non-fatal fall; never carries over into a new level, restart, or run |
 | POW! effect | Animated label that floats and fades on stomp |
 | Pause menu | Resume, Try Again, Exit to Menu |
 | Win & death screens | Inline HUD messages; `R` to restart |

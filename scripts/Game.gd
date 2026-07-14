@@ -301,6 +301,7 @@ func _build_main_menu() -> void:
 func _show_main_menu() -> void:
 	transition_gen += 1  # macht jede noch wartende reach_goal()-Coroutine ungültig
 	transitioning = false
+	invuln_until = 0.0  # Gameplay-Zustand räumen — kein Schutzfenster überlebt das Menü
 	in_main_menu = true
 	get_tree().paused = false
 	pause_menu.visible = false
@@ -929,6 +930,11 @@ func _load_level(idx: int) -> void:
 	health = MAX_HEALTH
 	transitioning = false
 	took_damage_this_level = false
+	# Kein vererbter Schutz aus dem vorherigen Level/Run. Bewusst KEINE Spawn-Protection:
+	# PlayerSpawn liegt in allen Leveln abseits der Gegner (Level 6 markiert die Start-
+	# Plattform nicht als spawn_platform). Falls später gewünscht, hier eine benannte
+	# Konstante (z.B. SPAWN_PROTECTION := 1.0) statt eines geerbten Timers verwenden.
+	invuln_until = 0.0
 	win_label.visible = false
 
 	var packed: PackedScene = load(LEVELS[idx])

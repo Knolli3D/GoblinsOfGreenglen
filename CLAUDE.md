@@ -13,6 +13,9 @@ alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` 
 Ritter springt durch 6 Level (Level 4+5 mit horizontalem Scrolling, Level 6 mit zufälliger
 Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
 - 3 Herzen (Health), Score +1 pro Kill, -1 pro Treffer/Fall
+- 1s Invulnerability nach Treffer/Fall-Respawn (`invuln_until`); wird in `_load_level()` und
+  im Hauptmenü auf 0.0 zurückgesetzt — bewusst keine Spawn-Protection beim Levelstart
+  (PlayerSpawn liegt überall abseits der Gegner)
 - Coins sammelbar (+1 pro Coin), werden im Win-Screen angezeigt
 - Nach 6 Leveln: Gewinn-Screen mit Final Score + Coin-Count
 - Stirbt der Spieler (0 HP): Freeze + "Ouch! Press R to retry"
@@ -77,6 +80,11 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
 - **Progression.gd** ist der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
   da Meta-Progression session-übergreifend und auch im Hauptmenü ohne geladenes Level lesbar sein muss)
+- **Level-Übergänge (Race-Schutz)**: `reach_goal()` wartet 1s ("Level Cleared!", Timer pausiert
+  mit dem Spiel) und validiert danach gegen das Generation-Token `transition_gen`, das von
+  `_load_level()` und `_show_main_menu()` erhöht wird — veraltete Übergangs-Coroutinen nach
+  Restart/Menü laden nichts mehr. Neue Code-Pfade, die Level wechseln oder ins Menü führen,
+  müssen durch eine dieser beiden Funktionen laufen (oder das Token selbst erhöhen)
 
 ## Kollisionslayer
 
