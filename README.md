@@ -62,31 +62,31 @@ No external plugins or dependencies required.
 ```
 cloude-game/
 ├── scripts/
-│   ├── Game.gd       # Main controller: HUD, menus, level loading, POW! effect
-│   ├── Player.gd     # CharacterBody2D: movement, double-jump, stomp, signals
-│   ├── Enemy.gd      # CharacterBody2D: patrol AI, kill logic
-│   ├── Coin.gd       # Area2D: coin pickup
-│   ├── Goal.gd       # Area2D: level exit flag
-│   ├── Platform.gd   # StaticBody2D: sprite scaling from collision shape
-│   └── Level.gd      # Node2D base: sky + mountain background drawing
+│   ├── Game.gd         # Main controller: HUD, menus, level loading, POW! effect, quests/cases/skins UI
+│   ├── Progression.gd  # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
+│   ├── Player.gd       # CharacterBody2D: movement, double-jump, stomp, signals, apply_skin()
+│   ├── Enemy.gd        # CharacterBody2D: patrol AI, kill logic
+│   ├── Coin.gd         # Area2D: coin pickup
+│   ├── Goal.gd         # Area2D: level exit flag
+│   ├── Platform.gd     # StaticBody2D: sprite scaling from collision shape
+│   └── Level.gd        # Node2D base: parallax background, optional randomized spawns
 ├── scenes/
-│   ├── Main.tscn     # Entry point
-│   ├── Player.tscn
-│   ├── Enemy.tscn
-│   ├── Coin.tscn
-│   ├── Goal.tscn
-│   ├── Platform.tscn
-│   ├── Level1.tscn   # Intro level
-│   ├── Level2.tscn   # Medium difficulty
-│   ├── Level3.tscn   # Harder layout
-│   ├── Level4.tscn   # Horizontal scrolling (1920 px wide)
-│   └── Level5.tscn   # Wide scrolling finale (2560 px wide)
+│   ├── Main.tscn       # Entry point
+│   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn
+│   ├── Level1–3.tscn   # Hand-placed levels
+│   ├── Level4.tscn     # Horizontal scrolling (1920 px wide)
+│   ├── Level5.tscn     # Wide scrolling (2560 px wide)
+│   └── Level6.tscn     # Finale: randomized enemy/coin spawns each play
 └── assets/
-    ├── sprite_knight.png
-    ├── sprite_goblin.png
-    ├── sprite_platform.png
-    └── sky.png
+    ├── sprite_knight.png / sprite_goblin.png / sprite_platform.png
+    ├── sprite_knight_*.png     # Skin art: gold, emerald, pink, blood, black
+    ├── sprite_princess_*.png   # Legendary skin art: blue (starter), gold, green, purple, red
+    ├── level_bg.png / level_bg_near.png   # Level parallax background art
+    ├── *_background.png         # Menu backgrounds (main, quests, cases, skins)
+    └── audio/                   # Generated chiptune SFX + looping music
 ```
+
+> Skin sprites (`sprite_knight_*`, `sprite_princess_*`) must have transparent backgrounds; sprites delivered with a white background are cut out before use, or they show as a white box in-game.
 
 ---
 

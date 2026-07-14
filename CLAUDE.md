@@ -242,6 +242,11 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
   `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via
   `player.apply_skin(Progression.get_equipped_skin())` bei jedem Levelstart. Ohne ausgerüsteten Skin
   bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
+- **Artwork-Anforderung**: Textur-Skins müssen **transparenten Hintergrund** haben. Einige
+  gelieferte Sprites (Prinzessinnen, Black Knight) kamen als opakes RGB mit weißem Hintergrund und
+  wurden per ImageMagick freigestellt (near-white → transparent via `-fuzz 12% -transparent white`,
+  entfernt auch eingeschlossene Lücken zwischen Beinen/Arm/Körper). Bei neuen Skins vorab prüfen,
+  dass der Hintergrund transparent ist, sonst erscheint im Spiel eine weiße Box.
 - **Skins-Menü (Preview)**: Zwei-Spalten-Layout — links scrollbare Skin-Liste (Buttons, Text in
   Rarity-Farbe via `TIER_COLORS`, ausgewählter mit `▶`-Präfix), rechts Preview-Panel mit großem
   Sprite, Name, Rarity-Tier und `✓ Equipped`-Indikator. Klick auf einen Listeneintrag setzt nur
