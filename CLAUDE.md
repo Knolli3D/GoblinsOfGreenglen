@@ -3,7 +3,8 @@
 Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
 (Repo/Ordner heißt weiterhin `cloude-game`; "Goblins of Greenglen" ist nur der In-Game-Anzeigename
 via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `user://`-Save-Pfad —
-bei Umbenennung müssen bestehende Saves aus `app_userdata/Cloude Game` migriert werden.)
+alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` automatisch
+übernommen, siehe Abschnitt "Save-Migration".)
 
 **Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, Win/Death-Flow). Der generierte Chiptune-Sound ist witzig und rundet das Ganze gut ab.
 
@@ -38,6 +39,7 @@ scripts/
   Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
   Platform.gd     # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
   Level.gd        # Node2D Basis: Parallax-Hintergrund (mit _draw()-Fallback), optionales randomize_level_spawns()
+  SaveMigration.gd # Statischer Helper: einmalige Save-Übernahme aus "Cloude Game" (siehe Save-Migration)
 
 scenes/
   Main.tscn         # Einstieg → lädt Game.gd
@@ -180,6 +182,29 @@ Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFil
   (speichert nur, wenn besser: höherer Score, bei Gleichstand mehr Coins) → zeigt "★ New Highscore! ★"
   bzw. den bestehenden Bestwert an. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
 - Für das spätere Web-Leaderboard ist `_submit_run()` der einzige Hook-Punkt.
+
+## Save-Migration (SaveMigration.gd)
+
+Einmalige, automatische Übernahme alter Saves nach der Umbenennung "Cloude Game" →
+"Goblins of Greenglen" (Godot leitet `user://` aus `config/name` ab, alte Saves lägen sonst
+unauffindbar im alten `app_userdata`-Ordner).
+
+- **Aufruf**: `SaveMigration.migrate_old_saves()` als erste Zeile in `Progression._ready()` —
+  Progression ist Autoload und läuft vor Game.gd, die Migration passiert also garantiert vor
+  dem Laden BEIDER Saves (`progression.cfg` und `highscore.cfg`).
+- **Pfad-Ermittlung**: alter Ordner = Geschwister-Verzeichnis von `OS.get_user_data_dir()`
+  (`.get_base_dir().path_join("Cloude Game")`) — kein hartkodierter absoluter Pfad,
+  funktioniert auf macOS, Windows und Linux. Existiert der alte Ordner nicht (frische
+  Installation, custom user dir), ist die Migration ein stiller No-Op.
+- **Regeln**: existierende aktuelle Saves werden NIE überschrieben (das macht die Migration
+  zugleich idempotent — kein Marker-File nötig); beide Dateien werden unabhängig migriert
+  (eine kann fehlen/kaputt sein, ohne die andere zu blockieren); alte Dateien werden vor dem
+  Kopieren validiert (ConfigFile parst + Kerntypen stimmen) und das Ziel nach dem Kopieren
+  verifiziert (bei Fehlschlag wird das unbrauchbare Ziel entfernt, damit ein späterer Lauf
+  erneut versuchen kann); die Quelle bleibt immer unangetastet (kein automatisches Löschen).
+- **Fehlerverhalten**: nur `push_warning()` — der Spielstart wird nie blockiert.
+- **Starter-Skins**: die Migration fasst Skins nicht an; `_ensure_starter_skins()` läuft
+  danach und ist durch den `if id not in owned_skins`-Guard dedupliziert.
 
 ## Quests, Keys & Cases (Progression.gd)
 

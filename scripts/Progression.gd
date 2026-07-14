@@ -1,6 +1,7 @@
 extends Node
 
 const SAVE_PATH := "user://progression.cfg"
+const SaveMigration := preload("res://scripts/SaveMigration.gd")
 
 const QUEST_POOL := [
 	{"id": "stomp_goblins", "desc": "Stomp %d goblins", "stat": "stomp", "target": 5},
@@ -82,6 +83,9 @@ var owned_skins: Array = []
 var equipped_skin := ""
 
 func _ready() -> void:
+	# Vor JEDEM Save-Load: alte Saves aus "Cloude Game" übernehmen (einmalig, idempotent).
+	# Progression ist Autoload → läuft vor Game.gd, deckt also auch highscore.cfg ab.
+	SaveMigration.migrate_old_saves()
 	_load()
 	_ensure_starter_skins()
 	check_daily_reset()
