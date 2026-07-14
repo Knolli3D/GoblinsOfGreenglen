@@ -401,7 +401,7 @@ func _build_submenu_shell(layer_index: int, title_text: String, bg_path: String)
 	return {"menu": menu, "box": box}
 
 func _build_quests_menu() -> void:
-	var shell := _build_submenu_shell(11, "Daily Quests", "res://assets/quests_background.png")
+	var shell := _build_submenu_shell(11, "Daily Quests", "res://assets/menu_bg_quests.png")
 	quests_menu = shell.menu
 	quests_list = VBoxContainer.new()
 	quests_list.add_theme_constant_override("separation", 10)
@@ -489,7 +489,7 @@ func _on_claim_weekly(slot: int) -> void:
 		_update_hud()
 
 func _build_cases_menu() -> void:
-	var shell := _build_submenu_shell(12, "Cases", "res://assets/cases_background.png")
+	var shell := _build_submenu_shell(12, "Cases", "res://assets/menu_bg_cases.png")
 	cases_menu = shell.menu
 
 	cases_keys_label = Label.new()
@@ -722,7 +722,7 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 	tw.tween_callback(lyr.queue_free)
 
 func _build_skins_menu() -> void:
-	var shell := _build_submenu_shell(13, "Skins", "res://assets/skins_background.png")
+	var shell := _build_submenu_shell(13, "Skins", "res://assets/menu_bg_skins.png")
 	skins_menu = shell.menu
 
 	# Linke Spalte: scrollbare Skin-Liste
