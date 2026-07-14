@@ -230,33 +230,35 @@ func _build_main_menu() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main_menu.add_child(dim)
 
-	# Box über die volle Breite, damit Titel/Buttons echt zentriert sind (ein breites
-	# Label würde sonst die Box-Breite aufblähen und alles aus der Mitte schieben)
+	# Box über die volle Breite, damit Logo/Buttons echt zentriert sind (ein breites
+	# Kind würde sonst die Box-Breite aufblähen und alles aus der Mitte schieben).
+	# Startet weiter oben als früher, damit das Logo (180px) samt Buttons in 540px passt.
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 18)
-	box.position = Vector2(0, VIEW.y * 0.5 - 120)
+	box.position = Vector2(0, 40)
 	box.custom_minimum_size = Vector2(VIEW.x, 0)
 	main_menu.add_child(box)
 
-	var title := Label.new()
-	title.text = "Goblins of Greenglen"
-	title.add_theme_font_size_override("font_size", 44)
-	title.add_theme_color_override("font_color", Color(1, 0.95, 0.6))
-	title.add_theme_color_override("font_outline_color", Color.BLACK)
-	title.add_theme_constant_override("outline_size", 6)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(title)
+	# Titel-Logo statt Text-Label
+	var logo := TextureRect.new()
+	logo.texture = load("res://assets/LOGO_menu_GoGg.png")
+	logo.custom_minimum_size = Vector2(0, 180)
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(logo)
 
 	highscore_label = Label.new()
 	highscore_label.add_theme_font_size_override("font_size", 18)
 	highscore_label.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+	highscore_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	highscore_label.add_theme_constant_override("outline_size", 4)
 	highscore_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	highscore_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(highscore_label)
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, 20)
+	spacer.custom_minimum_size = Vector2(0, 8)
 	box.add_child(spacer)
 
 	var start_btn := Button.new()
