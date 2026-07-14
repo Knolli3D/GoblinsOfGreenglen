@@ -193,11 +193,14 @@ func _build_ui_theme() -> void:
 func _make_button_style(state: String) -> StyleBoxTexture:
 	var sb := StyleBoxTexture.new()
 	sb.texture = load(BTN_TEX[state])
-	# Nine-Patch bei Quellauflösung (900×150): Enden fix, Mitte streckt.
+	# Nine-Patch (Quelle 900×150): dekorierte Metall-Enden bleiben fix, Holz-Mitte streckt.
+	# Die vertikalen Ränder müssen klein bleiben — die Buttons sind nur 32–48px hoch, und
+	# top+bottom dürfen die Button-Höhe nicht erreichen, sonst kollabiert die Holz-Mitte
+	# (das war der Bug: 30+30=60px > Button-Höhe → kein sichtbares Holz).
 	sb.texture_margin_left = 85
 	sb.texture_margin_right = 85
-	sb.texture_margin_top = 30
-	sb.texture_margin_bottom = 30
+	sb.texture_margin_top = 10
+	sb.texture_margin_bottom = 10
 	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
 	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
 	# Content-Margins: Text bleibt rechts der Metall-Gems/Vines, mittig auf dem Holz.
