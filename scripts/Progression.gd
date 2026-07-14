@@ -323,20 +323,27 @@ func get_owned_skins() -> Array:
 				result.append(entry)
 	return result
 
+# Virtueller Default-Skin (Basis-Ritter ohne Tint). Bewusst NICHT in SKIN_TIERS:
+# nie aus Cases ziehbar, zählt nicht zur Collection, id "" bleibt der kanonische
+# "kein Skin"-Wert in progression.cfg (alte Saves bleiben kompatibel).
+func get_default_skin() -> Dictionary:
+	return {"id": "", "name": "Default Knight", "color": Color.WHITE, "tier": "default"}
+
 func equip_skin(id: String) -> void:
-	if id not in owned_skins:
+	# "" = Default Knight ausrüsten (immer erlaubt, steht nicht in owned_skins)
+	if id != "" and id not in owned_skins:
 		return
 	equipped_skin = id
 	_save()
 
 func get_equipped_skin() -> Dictionary:
 	if equipped_skin == "":
-		return {"id": "", "name": "Default", "color": Color.WHITE}
+		return get_default_skin()
 	for tier: String in SKIN_TIERS:
 		for skin: Dictionary in SKIN_TIERS[tier].skins:
 			if skin.id == equipped_skin:
 				return skin
-	return {"id": "", "name": "Default", "color": Color.WHITE}
+	return get_default_skin()
 
 func _load() -> void:
 	var cfg := ConfigFile.new()

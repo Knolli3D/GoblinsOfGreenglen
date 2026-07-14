@@ -87,6 +87,7 @@ const TIER_COLORS := {
 	"epic": Color(0.8, 0.45, 0.95),
 	"legendary": Color(1.0, 0.65, 0.15),
 	"starter": Color(0.55, 0.8, 0.85),
+	"default": Color(0.85, 0.85, 0.85),
 }
 
 func _ready() -> void:
@@ -785,40 +786,33 @@ func _build_skins_menu() -> void:
 	back_btn.pressed.connect(_hide_submenus)
 	skins_menu.add_child(back_btn)
 
+# Alle im Menü wählbaren Skins: virtueller Default Knight (id "") + besessene Skins.
+# Der Default steht bewusst nicht in SKIN_TIERS/owned_skins (keine Case-/Collection-Zählung).
+func _selectable_skins() -> Array:
+	var entries: Array = [Progression.get_default_skin()]
+	entries.append_array(Progression.get_owned_skins())
+	return entries
+
 func _show_skins_menu() -> void:
 	play_sfx("click")
 	main_menu.visible = false
 	skins_menu.visible = true
-	# Default-Auswahl: ausgerüsteter Skin, sonst erster besessener
-	var owned := Progression.get_owned_skins()
-	if not owned.is_empty():
-		selected_skin_id = Progression.equipped_skin
+	# Default-Auswahl: ausgerüsteter Skin; unbekannte id fällt auf den Default Knight zurück
+	selected_skin_id = Progression.equipped_skin
+	if selected_skin_id != "":
 		var owns_selected := false
-		for skin: Dictionary in owned:
+		for skin: Dictionary in Progression.get_owned_skins():
 			if skin.id == selected_skin_id:
 				owns_selected = true
 				break
 		if not owns_selected:
-			selected_skin_id = owned[0].id
+			selected_skin_id = ""
 	_refresh_skins_menu()
 
 func _refresh_skins_menu() -> void:
 	for child in skins_list.get_children():
 		child.queue_free()
-	var owned := Progression.get_owned_skins()
-	if owned.is_empty():
-		var empty_lbl := Label.new()
-		empty_lbl.text = "No skins yet —\nopen a case!"
-		empty_lbl.add_theme_font_size_override("font_size", 16)
-		empty_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
-		skins_list.add_child(empty_lbl)
-		skins_preview_sprite.texture = null
-		skins_preview_name.text = ""
-		skins_preview_tier.text = ""
-		skins_preview_equipped.visible = false
-		skins_equip_btn.visible = false
-		return
-	for skin: Dictionary in owned:
+	for skin: Dictionary in _selectable_skins():
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(320, 36)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -836,7 +830,7 @@ func _on_select_skin(id: String) -> void:
 
 func _update_skin_preview() -> void:
 	var selected := {}
-	for skin: Dictionary in Progression.get_owned_skins():
+	for skin: Dictionary in _selectable_skins():
 		if skin.id == selected_skin_id:
 			selected = skin
 			break

@@ -275,6 +275,12 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
   `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via
   `player.apply_skin(Progression.get_equipped_skin())` bei jedem Levelstart. Ohne ausgerüsteten Skin
   bleibt der Ritter unverändert (`Color.WHITE`, Default-Textur).
+- **Default Knight (abwählbar)**: `Progression.get_default_skin()` liefert einen virtuellen Skin
+  (id `""`, Basis-Ritter, Tier "default") — bewusst NICHT in `SKIN_TIERS`/`owned_skins`, also nie
+  aus Cases ziehbar und nicht in der Collection-Zählung. `equip_skin("")` ist explizit erlaubt und
+  persistiert `equipped_skin=""` (kanonischer "kein Skin"-Wert, alte Saves kompatibel). Das
+  Skins-Menü listet ihn via `Game._selectable_skins()` (Default + besessene) immer als ersten
+  Eintrag, damit man nach dem Ausrüsten eines Skins zum Basis-Ritter zurückkehren kann.
 - **Artwork-Anforderung**: Textur-Skins müssen **transparenten Hintergrund** haben. Einige
   gelieferte Sprites (Prinzessinnen, Black Knight) kamen als opakes RGB mit weißem Hintergrund und
   wurden per ImageMagick freigestellt (near-white → transparent via `-fuzz 12% -transparent white`,
@@ -286,7 +292,7 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
   `selected_skin_id` und aktualisiert die Preview (`_update_skin_preview()`); erst der separate
   Equip-Button ruft `Progression.equip_skin()`. Preview rendert Textur-Skins direkt, Tint-Skins als
   Basis-Ritter + `modulate` — gleiche Logik wie `Player.apply_skin()`. Default-Auswahl beim Öffnen:
-  ausgerüsteter Skin, sonst erster besessener.
+  ausgerüsteter Skin, unbekannte/leere id fällt auf den Default Knight zurück.
 - **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. Der Hauptmenü-VBox
   spannt die volle Viewport-Breite (`custom_minimum_size.x = VIEW.x`), Buttons zentriert via
   `SIZE_SHRINK_CENTER` — sonst würde das breite Titel-Label die Box-Breite aufblähen und Titel +
