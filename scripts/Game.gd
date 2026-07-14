@@ -88,6 +88,20 @@ var skins_preview_equipped: Label
 var skins_equip_btn: Button
 var selected_skin_id := ""
 
+# Greenglen-UI-Theme (Button-Texturen + Cinzel-Typografie), einmal in _ready() gebaut.
+var ui_theme: Theme
+var ui_heading_font: Font
+
+# Greenglen-Buttons (Nine-Patch): dekorierte Metall-Enden fix, Holz-Mitte streckt.
+const BTN_TEX := {
+	"normal": "res://assets/ui/buttons/button_greenglen_normal.png",
+	"hover": "res://assets/ui/buttons/button_greenglen_hover.png",
+	"pressed": "res://assets/ui/buttons/button_greenglen_pressed.png",
+	"disabled": "res://assets/ui/buttons/button_greenglen_disabled.png",
+}
+const UI_CREAM := Color("#FFF1C4")
+const UI_BROWN := Color("#351D0E")
+
 const TIER_COLORS := {
 	"common": Color(0.55, 0.85, 0.55),
 	"rare": Color(0.4, 0.6, 1.0),
@@ -101,6 +115,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("game")
 	_load_highscore()
+	_build_ui_theme()
 	_build_audio()
 	_build_hud()
 	_build_pause_menu()
@@ -144,6 +159,62 @@ func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
 	p.stream = stream
 	p.play()
 
+# Ein wiederverwendbares Theme für alle Buttons (Greenglen-Texturen + Cinzel SemiBold).
+# Wird auf die Menü-Root-Controls gesetzt und vererbt sich auf alle Button-Kinder.
+func _build_ui_theme() -> void:
+	var font_semibold: Font = load("res://Cinzel/static/Cinzel-SemiBold.ttf")
+	ui_heading_font = load("res://Cinzel/static/Cinzel-Bold.ttf")
+	# Emoji/Sonderzeichen (🔑 🪙 ▶ ★) fehlen in Cinzel → Default-Font als Fallback anhängen.
+	if font_semibold is FontFile:
+		(font_semibold as FontFile).fallbacks = [ThemeDB.fallback_font]
+	if ui_heading_font is FontFile:
+		(ui_heading_font as FontFile).fallbacks = [ThemeDB.fallback_font]
+
+	var t := Theme.new()
+	t.set_stylebox("normal", "Button", _make_button_style("normal"))
+	t.set_stylebox("hover", "Button", _make_button_style("hover"))
+	t.set_stylebox("pressed", "Button", _make_button_style("pressed"))
+	t.set_stylebox("disabled", "Button", _make_button_style("disabled"))
+	# Kein Godot-Standard-Fokusrahmen — Hover-Textur zeigt die aktive Auswahl.
+	t.set_stylebox("focus", "Button", _make_button_style("hover"))
+
+	t.set_font("font", "Button", font_semibold)
+	t.set_font_size("font_size", "Button", 18)
+	t.set_color("font_color", "Button", UI_CREAM)
+	t.set_color("font_hover_color", "Button", Color("#FFFBEA"))
+	t.set_color("font_pressed_color", "Button", Color("#FFE7A0"))
+	t.set_color("font_focus_color", "Button", UI_CREAM)
+	t.set_color("font_hover_pressed_color", "Button", Color("#FFE7A0"))
+	t.set_color("font_disabled_color", "Button", Color(0.72, 0.66, 0.5))
+	t.set_color("font_outline_color", "Button", UI_BROWN)
+	t.set_constant("outline_size", "Button", 3)
+	ui_theme = t
+
+func _make_button_style(state: String) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(BTN_TEX[state])
+	# Nine-Patch bei Quellauflösung (900×150): Enden fix, Mitte streckt.
+	sb.texture_margin_left = 85
+	sb.texture_margin_right = 85
+	sb.texture_margin_top = 30
+	sb.texture_margin_bottom = 30
+	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	# Content-Margins: Text bleibt rechts der Metall-Gems/Vines, mittig auf dem Holz.
+	sb.content_margin_left = 64
+	sb.content_margin_right = 64
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	return sb
+
+# Cinzel-Bold-Titelstil für Menü-Überschriften.
+func _apply_heading_style(label: Label, size: int) -> void:
+	label.add_theme_font_override("font", ui_heading_font)
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", UI_CREAM)
+	label.add_theme_color_override("font_outline_color", UI_BROWN)
+	label.add_theme_constant_override("outline_size", 5)
+
 # Einziger Ort, an dem der Musik-Pegel gesetzt wird — hält Pause/Resume/Menü/Neustart konsistent.
 func _set_music_ducked(ducked: bool) -> void:
 	music_player.volume_db = MUSIC_PAUSED_DB if ducked else MUSIC_NORMAL_DB
@@ -180,6 +251,7 @@ func _build_pause_menu() -> void:
 	pause_menu = Control.new()
 	pause_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_menu.theme = ui_theme
 	pause_menu.visible = false
 	layer.add_child(pause_menu)
 
@@ -196,8 +268,7 @@ func _build_pause_menu() -> void:
 
 	var title := Label.new()
 	title.text = "Paused"
-	title.add_theme_font_size_override("font_size", 36)
-	title.add_theme_color_override("font_color", Color.WHITE)
+	_apply_heading_style(title, 34)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(title)
@@ -227,6 +298,7 @@ func _build_main_menu() -> void:
 	main_menu = Control.new()
 	main_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main_menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	main_menu.theme = ui_theme
 	layer.add_child(main_menu)
 
 	var bg := TextureRect.new()
@@ -304,9 +376,12 @@ func _build_main_menu() -> void:
 	var quit_btn := Button.new()
 	quit_btn.text = "Quit Game"
 	quit_btn.custom_minimum_size = Vector2(140, 40)
+	quit_btn.add_theme_font_size_override("font_size", 15)
 	quit_btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	quit_btn.offset_left = -156
-	quit_btn.offset_top = -56
+	# Breiter als die 140px-Mindestgröße (offset-getrieben), damit "Quit Game" samt
+	# dekorierter Metall-Enden vollständig ins Bild passt.
+	quit_btn.offset_left = -226
+	quit_btn.offset_top = -58
 	quit_btn.offset_right = -16
 	quit_btn.offset_bottom = -16
 	quit_btn.pressed.connect(_quit_game)
@@ -383,6 +458,7 @@ func _build_submenu_shell(layer_index: int, title_text: String, bg_path: String)
 	var menu := Control.new()
 	menu.set_anchors_preset(Control.PRESET_FULL_RECT)
 	menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	menu.theme = ui_theme
 	menu.visible = false
 	layer.add_child(menu)
 
@@ -407,8 +483,7 @@ func _build_submenu_shell(layer_index: int, title_text: String, bg_path: String)
 
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", 32)
-	title.add_theme_color_override("font_color", Color(1, 0.95, 0.6))
+	_apply_heading_style(title, 32)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(title)
@@ -517,14 +592,17 @@ func _build_cases_menu() -> void:
 	open_case_btn = Button.new()
 	open_case_btn.text = "Open Case (1 🔑)"
 	open_case_btn.custom_minimum_size = Vector2(300, 44)
+	open_case_btn.add_theme_font_size_override("font_size", 16)
 	open_case_btn.pressed.connect(_on_open_case_pressed.bind(false))
 	shell.box.add_child(open_case_btn)
 
 	premium_case_btn = Button.new()
 	premium_case_btn.text = "Premium Case (3 🔑) — Rare+"
 	premium_case_btn.custom_minimum_size = Vector2(300, 44)
-	premium_case_btn.pressed.connect(_on_open_case_pressed.bind(true))
+	# Langes Label: kleinere Schrift, damit es zwischen die Metall-Enden passt.
+	premium_case_btn.add_theme_font_size_override("font_size", 13)
 	shell.box.add_child(premium_case_btn)
+	premium_case_btn.pressed.connect(_on_open_case_pressed.bind(true))
 
 	cases_stats_label = Label.new()
 	cases_stats_label.add_theme_font_size_override("font_size", 14)
@@ -831,6 +909,7 @@ func _refresh_skins_menu() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(320, 36)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.add_theme_font_size_override("font_size", 16)
 		var prefix := "▶ " if skin.id == selected_skin_id else "    "
 		btn.text = "%s%s" % [prefix, skin.name]
 		btn.add_theme_color_override("font_color", TIER_COLORS.get(skin.tier, Color.WHITE))
