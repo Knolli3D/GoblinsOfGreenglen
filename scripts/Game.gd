@@ -32,6 +32,10 @@ var health := MAX_HEALTH
 var score := 0
 var coin_count := 0
 var transitioning := false
+# Generation-Token für Level-Übergänge: jeder Level-Load und jede Rückkehr ins Hauptmenü
+# erhöht es. Die reach_goal()-Coroutine validiert nach ihrem await dagegen, damit ein
+# veralteter Übergang (Restart/Menü während "Level Cleared!") keinen Level mehr lädt.
+var transition_gen := 0
 var invuln_until := 0.0
 var hud_label: Label
 var coin_label: Label
@@ -295,6 +299,8 @@ func _build_main_menu() -> void:
 	main_menu.add_child(quit_btn)
 
 func _show_main_menu() -> void:
+	transition_gen += 1  # macht jede noch wartende reach_goal()-Coroutine ungültig
+	transitioning = false
 	in_main_menu = true
 	get_tree().paused = false
 	pause_menu.visible = false
@@ -916,6 +922,7 @@ func coin_collected() -> void:
 	_update_hud()
 
 func _load_level(idx: int) -> void:
+	transition_gen += 1  # macht jede noch wartende reach_goal()-Coroutine ungültig
 	if level_root:
 		level_root.queue_free()
 	current_level = idx
@@ -1038,8 +1045,18 @@ func reach_goal() -> void:
 	if current_level + 1 < LEVELS.size():
 		play_sfx("level_clear")
 		_show_message("Level Cleared!")
-		await get_tree().create_timer(1.0).timeout
-		_load_level(current_level + 1)
+		# Nächstes Level und Token VOR dem await festhalten — danach kann sich beides
+		# durch Restart/Menü geändert haben.
+		var next_level := current_level + 1
+		var my_gen := transition_gen
+		# process_always=false: Pause friert den 1s-Timer ein — der Übergang läuft nur
+		# bei laufendem Spiel weiter (kein Levelwechsel hinter dem Pause-Menü).
+		await get_tree().create_timer(1.0, false).timeout
+		# Veraltet, wenn inzwischen ein Level geladen oder das Hauptmenü geöffnet wurde
+		# (beides erhöht transition_gen — deckt R, Try Again, Exit to Menu, neuen Run ab).
+		if my_gen != transition_gen or in_main_menu:
+			return
+		_load_level(next_level)
 	else:
 		Progression.add_quest_progress("finish_run")
 		if not took_damage_this_run:
