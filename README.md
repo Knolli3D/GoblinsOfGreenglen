@@ -4,18 +4,18 @@
 
 A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 6 increasingly challenging levels — including two horizontally scrolling stages and a final level with randomized enemy/coin placement.
 
-**Status:** Fully playable end to end — all 5 levels, combat, coins, and win/death flow work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
+**Status:** Fully playable end to end — all 6 levels, combat, coins, and win/death flow work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
 
 ---
 
 ## Gameplay
 
-- **5 levels** of increasing difficulty, ending with wide scrolling stages
+- **6 levels** of increasing difficulty — Levels 4–5 scroll horizontally, Level 6 randomizes enemy/coin placement on every playthrough
 - **Stomp enemies** (jump on top of a Goblin) to earn score points
 - **Collect coins** scattered across each level
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
-- **Win screen** shows your final score and total coins collected after Level 5
+- **Win screen** shows your final score and total coins collected after Level 6
 
 ---
 
@@ -62,14 +62,15 @@ No external plugins or dependencies required.
 ```
 cloude-game/
 ├── scripts/
-│   ├── Game.gd         # Main controller: HUD, menus, level loading, POW! effect, quests/cases/skins UI
-│   ├── Progression.gd  # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
-│   ├── Player.gd       # CharacterBody2D: movement, double-jump, stomp, signals, apply_skin()
-│   ├── Enemy.gd        # CharacterBody2D: patrol AI, kill logic
-│   ├── Coin.gd         # Area2D: coin pickup
-│   ├── Goal.gd         # Area2D: level exit flag
-│   ├── Platform.gd     # StaticBody2D: sprite scaling from collision shape
-│   └── Level.gd        # Node2D base: parallax background, optional randomized spawns
+│   ├── Game.gd          # Main controller: HUD, menus, level loading, POW! effect, quests/cases/skins UI, UI theme
+│   ├── Progression.gd   # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
+│   ├── Player.gd        # CharacterBody2D: movement, double-jump, stomp, signals, apply_skin()
+│   ├── Enemy.gd         # CharacterBody2D: patrol AI, kill logic
+│   ├── Coin.gd          # Area2D: coin pickup
+│   ├── Goal.gd          # Area2D: level exit flag
+│   ├── Platform.gd      # StaticBody2D: sprite scaling from collision shape
+│   ├── Level.gd         # Node2D base: parallax background, optional randomized spawns
+│   └── SaveMigration.gd # One-time save migration from the pre-rename "Cloude Game" user dir
 ├── scenes/
 │   ├── Main.tscn       # Entry point
 │   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn
@@ -77,13 +78,16 @@ cloude-game/
 │   ├── Level4.tscn     # Horizontal scrolling (1920 px wide)
 │   ├── Level5.tscn     # Wide scrolling (2560 px wide)
 │   └── Level6.tscn     # Finale: randomized enemy/coin spawns each play
-└── assets/
-    ├── sprite_knight.png / sprite_goblin.png / sprite_platform.png
-    ├── sprite_knight_*.png     # Skin art: gold, emerald, pink, blood, black
-    ├── sprite_princess_*.png   # Legendary skin art: blue (starter), gold, green, purple, red
-    ├── level_bg.png / level_bg_near.png   # Level parallax background art
-    ├── *_background.png         # Menu backgrounds (main, quests, cases, skins)
-    └── audio/                   # Generated chiptune SFX + looping music
+├── assets/
+│   ├── sprite_knight.png / sprite_goblin.png / sprite_platform.png
+│   ├── sprite_knight_*.png     # Skin art: gold, emerald, pink, blood, black
+│   ├── sprite_princess_*.png   # Legendary skin art: blue (starter), gold, green, purple, red
+│   ├── level_bg.png / level_bg_near.png   # Level parallax background art
+│   ├── menubackground.png / menu_bg_quests.png / menu_bg_cases.png / menu_bg_skins.png  # Menu backgrounds
+│   ├── LOGO_menu_GoGg.png / icon_GoGg.png  # Main-menu logo and app/window icon
+│   ├── ui/buttons/button_greenglen_*.png   # Nine-patch button art (normal/hover/pressed/disabled)
+│   └── audio/                  # Generated chiptune SFX + looping music
+└── Cinzel/              # Cinzel font family (SIL OFL) used for all UI text
 ```
 
 > Skin sprites (`sprite_knight_*`, `sprite_princess_*`) must have transparent backgrounds; sprites delivered with a white background are cut out before use, or they show as a white box in-game.
@@ -92,11 +96,12 @@ cloude-game/
 
 ## Architecture
 
-The game uses a **signal-based, scene-driven** architecture with no singletons:
+The game uses a **signal-based, scene-driven** architecture, mostly avoiding singletons:
 
 - **`Game.gd`** is the central controller added to the `"game"` group. It loads level scenes dynamically, spawns the player at the `PlayerSpawn` marker, and handles all game state (health, score, coins, transitions).
 - **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly.
 - **`Coin.gd`** finds the game controller via `get_tree().get_first_node_in_group("game")`.
+- **`Progression.gd`** is the project's one deliberate autoload/singleton — meta-progression (quests, keys, cases, skins) needs to persist across level loads and be readable from the main menu, where the group-lookup pattern doesn't apply.
 - **Levels** are `.tscn` files edited visually in the Godot 2D editor. Enemy patrol range and spawn positions are set as exported properties in the Inspector.
 - A **`Camera2D`** is attached to the player at runtime with per-level `limit_right` to enable scrolling in Levels 4 and 5.
 
@@ -147,11 +152,17 @@ The game uses a **signal-based, scene-driven** architecture with no singletons:
 
 ## Audio
 
-All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). A looping background track plays during gameplay, with round-robin SFX voices for jump, double-jump, coin pickup, stomp, hit, death, level clear, and win — pitch-jittered slightly so they don't feel repetitive. Music ducks during the pause menu.
+All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). A looping background track plays during gameplay, with round-robin SFX voices for jump, double-jump, coin pickup, stomp, hit, death, level clear, and win — pitch-jittered slightly so they don't feel repetitive. Music ducks during the pause menu and consistently restores to normal volume on resume, restart, or exiting to the main menu.
 
 ## Highscore
 
-Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win screen shows "★ New Highscore! ★"; the main menu displays your current best under the title.
+Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win screen shows "★ New Highscore! ★"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
+
+---
+
+## Look & Feel
+
+The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image.
 
 ---
 
@@ -186,4 +197,4 @@ Open any `scenes/Level*.tscn` in the Godot 2D editor:
 
 ## License
 
-This project is released for educational and personal use. All sprite assets were created for this project.
+This project is released for educational and personal use. All sprite assets were created for this project. The **Cinzel** font family (`Cinzel/`) is third-party, licensed under the [SIL Open Font License](Cinzel/OFL.txt).

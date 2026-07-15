@@ -1,0 +1,1033 @@
+## Prompt 6 — Require descending movement for enemy stomps
+
+```text
+You are working on the Godot 4.6 GDScript platformer “Goblins of Greenglen.”
+
+Relevant files:
+- scripts/Player.gd
+- scripts/Enemy.gd
+- scenes/Player.tscn
+- scenes/Enemy.tscn
+- scripts/Game.gd
+
+Problem:
+Player.gd detects enemy interaction using manual center-distance checks. A contact counts as a stomp whenever the player is sufficiently above the enemy, even if the player is moving upward or sideways. Because player and enemy bodies do not physically collide, this can incorrectly kill enemies while the player is ascending through the proximity region.
+
+Task:
+Make stomp detection directionally and spatially reliable while preserving the current lightweight combat design.
+
+Required behavior:
+1. A stomp must require downward movement.
+2. The player must cross or contact the enemy’s top region from above.
+3. Moving upward beneath or beside an enemy must cause damage, not a stomp.
+4. Side contact must cause damage.
+5. Falling clearly onto an enemy must kill it once.
+6. The stomp bounce must remain:
+   - vertical velocity set to DOUBLE_JUMP_VELOCITY;
+   - jumps replenished as currently intended.
+7. Invulnerability must still prevent repeated side-contact damage.
+8. Dead enemies must be ignored.
+9. Do not award score or quest progress more than once per enemy.
+10. Preserve the existing signal-based interface:
+    - stomped_enemy
+    - hit_enemy
+11. Prefer using:
+    - velocity.y;
+    - previous-frame position;
+    - collider dimensions or explicit constants;
+    - top-surface crossing logic.
+12. If you retain proximity detection, replace unexplained magic numbers with named constants.
+13. Do not introduce unnecessary physics layers unless a collision-based solution is clearly simpler and tested.
+
+Recommended robust approach:
+- Record the player’s previous global position before move_and_slide().
+- Require velocity.y > 0 before movement or another reliable descending indicator.
+- Calculate whether the player’s feet crossed the enemy’s top surface during the frame.
+- Use global coordinates so the logic remains correct if scene parents are transformed.
+- Keep a reasonable horizontal overlap test based on collider widths.
+
+Testing requirements:
+- Fall directly onto a stationary enemy: stomp.
+- Double-jump upward into an enemy: damage, no stomp.
+- Walk into an enemy: damage.
+- Fall near an enemy’s side: damage unless horizontal overlap is clearly on top.
+- Stomp while both player and enemy are moving: one kill.
+- Stand near a dead enemy: no interaction.
+- Existing POW, score, SFX, and quest progress still trigger once.
+- Test at low and high frame rates if possible.
+- Run a Godot 4.6 parser/import check.
+
+Constraints:
+- GDScript only.
+- Preserve the current game feel as much as possible.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Improved stomp classification.
+- Explanation of the geometry/direction test.
+- Validation results.
+```
+
+## Prompt 7 — Add versioned and defensive save handling
+
+```text
+You are working on “Goblins of Greenglen,” a Godot 4.6 game using GDScript ConfigFile persistence.
+
+Relevant files:
+- scripts/Progression.gd
+- scripts/Game.gd
+- CLAUDE.md
+
+Current save files:
+- user://highscore.cfg
+- user://progression.cfg
+
+Problem:
+Save data is loaded without schema versioning, strong type validation, array normalization, backup recovery, or handling of ConfigFile.save() failures. Progression code assumes that related arrays have matching lengths.
+
+Task:
+Introduce robust, backward-compatible save validation and versioning for both highscore and progression data.
+
+Required behavior:
+1. Add explicit save format versions.
+2. Existing unversioned saves must remain loadable and be treated as the original schema.
+3. Validate every loaded value:
+   - expected type;
+   - non-negative numeric ranges where appropriate;
+   - valid quest IDs;
+   - valid skin IDs;
+   - valid tier strings;
+   - valid equipped skin ownership.
+4. Normalize daily quest state so these arrays always match active_ids:
+   - progress
+   - completed
+   - claimed
+5. Normalize weekly state similarly.
+6. Invalid quest IDs should be removed or trigger a safe reroll.
+7. Invalid owned-skin IDs should not crash menus.
+8. Duplicate owned-skin IDs should be deduplicated.
+9. If equipped_skin no longer exists or is not owned, fall back to the Default Knight.
+10. Preserve starter-skin guarantees.
+11. Clamp currencies and counters to safe non-negative integers.
+12. Check ConfigFile.save() return values.
+13. Log useful warnings when saving or loading fails.
+14. Do not reset valid player data because one unrelated field is malformed.
+15. Consider maintaining a backup:
+    - save the prior valid file as `.bak`; or
+    - use another safe recovery strategy supported by Godot.
+16. If the main save is corrupt but a valid backup exists, recover from it.
+17. Save upgrades must be idempotent.
+18. Keep highscore comparison semantics unchanged:
+    - higher score wins;
+    - equal score uses more coins as the tiebreaker.
+
+Architecture:
+- Avoid one enormous validation function.
+- Use focused helpers for typed reads, normalization, and schema upgrades.
+- Keep progression definitions in SKIN_TIERS, QUEST_POOL, and WEEKLY_POOL as the source of truth.
+- Document the schema version and upgrade path.
+
+Testing requirements:
+- Fresh install.
+- Current valid save.
+- Old unversioned save.
+- Missing fields.
+- Wrong field types.
+- Negative currencies.
+- Unknown quest IDs.
+- Short or mismatched quest arrays.
+- Duplicate and unknown skin IDs.
+- Equipped skin not owned.
+- Corrupt main file with valid backup.
+- Save directory/write failure.
+- Repeated load/save cycles do not change valid data.
+- Run a Godot 4.6 parser/import check.
+
+Documentation:
+- Update CLAUDE.md with:
+  - save versions;
+  - validation behavior;
+  - backup/recovery behavior;
+  - compatibility expectations.
+
+Constraints:
+- GDScript only.
+- Preserve valid existing saves.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Versioned defensive save system.
+- Backward-compatibility notes.
+- Tests or a reproducible validation harness.
+- Modified-file list and validation results.
+```
+
+## Prompt 8 — Synchronize README with the actual project
+
+```text
+You are maintaining documentation for “Goblins of Greenglen,” a Godot 4.6 GDScript platformer.
+
+Repository:
+- Root: /Users/maxi/cloude-game
+- Technical reference: CLAUDE.md
+- Public documentation: README.md
+- Source of truth: project.godot, scripts/, scenes/, and assets/
+
+Task:
+Bring README.md into alignment with the current implementation.
+
+Known inconsistencies to correct:
+1. Some sections say five levels; the game has six.
+2. The win screen occurs after Level 6, not Level 5.
+3. Level 6 is missing from the structure section.
+4. Progression.gd is missing from the structure section.
+5. README says there are no singletons, but Progression is an autoload singleton.
+6. Level.gd is described only as drawing sky/mountains, but it now manages:
+   - shared parallax background;
+   - fallback drawing;
+   - optional randomized enemy/coin spawning.
+7. Level 6 is both randomized and horizontally scrolling.
+8. The asset list is outdated and references sky.png, which is not tracked.
+9. Audio, quests, cases, skins, starter skin, weekly quests, fragments, and shards should match current behavior.
+10. Screenshots are still a placeholder.
+11. The license section is vague and there is no dedicated LICENSE file.
+12. Ensure terminology consistently uses “Goblins of Greenglen” as the display name and `cloude-game` as the repository name.
+
+Required documentation quality:
+- Use clear English.
+- Avoid claiming behavior that cannot be established from the implementation.
+- Keep the README suitable for GitHub visitors.
+- Do not copy all of CLAUDE.md verbatim; keep README concise but complete.
+- Include an accurate project tree.
+- Describe the Progression autoload and why it exists.
+- Explain that saves are local.
+- Describe all six levels accurately.
+- Mention Godot 4.6 standard build and pure GDScript.
+- Mention that no external runtime dependencies are required.
+- Describe how to run the project.
+- Describe how to edit levels.
+- Ensure controls match project.godot.
+- If no screenshots are available, either retain a clearly marked placeholder or remove the section.
+- Do not invent a legal license. If the exact license is unclear, state that explicitly and recommend adding a LICENSE file rather than asserting broad rights.
+
+Validation:
+- Cross-check every factual statement against:
+  - project.godot;
+  - scripts/Game.gd;
+  - scripts/Progression.gd;
+  - scripts/Level.gd;
+  - scenes/Level1–6.tscn;
+  - actual tracked assets.
+- Search README for stale instances of “5 levels,” “Level 5” as the finale, “no singletons,” and `sky.png`.
+- Verify Markdown rendering and links.
+
+Constraints:
+- Documentation-only task.
+- Do not change code or scenes.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Updated README.md.
+- Short summary of corrected inconsistencies.
+- Confirmation that CLAUDE.md and README.md no longer contradict each other on core architecture and level count.
+```
+
+## Prompt 9 — Add a minimal headless smoke-test suite
+
+```text
+You are working on “Goblins of Greenglen,” a Godot 4.6 project written entirely in GDScript.
+
+Repository:
+- Root: /Users/maxi/cloude-game
+- Entry scene: scenes/Main.tscn
+- Main controller: scripts/Game.gd
+- Progression autoload: scripts/Progression.gd
+- Levels: scenes/Level1.tscn through scenes/Level6.tscn
+
+Task:
+Add a small, dependency-free headless smoke-test suite that catches resource, scene, save, and state-transition regressions.
+
+Goals:
+- Tests must run using the standard Godot 4.6 executable.
+- Do not add GUT or another third-party testing framework unless there is a strong documented reason.
+- Tests should be deterministic and isolated from the player’s real user:// saves.
+
+Minimum coverage:
+1. Load and instantiate Main.tscn.
+2. Load and instantiate all six level scenes.
+3. Verify each level has:
+   - a PlayerSpawn marker;
+   - a Platforms node;
+   - a valid positive level_width;
+   - a goal in the expected scene/group after entering the tree.
+4. Verify Level 6:
+   - has randomize_spawns enabled;
+   - has eligible spawn platforms;
+   - can spawn the configured number of enemies and coins;
+   - does not place enemies on start or goal platforms.
+5. Instantiate Player.tscn and verify expected signals/actions exist.
+6. Validate all configured audio paths and skin texture paths.
+7. Validate regular and premium case weight totals.
+8. Validate every skin ID is unique.
+9. Validate every quest ID is unique.
+10. Test highscore comparison behavior.
+11. Test basic progression save/load in an isolated temporary user directory.
+12. Test default/starter skin behavior.
+13. Exercise level-transition cancellation:
+    - normal transition;
+    - restart during transition;
+    - exit to menu during transition.
+14. Ensure no obsolete transition loads a level afterward.
+15. Exit with a nonzero status when any assertion fails.
+
+Test architecture:
+- Place tests in a clearly named directory such as tests/.
+- Provide a single headless runner script or test scene.
+- Print concise PASS/FAIL output.
+- Avoid frame-rate-sensitive tests where possible.
+- Seed random behavior when testing procedural spawns.
+- Clean up nodes and temporary save files between tests.
+- Never read or overwrite the developer’s actual save directory.
+- If overriding user-data paths requires command-line/environment configuration, document the command precisely.
+
+Suggested command:
+Provide a command similar to:
+
+Godot --headless --path . --script res://tests/run_smoke_tests.gd
+
+The exact command may differ if needed for autoload initialization.
+
+Documentation:
+- Add a “Testing” section to README.md.
+- Document:
+  - required Godot version;
+  - test command;
+  - expected exit codes;
+  - isolation from production saves.
+
+Validation:
+- Run the suite more than once.
+- Confirm deterministic results.
+- Confirm a deliberate failing assertion produces a nonzero exit code, then remove the deliberate failure.
+- Run the normal project headlessly afterward.
+
+Constraints:
+- GDScript only.
+- No C#.
+- Prefer no external dependencies.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Headless smoke-test suite.
+- Test-running documentation.
+- Actual test output.
+- List of covered and intentionally uncovered behaviors.
+```
+
+## Prompt 10 — Split `Game.gd` into focused components
+
+```text
+You are refactoring “Goblins of Greenglen,” a Godot 4.6 2D platformer written in GDScript.
+
+Repository:
+- Root: /Users/maxi/cloude-game
+- Current central controller: scripts/Game.gd
+- Main scene: scenes/Main.tscn
+- Progression autoload: scripts/Progression.gd
+- Reference architecture: CLAUDE.md
+
+Current issue:
+Game.gd is approximately 1,074 lines and currently owns:
+- run state;
+- level loading;
+- player signal wiring;
+- HUD;
+- main menu;
+- pause menu;
+- quests UI;
+- cases UI;
+- case reel animation;
+- skin UI;
+- rarity reveal effects;
+- audio;
+- highscore persistence;
+- win/death flow.
+
+Task:
+Refactor Game.gd into focused components without changing player-visible behavior.
+
+Important prerequisite:
+Perform this after the higher-priority behavioral bugs are fixed and after a headless smoke-test suite exists. Use those tests to protect the refactor.
+
+Refactoring goals:
+1. Keep one clear game/run coordinator.
+2. Extract unrelated responsibilities into focused scripts or scene components.
+3. Preserve the scene-driven level architecture.
+4. Preserve Progression as the only required global autoload unless another autoload is strongly justified.
+5. Avoid replacing one god object with several tightly coupled god objects.
+6. Prefer signals and explicit method interfaces over deep parent traversal.
+7. Keep runtime-built UI if desired, but separate each major menu’s construction and behavior.
+
+Suggested boundaries:
+- Game.gd or RunController.gd:
+  - run state;
+  - level index;
+  - health/score/coins;
+  - level loading;
+  - player signal wiring;
+  - win/death/transition flow.
+- AudioController.gd:
+  - music setup;
+  - SFX voice pool;
+  - play_sfx();
+  - pause ducking and volume state.
+- HUDController.gd:
+  - health/score/coin/key display;
+  - central messages.
+- MainMenuController.gd:
+  - start/quit/navigation.
+- QuestMenuController.gd:
+  - daily/weekly quest rendering and claims.
+- CaseMenuController.gd:
+  - case buttons;
+  - reel creation;
+  - spinning state;
+  - reveal presentation.
+- SkinMenuController.gd:
+  - owned/default skin list;
+  - preview;
+  - equip action.
+- HighscoreStore.gd:
+  - load/save/submit logic, if not handled by a broader save layer.
+
+These names are suggestions, not mandatory.
+
+Required behavior preservation:
+- All six levels load exactly as before.
+- Score, health, coins, and quests behave identically.
+- Pause, restart, exit, death, win, and level transitions remain correct.
+- Audio and volume behavior remain correct.
+- Cases keep identical probabilities and reward timing.
+- Reel animation and rarity reveals remain visually equivalent.
+- Skins preview and equip behavior remain correct.
+- Highscore comparison and persistence remain compatible.
+- Existing progression saves remain compatible.
+- Node groups and player signals remain compatible.
+- No new C# or third-party dependency.
+
+Refactoring method:
+1. Document the current responsibilities and public interactions.
+2. Define component interfaces before moving code.
+3. Move one responsibility at a time.
+4. Run tests after every extraction.
+5. Avoid broad renaming unrelated to the component being extracted.
+6. Do not mix behavioral feature work into the refactor.
+7. Add type annotations where they improve safety.
+8. Remove dead variables and duplicate helpers only after verifying they are unused.
+9. Ensure dynamically created controls have clear ownership and lifecycle.
+10. Ensure asynchronous tweens and timers cannot call freed or obsolete controllers.
+
+Scene considerations:
+- Decide whether controllers should be:
+  - child nodes declared in Main.tscn; or
+  - instantiated from scripts.
+- Prefer visible scene-tree composition when it improves editor discoverability.
+- Keep CanvasLayer ordering explicit.
+- Avoid hidden dependencies on construction order.
+
+Testing requirements:
+- Run the complete headless smoke-test suite.
+- Manually verify:
+  - main menu;
+  - all submenus;
+  - pause menu;
+  - one complete six-level run;
+  - death/retry;
+  - cases and skins;
+  - persistence after restart.
+- Check for leaked nodes after repeated menu navigation and level reloads.
+- Check for duplicate signal connections.
+- Run Godot 4.6 parser/import validation.
+- Compare game behavior before and after refactoring.
+
+Documentation:
+- Update CLAUDE.md’s file structure and architecture sections.
+- Update README.md’s project tree.
+- Describe each new component’s responsibility and communication path.
+
+Constraints:
+- GDScript only.
+- Preserve behavior and save compatibility.
+- Keep the refactor incremental and reviewable.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Refactored component architecture.
+- Updated scenes and documentation.
+- Before/after responsibility map.
+- Modified-file list.
+- Test and manual-validation results.
+- Any intentionally deferred cleanup.
+```
+
+
+You are working on “Goblins of Greenglen,” a Godot 4.6 2D platformer written entirely in GDScript.
+
+Repository:
+- Root: /Users/maxi/cloude-game
+- Main controller: scripts/Game.gd
+- Progression autoload: scripts/Progression.gd
+- Player logic: scripts/Player.gd
+- Enemy logic: scripts/Enemy.gd
+- Level base: scripts/Level.gd
+- Levels: scenes/Level1.tscn through scenes/Level6.tscn
+- Project configuration: project.godot
+- Technical reference: CLAUDE.md
+- Public documentation: README.md
+
+Before changing anything:
+1. Read CLAUDE.md and README.md completely.
+2. Inspect all relevant scripts and scenes.
+3. Check the current Git status.
+4. Preserve unrelated and user-owned changes.
+5. Do not commit or push unless explicitly requested.
+
+Primary objective:
+Convert the current six-level finite campaign into an arcade-style survival run that can continue indefinitely and is structurally ready for a future online leaderboard.
+
+Do not implement networking, a server, accounts, cloud saves, HTTP requests, a launcher, or an actual online leaderboard in this task.
+
+The game must produce one clean, immutable run-result object at the end of every legitimate run. A future leaderboard integration should be able to consume that result without redesigning the gameplay lifecycle.
+
+Core game definition:
+- A run begins at absolute Level 1.
+- Reaching a goal advances to the next absolute level.
+- Reaching Level 6 does not end the run.
+- There is no final numbered level and no normal “You Win” termination.
+- After the six current templates are exhausted, reuse them cyclically with increasing difficulty.
+- A run ends only when the player reaches 0 HP.
+- A voluntary restart, exit to the menu, or application shutdown abandons the run and must not finalize it as a leaderboard-eligible result.
+- When a run ends through death, finalize it exactly once, update the local personal best, and expose the result through a future-proof hook or signal.
+- The game must remain fully playable offline.
+
+Required implementation areas:
+
+==================================================
+1. SEPARATE ABSOLUTE LEVEL NUMBER FROM LEVEL TEMPLATE
+==================================================
+
+The current current_level value is effectively an index into the six-entry LEVELS array. Replace or refactor this so the game distinguishes:
+
+- absolute run level number:
+  - 1, 2, 3, 4, … with no fixed maximum;
+- template index:
+  - 0 through LEVELS.size() - 1;
+- difficulty cycle:
+  - how many complete passes through the template list have occurred.
+
+Expected mapping:
+
+- Absolute Level 1 → Level1.tscn, cycle 0
+- Absolute Level 6 → Level6.tscn, cycle 0
+- Absolute Level 7 → Level1.tscn, cycle 1
+- Absolute Level 12 → Level6.tscn, cycle 1
+- Absolute Level 13 → Level1.tscn, cycle 2
+- Absolute Level 99 → Level3.tscn, cycle 16
+
+Use clear helpers, conceptually similar to:
+
+- get_template_index()
+- get_difficulty_cycle()
+- get_absolute_level_number()
+
+Do not use the absolute level directly as an array index.
+
+The HUD must display the absolute level number, not the template index.
+
+The goal at the end of every stage must load the next absolute level. Remove the special “last entry in LEVELS means victory” behavior.
+
+==================================================
+2. MAKE THE RUN END ONLY ON DEATH
+==================================================
+
+Create a clear run lifecycle:
+
+- start new run;
+- active run;
+- level transition;
+- run finalized;
+- abandoned run;
+- main menu.
+
+Introduce explicit state or guards so the same run cannot be finalized twice.
+
+The run must be finalized when health reaches 0, regardless of which absolute level the player reached.
+
+The following actions must not create a finalized result:
+
+- pressing R during an active run;
+- selecting “Try Again” during an active run;
+- returning to the main menu;
+- closing the application;
+- replacing a run with a new run.
+
+Those actions abandon the old run and start or return cleanly.
+
+A death followed by repeated input must not produce duplicate local records or duplicate run-finalized signals.
+
+Remove the old final “You Win” termination. A milestone message may be shown after clearing the first six-level cycle, but it must continue into Level 7 automatically.
+
+==================================================
+3. MAKE HEALTH BELONG TO THE WHOLE RUN
+==================================================
+
+Currently _load_level() resets health to MAX_HEALTH. Change this.
+
+Required behavior:
+- A new run starts with MAX_HEALTH.
+- Health persists when advancing between levels.
+- Loading the next level must not fully heal the player.
+- Falling without reaching 0 HP still respawns the player on the current stage.
+- Reaching 0 HP ends the entire run.
+- Restarting or starting a genuinely new run restores MAX_HEALTH.
+- Main-menu state must not retain stale health from the abandoned run.
+
+Do not add a complicated healing system in this task.
+
+If a small recovery mechanic is necessary for balance, keep it explicit and simple, such as one heart after a configurable number of level clears. Prefer no automatic healing initially unless playtesting proves the endless run is unreasonably punishing.
+
+Do not accidentally reset:
+- total run score;
+- total run coins;
+- levels cleared;
+- goblins stomped;
+- run start time;
+- run ID;
+- run-wide damage state.
+
+Continue resetting level-specific state, such as took_damage_this_level, on each level load.
+
+==================================================
+4. REDESIGN SCORE AS AN ARCADE RUN SCORE
+==================================================
+
+The current +1/-1 score is too small and does not represent an endless survival run well.
+
+Create named scoring constants in one authoritative location. Use these initial values unless the existing implementation gives a strong reason to adjust them:
+
+- Goblin stomp: +100
+- Coin collected: +10
+- Level cleared: +500
+- No-damage level clear bonus: +250
+
+Do not deduct score for damage or falls in the new system. Losing health is already the punishment.
+
+Score must:
+- begin at zero for a new run;
+- never become negative;
+- never reset between levels;
+- increase immediately in the HUD;
+- remain local during the active run;
+- be finalized only when the run ends through death.
+
+Continue tracking coins separately even though coins now award score.
+
+Continue tracking goblin stomps separately.
+
+Do not mix leaderboard score with quest counters:
+- one goblin stomp still advances a stomp quest by exactly one;
+- one collected coin still advances a coin quest by exactly one;
+- point values must not be passed into quest progress.
+
+Keep all scoring constants easy to rebalance later.
+
+==================================================
+5. ADD MINIMAL, FAIR DIFFICULTY SCALING
+==================================================
+
+Use the difficulty cycle or absolute level to make repeated templates gradually harder.
+
+Keep this first version conservative and deterministic enough to test.
+
+Recommended initial scaling:
+- Increase enemy movement speed by approximately 10% per completed six-level cycle.
+- Cap the multiplier at a reasonable value, such as 1.7.
+- For randomized Level 6 templates, optionally increase enemy count slowly, but never beyond safe platform capacity.
+- Keep enemy patrol ranges constrained to platform bounds.
+- Do not change platform geometry procedurally in this task.
+- Do not create impossible jumps.
+- Do not increase gravity or change player jump physics.
+- Do not allow enemy speed to scale forever.
+
+Refactor Enemy.gd if necessary so enemy speed can be configured per instance or through a difficulty multiplier instead of being locked entirely in a constant.
+
+Apply difficulty after the level scene and randomized spawns exist, so it affects both hand-placed and procedurally spawned enemies.
+
+Keep the base behavior of the first six levels as close to the current game as possible.
+
+==================================================
+6. CREATE A FUTURE-PROOF RUN RESULT
+==================================================
+
+Create one authoritative run-finalization function, conceptually:
+
+- _finalize_run(reason)
+- finish_run(reason)
+- or another clear name.
+
+It must build a run-result Dictionary containing at least:
+
+- schema_version
+- run_id
+- score
+- coins
+- goblins_stomped
+- absolute_level_reached
+- levels_cleared
+- duration_ms
+- death_reason
+- completed
+- game_version
+- finalized_at
+
+For the endless model:
+- completed should normally be false because the player died rather than “won”;
+- alternatively use a clearer field such as outcome = "death";
+- do not falsely mark Level 6 as completion.
+
+Generate a unique run_id when a new run starts.
+
+Use a sufficiently collision-resistant local identifier, preferably random bytes from Godot’s Crypto API encoded as a string. Do not use only a timestamp.
+
+Use ProjectSettings for game_version if configured, with a safe development fallback.
+
+The run result must be built once and treated as immutable after finalization. Duplicate input must return the already finalized result or do nothing safely.
+
+Expose the result using a clear future integration point, preferably:
+
+signal run_finalized(result: Dictionary)
+
+The local highscore handler can consume the same result.
+
+Do not add placeholder HTTP calls. Do not add fake API URLs. Do not put server-specific fields throughout gameplay code.
+
+The future online integration should eventually need only to connect to run_finalized or call one clearly documented submission hook.
+
+==================================================
+7. UPDATE LOCAL PERSONAL-BEST HANDLING
+==================================================
+
+The local highscore currently records only a completed six-level run. Change it to record the best finalized survival run, including failed runs.
+
+A death at Level 3 with a valid score must be eligible for the local personal best.
+
+Store at least:
+- score;
+- coins;
+- absolute level reached;
+- levels cleared;
+- duration;
+- run ID, if useful.
+
+Comparison order:
+1. Higher score wins.
+2. If scores are equal, higher absolute level reached wins.
+3. If still equal, more coins wins.
+4. If still equal, shorter duration wins.
+
+Preserve backward compatibility with existing highscore.cfg files:
+- missing new fields must receive safe defaults;
+- do not crash on an old save;
+- do not erase an existing valid score unnecessarily.
+
+Rename user-facing “highscore” wording to “personal best” where appropriate, while keeping file compatibility unless a migration is safely implemented.
+
+The death screen should show:
+- final score;
+- coins;
+- absolute level reached;
+- levels cleared;
+- whether it is a new personal best;
+- retry instruction.
+
+Example:
+
+Ouch!
+
+Score: 4,380
+Coins: 28
+Reached Level 9
+
+★ New Personal Best! ★
+
+Press R to retry
+
+==================================================
+8. DEFINE ABANDONMENT AND RETRY BEHAVIOR
+==================================================
+
+Create a clear distinction between:
+
+- finalized run:
+  - player reached 0 HP;
+- abandoned run:
+  - player voluntarily restarted;
+  - player exited to the menu;
+  - a new run replaced the old run.
+
+Abandoned runs must:
+- not update the personal best;
+- not emit run_finalized;
+- not become future leaderboard submissions;
+- clean up all active level nodes and pending transitions;
+- begin the next run with a new run ID and fresh statistics.
+
+If R is pressed after the death screen:
+- start a clean new run at absolute Level 1.
+
+If R is pressed during an active run:
+- treat it as abandonment;
+- do not record the partial result;
+- start a clean new run.
+
+Preserve existing pause-menu behavior but ensure “Try Again” and “Exit to Menu” invalidate the active run appropriately.
+
+==================================================
+9. MAKE LEVEL TRANSITIONS SAFE
+==================================================
+
+The existing level-clear flow awaits a timer before loading the next level. Make it impossible for an old coroutine to load a level after:
+
+- the player pressed R;
+- the player selected Try Again;
+- the player exited to the main menu;
+- a new run started;
+- another level load superseded the transition.
+
+Use a transition generation/token or another robust cancellation check.
+
+Capture the intended absolute next level before awaiting.
+
+After the timer finishes, verify:
+- the same run is still active;
+- the transition is still current;
+- the game is not in the main menu;
+- the active level has not been replaced;
+- the run has not been finalized or abandoned.
+
+Do not permit duplicate level instances.
+
+==================================================
+10. UPDATE ENDLESS-COMPATIBLE QUESTS
+==================================================
+
+The current quest system includes concepts such as:
+- Finish a full run.
+- Finish runs without damage.
+
+Those semantics no longer fit an endless game because normal runs end in death.
+
+Update quest definitions and hooks so no quest becomes impossible or rewards intentionally dying quickly.
+
+Prefer endless-compatible goals such as:
+- Reach Level 6 in one run.
+- Reach Level 12 in one run.
+- Clear X levels.
+- Clear X levels without damage.
+- Score X points in one run.
+- Stomp X goblins.
+- Collect X coins.
+- Perform X double-jumps.
+
+Preserve existing quest IDs where practical for save compatibility, but update their descriptions/stat mappings safely. If an old active quest cannot be migrated cleanly, reroll it safely rather than leaving it permanently impossible.
+
+Do not count death itself as a valuable “finish run” action.
+
+Add progress hooks for:
+- reaching an absolute level;
+- current run score milestones, if used;
+- level clear;
+- no-damage level clear.
+
+Avoid awarding the same level-reach or score milestone multiple times in one run.
+
+==================================================
+11. KEEP META-PROGRESSION SEPARATE
+==================================================
+
+Do not reset the following when a run ends:
+- keys;
+- key fragments;
+- shards;
+- cases opened;
+- skin ownership;
+- equipped skin;
+- daily quest state;
+- weekly quest state;
+- local personal best.
+
+Only run-scoped state should reset.
+
+Case probabilities, skin ownership, starter skin behavior, and equipped-skin application should remain unchanged unless a compatibility fix is required.
+
+==================================================
+12. PREPARE, BUT DO NOT IMPLEMENT, ONLINE INTEGRATION
+==================================================
+
+Do not add:
+- HTTPRequest nodes;
+- REST endpoints;
+- API keys;
+- login screens;
+- user accounts;
+- cloud saves;
+- periodic score uploads;
+- a launcher;
+- anti-cheat;
+- external dependencies.
+
+Preparation for the future leaderboard consists only of:
+- a stable run lifecycle;
+- one immutable run result;
+- a unique run ID;
+- a run-result schema version;
+- a game version;
+- one run_finalized signal or clearly documented hook;
+- exactly-once finalization;
+- clean local personal-best handling.
+
+Add a concise code comment at the future integration hook explaining that an online leaderboard service can later consume the finalized result asynchronously.
+
+Do not scatter “future server” comments across unrelated code.
+
+==================================================
+13. TESTING AND VALIDATION
+==================================================
+
+At minimum, verify:
+
+Run lifecycle:
+- New run starts at absolute Level 1.
+- Health, score, counters, time, and run ID initialize correctly.
+- Clearing Level 6 loads absolute Level 7 using Level1.tscn.
+- Clearing Level 12 loads absolute Level 13.
+- HUD shows absolute level numbers.
+- No win screen appears at Level 6.
+
+Health:
+- Damage persists between levels.
+- Non-fatal falls respawn on the current level.
+- Reaching 0 HP ends the run.
+- New run restores MAX_HEALTH.
+
+Score:
+- Goblin awards the configured points.
+- Coin awards the configured points.
+- Level clear awards the configured points.
+- No-damage bonus is awarded once.
+- Damage and falls do not reduce score.
+- Score persists through level transitions.
+
+Finalization:
+- Death creates exactly one run result.
+- Repeated collision/input after death does not duplicate finalization.
+- Death updates local personal best when appropriate.
+- A worse later run does not replace the personal best.
+- Tie-breaking works in the documented order.
+- Old highscore.cfg remains loadable.
+
+Abandonment:
+- Pressing R during a run does not record the abandoned score.
+- Try Again does not record the abandoned score.
+- Exit to Menu does not record the abandoned score.
+- New run receives a new run ID.
+
+Transitions:
+- Press R during “Level Cleared!” and verify the old transition does not resume.
+- Exit to menu during a transition and verify no level loads behind the menu.
+- No duplicate level root remains.
+
+Difficulty:
+- First six levels retain base difficulty.
+- Level 7 enemies are slightly faster.
+- Scaling respects the maximum cap.
+- Randomized enemies remain on valid platforms.
+- No platform geometry becomes impossible.
+
+Progression:
+- Daily and weekly quests remain completable.
+- Death does not automatically satisfy a valuable finish-run quest.
+- Keys, cases, shards, and skins survive run resets.
+
+Technical validation:
+- Run Godot 4.6 headless import/parser validation.
+- Load all six level templates.
+- Check for runtime errors and invalid signal connections.
+- Check Git diff and ensure no unrelated files changed.
+
+==================================================
+14. DOCUMENTATION
+==================================================
+
+Update CLAUDE.md and README.md to describe:
+
+- endless survival-run structure;
+- death as the run-ending condition;
+- absolute levels versus reusable templates;
+- cycling after the current six templates;
+- persistent run health;
+- arcade scoring values;
+- difficulty scaling and its cap;
+- local personal best for failed runs;
+- the run_finalized result/hook;
+- the fact that online leaderboard networking is not implemented yet;
+- updated quest semantics.
+
+Remove or revise documentation that says:
+- the player wins after Level 6;
+- a highscore requires completing all six levels;
+- Level 6 is the final run-ending stage.
+
+Do not claim the online leaderboard already exists.
+
+==================================================
+15. CODE QUALITY AND SCOPE
+==================================================
+
+Keep the implementation incremental and reviewable.
+
+Use:
+- typed variables where practical;
+- named constants;
+- small lifecycle helpers;
+- clear run-state names;
+- explicit guards for transitions and finalization.
+
+Avoid:
+- adding more unrelated responsibilities to Game.gd without structure;
+- rewriting every UI system;
+- large visual redesigns;
+- networking;
+- premature server abstractions;
+- duplicating reset logic across many event handlers.
+
+If Game.gd needs limited extraction to keep run state coherent, a small focused RunState or RunSession script is acceptable. Do not perform the full Game.gd architectural split in this task unless necessary.
+
+Preserve:
+- Godot 4.6 compatibility;
+- pure GDScript;
+- scene-driven levels;
+- signal-based player communication;
+- existing audio;
+- existing skins/cases/progression saves;
+- local offline operation.
+
+Do not commit or push unless explicitly requested.
+
+Final deliverable:
+1. Implement the endless survival-run mechanics.
+2. Provide a concise summary of the architecture.
+3. List every modified file.
+4. Explain the future leaderboard integration hook.
+5. Report all validation performed.
+6. Call out any balancing assumptions or remaining limitations.
