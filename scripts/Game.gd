@@ -47,6 +47,12 @@ var invuln_until := 0.0
 var hud_label: Label
 var coin_label: Label
 var win_label: Label
+var win_menu: Control
+var win_score_value: Label
+var win_coins_value: Label
+var win_best_label: Label
+var win_record_label: Label
+var win_play_again_btn: Button
 var pause_menu: Control
 var level_root: Node2D
 var player: CharacterBody2D
@@ -91,6 +97,7 @@ var selected_skin_id := ""
 # Greenglen-UI-Theme (Button-Texturen + Cinzel-Typografie), einmal in _ready() gebaut.
 var ui_theme: Theme
 var ui_heading_font: Font
+var ui_body_font: Font
 
 # Greenglen-Buttons (Nine-Patch): dekorierte Metall-Enden fix, Holz-Mitte streckt.
 const BTN_TEX := {
@@ -118,6 +125,7 @@ func _ready() -> void:
 	_build_ui_theme()
 	_build_audio()
 	_build_hud()
+	_build_win_menu()
 	_build_pause_menu()
 	_build_main_menu()
 	_build_quests_menu()
@@ -162,11 +170,11 @@ func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
 # Ein wiederverwendbares Theme für alle Buttons (Greenglen-Texturen + Cinzel SemiBold).
 # Wird auf die Menü-Root-Controls gesetzt und vererbt sich auf alle Button-Kinder.
 func _build_ui_theme() -> void:
-	var font_semibold: Font = load("res://Cinzel/static/Cinzel-SemiBold.ttf")
+	ui_body_font = load("res://Cinzel/static/Cinzel-SemiBold.ttf")
 	ui_heading_font = load("res://Cinzel/static/Cinzel-Bold.ttf")
 	# Emoji/Sonderzeichen (🔑 🪙 ▶ ★) fehlen in Cinzel → Default-Font als Fallback anhängen.
-	if font_semibold is FontFile:
-		(font_semibold as FontFile).fallbacks = [ThemeDB.fallback_font]
+	if ui_body_font is FontFile:
+		(ui_body_font as FontFile).fallbacks = [ThemeDB.fallback_font]
 	if ui_heading_font is FontFile:
 		(ui_heading_font as FontFile).fallbacks = [ThemeDB.fallback_font]
 
@@ -178,7 +186,7 @@ func _build_ui_theme() -> void:
 	# Kein Godot-Standard-Fokusrahmen — Hover-Textur zeigt die aktive Auswahl.
 	t.set_stylebox("focus", "Button", _make_button_style("hover"))
 
-	t.set_font("font", "Button", font_semibold)
+	t.set_font("font", "Button", ui_body_font)
 	t.set_font_size("font_size", "Button", 18)
 	t.set_color("font_color", "Button", UI_CREAM)
 	t.set_color("font_hover_color", "Button", Color("#FFFBEA"))
@@ -294,6 +302,107 @@ func _build_pause_menu() -> void:
 	exit_btn.pressed.connect(_exit_to_main_menu)
 	box.add_child(exit_btn)
 
+func _build_win_menu() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 8
+	add_child(layer)
+
+	win_menu = Control.new()
+	win_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	win_menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	win_menu.theme = ui_theme
+	win_menu.visible = false
+	layer.add_child(win_menu)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.025, 0.035, 0.04, 0.68)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	win_menu.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	win_menu.add_child(center)
+
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(460, 0)
+	box.add_theme_constant_override("separation", 14)
+	center.add_child(box)
+
+	var title := Label.new()
+	title.text = "You Win!"
+	_apply_heading_style(title, 44)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(title)
+
+	var stats := HBoxContainer.new()
+	stats.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats.add_theme_constant_override("separation", 36)
+	box.add_child(stats)
+	win_score_value = _add_win_stat(stats, "FINAL SCORE", UI_CREAM)
+	win_coins_value = _add_win_stat(stats, "COINS", Color("#F4D35E"))
+
+	win_best_label = Label.new()
+	win_best_label.add_theme_font_override("font", ui_body_font)
+	win_best_label.add_theme_font_size_override("font_size", 18)
+	win_best_label.add_theme_color_override("font_color", Color(0.72, 0.84, 0.92))
+	win_best_label.add_theme_color_override("font_outline_color", UI_BROWN)
+	win_best_label.add_theme_constant_override("outline_size", 3)
+	win_best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	win_best_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(win_best_label)
+
+	win_record_label = Label.new()
+	win_record_label.custom_minimum_size.y = 28
+	win_record_label.add_theme_font_override("font", ui_heading_font)
+	win_record_label.add_theme_font_size_override("font_size", 21)
+	win_record_label.add_theme_color_override("font_color", TIER_COLORS.legendary)
+	win_record_label.add_theme_color_override("font_outline_color", UI_BROWN)
+	win_record_label.add_theme_constant_override("outline_size", 4)
+	win_record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	win_record_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(win_record_label)
+
+	win_play_again_btn = Button.new()
+	win_play_again_btn.text = "Play Again"
+	win_play_again_btn.custom_minimum_size = Vector2(280, 46)
+	win_play_again_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	win_play_again_btn.pressed.connect(_restart_level_from_menu)
+	box.add_child(win_play_again_btn)
+
+	var main_menu_btn := Button.new()
+	main_menu_btn.text = "Main Menu"
+	main_menu_btn.custom_minimum_size = Vector2(280, 46)
+	main_menu_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	main_menu_btn.pressed.connect(_exit_to_main_menu)
+	box.add_child(main_menu_btn)
+
+func _add_win_stat(parent: HBoxContainer, caption: String, value_color: Color) -> Label:
+	var column := VBoxContainer.new()
+	column.custom_minimum_size = Vector2(170, 0)
+	column.add_theme_constant_override("separation", 2)
+	parent.add_child(column)
+
+	var caption_label := Label.new()
+	caption_label.text = caption
+	caption_label.add_theme_font_override("font", ui_body_font)
+	caption_label.add_theme_font_size_override("font_size", 15)
+	caption_label.add_theme_color_override("font_color", Color(0.72, 0.76, 0.72))
+	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(caption_label)
+
+	var value_label := Label.new()
+	value_label.add_theme_font_override("font", ui_heading_font)
+	value_label.add_theme_font_size_override("font_size", 34)
+	value_label.add_theme_color_override("font_color", value_color)
+	value_label.add_theme_color_override("font_outline_color", UI_BROWN)
+	value_label.add_theme_constant_override("outline_size", 4)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(value_label)
+	return value_label
+
 func _build_main_menu() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 9
@@ -401,6 +510,7 @@ func _show_main_menu() -> void:
 	coin_label.visible = false
 	keys_label.visible = false
 	win_label.visible = false
+	win_menu.visible = false
 	if level_root:
 		level_root.queue_free()
 		level_root = null
@@ -1029,6 +1139,10 @@ func _load_level(idx: int) -> void:
 	# Konstante (z.B. SPAWN_PROTECTION := 1.0) statt eines geerbten Timers verwenden.
 	invuln_until = 0.0
 	win_label.visible = false
+	win_menu.visible = false
+	hud_label.visible = true
+	coin_label.visible = true
+	keys_label.visible = true
 
 	var packed: PackedScene = load(LEVELS[idx])
 	level_root = packed.instantiate() as Node2D
@@ -1097,7 +1211,7 @@ func enemy_killed() -> void:
 	_update_hud()
 
 func damage_player() -> void:
-	if win_label.visible:
+	if win_label.visible or win_menu.visible:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < invuln_until:
@@ -1117,7 +1231,7 @@ func damage_player() -> void:
 		player.velocity.y = 0
 
 func fell_off_world() -> void:
-	if win_label.visible:
+	if win_label.visible or win_menu.visible:
 		return
 	health -= 1
 	score -= 1
@@ -1164,11 +1278,25 @@ func reach_goal() -> void:
 			Progression.add_quest_progress("no_damage_run")
 		play_sfx("win")
 		music_player.stop()
-		var record_line := "★ New Highscore! ★" if _submit_run(score, coin_count) \
-			else "Best: Score %d   🪙 %d" % [best_score, best_coins]
-		_show_message("You Win!\nCoins: %d   Score: %d\n%s\nPress R to replay" % [coin_count, score, record_line])
+		var is_new_highscore := _submit_run(score, coin_count)
+		_show_win_menu(is_new_highscore)
+
+func _show_win_menu(is_new_highscore: bool) -> void:
+	win_score_value.text = str(score)
+	win_coins_value.text = str(coin_count)
+	win_best_label.text = "Best Run   Score %d   Coins %d" % [best_score, best_coins]
+	win_record_label.text = "New Highscore!" if is_new_highscore else ""
+	win_label.visible = false
+	hud_label.visible = false
+	coin_label.visible = false
+	keys_label.visible = false
+	win_menu.visible = true
+	if level_root:
+		level_root.process_mode = Node.PROCESS_MODE_DISABLED
+	win_play_again_btn.grab_focus()
 
 func _show_message(msg: String) -> void:
+	win_menu.visible = false
 	win_label.text = msg
 	win_label.visible = true
 	if level_root:
