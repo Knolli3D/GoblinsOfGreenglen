@@ -1064,6 +1064,8 @@ func _load_level(idx: int) -> void:
 	_update_hud()
 
 func _on_player_stomped_enemy(enemy: CharacterBody2D) -> void:
+	if enemy == null or not enemy.has_method("is_enemy") or not enemy.is_enemy():
+		return
 	var pos := enemy.position
 	enemy.call("kill")
 	enemy_killed()

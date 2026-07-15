@@ -7,9 +7,11 @@ const SPEED := 60.0
 var origin_x: float = 0.0
 var dir := 1.0
 var dead := false
+var previous_global_position := Vector2.ZERO
 
 func _ready() -> void:
 	origin_x = position.x
+	previous_global_position = global_position
 	add_to_group("enemies")
 	var sprite := $Sprite2D
 	if sprite and sprite.texture:
@@ -18,6 +20,9 @@ func _ready() -> void:
 
 func is_enemy() -> bool:
 	return not dead
+
+func get_previous_global_position() -> Vector2:
+	return previous_global_position
 
 func kill() -> void:
 	if dead:
@@ -33,6 +38,7 @@ func kill() -> void:
 	t.timeout.connect(queue_free)
 
 func _physics_process(delta: float) -> void:
+	previous_global_position = global_position
 	velocity.y += GRAVITY * delta
 	if dead:
 		move_and_slide()
