@@ -1,258 +1,4 @@
-## Prompt 7 — Add versioned and defensive save handling
-
-```text
-You are working on “Goblins of Greenglen,” a Godot 4.6 game using GDScript ConfigFile persistence.
-
-Relevant files:
-- scripts/Progression.gd
-- scripts/Game.gd
-- CLAUDE.md
-
-Current save files:
-- user://highscore.cfg
-- user://progression.cfg
-
-Problem:
-Save data is loaded without schema versioning, strong type validation, array normalization, backup recovery, or handling of ConfigFile.save() failures. Progression code assumes that related arrays have matching lengths.
-
-Task:
-Introduce robust, backward-compatible save validation and versioning for both highscore and progression data.
-
-Required behavior:
-1. Add explicit save format versions.
-2. Existing unversioned saves must remain loadable and be treated as the original schema.
-3. Validate every loaded value:
-   - expected type;
-   - non-negative numeric ranges where appropriate;
-   - valid quest IDs;
-   - valid skin IDs;
-   - valid tier strings;
-   - valid equipped skin ownership.
-4. Normalize daily quest state so these arrays always match active_ids:
-   - progress
-   - completed
-   - claimed
-5. Normalize weekly state similarly.
-6. Invalid quest IDs should be removed or trigger a safe reroll.
-7. Invalid owned-skin IDs should not crash menus.
-8. Duplicate owned-skin IDs should be deduplicated.
-9. If equipped_skin no longer exists or is not owned, fall back to the Default Knight.
-10. Preserve starter-skin guarantees.
-11. Clamp currencies and counters to safe non-negative integers.
-12. Check ConfigFile.save() return values.
-13. Log useful warnings when saving or loading fails.
-14. Do not reset valid player data because one unrelated field is malformed.
-15. Consider maintaining a backup:
-    - save the prior valid file as `.bak`; or
-    - use another safe recovery strategy supported by Godot.
-16. If the main save is corrupt but a valid backup exists, recover from it.
-17. Save upgrades must be idempotent.
-18. Keep highscore comparison semantics unchanged:
-    - higher score wins;
-    - equal score uses more coins as the tiebreaker.
-
-Architecture:
-- Avoid one enormous validation function.
-- Use focused helpers for typed reads, normalization, and schema upgrades.
-- Keep progression definitions in SKIN_TIERS, QUEST_POOL, and WEEKLY_POOL as the source of truth.
-- Document the schema version and upgrade path.
-
-Testing requirements:
-- Fresh install.
-- Current valid save.
-- Old unversioned save.
-- Missing fields.
-- Wrong field types.
-- Negative currencies.
-- Unknown quest IDs.
-- Short or mismatched quest arrays.
-- Duplicate and unknown skin IDs.
-- Equipped skin not owned.
-- Corrupt main file with valid backup.
-- Save directory/write failure.
-- Repeated load/save cycles do not change valid data.
-- Run a Godot 4.6 parser/import check.
-
-Documentation:
-- Update CLAUDE.md with:
-  - save versions;
-  - validation behavior;
-  - backup/recovery behavior;
-  - compatibility expectations.
-
-Constraints:
-- GDScript only.
-- Preserve valid existing saves.
-- Do not commit or push unless explicitly requested.
-
-Deliverables:
-- Versioned defensive save system.
-- Backward-compatibility notes.
-- Tests or a reproducible validation harness.
-- Modified-file list and validation results.
-```
-
-## Prompt 8 — Synchronize README with the actual project
-
-```text
-You are maintaining documentation for “Goblins of Greenglen,” a Godot 4.6 GDScript platformer.
-
-Repository:
-- Root: /Users/maxi/cloude-game
-- Technical reference: CLAUDE.md
-- Public documentation: README.md
-- Source of truth: project.godot, scripts/, scenes/, and assets/
-
-Task:
-Bring README.md into alignment with the current implementation.
-
-Known inconsistencies to correct:
-1. Some sections say five levels; the game has six.
-2. The win screen occurs after Level 6, not Level 5.
-3. Level 6 is missing from the structure section.
-4. Progression.gd is missing from the structure section.
-5. README says there are no singletons, but Progression is an autoload singleton.
-6. Level.gd is described only as drawing sky/mountains, but it now manages:
-   - shared parallax background;
-   - fallback drawing;
-   - optional randomized enemy/coin spawning.
-7. Level 6 is both randomized and horizontally scrolling.
-8. The asset list is outdated and references sky.png, which is not tracked.
-9. Audio, quests, cases, skins, starter skin, weekly quests, fragments, and shards should match current behavior.
-10. Screenshots are still a placeholder.
-11. The license section is vague and there is no dedicated LICENSE file.
-12. Ensure terminology consistently uses “Goblins of Greenglen” as the display name and `cloude-game` as the repository name.
-
-Required documentation quality:
-- Use clear English.
-- Avoid claiming behavior that cannot be established from the implementation.
-- Keep the README suitable for GitHub visitors.
-- Do not copy all of CLAUDE.md verbatim; keep README concise but complete.
-- Include an accurate project tree.
-- Describe the Progression autoload and why it exists.
-- Explain that saves are local.
-- Describe all six levels accurately.
-- Mention Godot 4.6 standard build and pure GDScript.
-- Mention that no external runtime dependencies are required.
-- Describe how to run the project.
-- Describe how to edit levels.
-- Ensure controls match project.godot.
-- If no screenshots are available, either retain a clearly marked placeholder or remove the section.
-- Do not invent a legal license. If the exact license is unclear, state that explicitly and recommend adding a LICENSE file rather than asserting broad rights.
-
-Validation:
-- Cross-check every factual statement against:
-  - project.godot;
-  - scripts/Game.gd;
-  - scripts/Progression.gd;
-  - scripts/Level.gd;
-  - scenes/Level1–6.tscn;
-  - actual tracked assets.
-- Search README for stale instances of “5 levels,” “Level 5” as the finale, “no singletons,” and `sky.png`.
-- Verify Markdown rendering and links.
-
-Constraints:
-- Documentation-only task.
-- Do not change code or scenes.
-- Do not commit or push unless explicitly requested.
-
-Deliverables:
-- Updated README.md.
-- Short summary of corrected inconsistencies.
-- Confirmation that CLAUDE.md and README.md no longer contradict each other on core architecture and level count.
-```
-
-## Prompt 9 — Add a minimal headless smoke-test suite
-
-```text
-You are working on “Goblins of Greenglen,” a Godot 4.6 project written entirely in GDScript.
-
-Repository:
-- Root: /Users/maxi/cloude-game
-- Entry scene: scenes/Main.tscn
-- Main controller: scripts/Game.gd
-- Progression autoload: scripts/Progression.gd
-- Levels: scenes/Level1.tscn through scenes/Level6.tscn
-
-Task:
-Add a small, dependency-free headless smoke-test suite that catches resource, scene, save, and state-transition regressions.
-
-Goals:
-- Tests must run using the standard Godot 4.6 executable.
-- Do not add GUT or another third-party testing framework unless there is a strong documented reason.
-- Tests should be deterministic and isolated from the player’s real user:// saves.
-
-Minimum coverage:
-1. Load and instantiate Main.tscn.
-2. Load and instantiate all six level scenes.
-3. Verify each level has:
-   - a PlayerSpawn marker;
-   - a Platforms node;
-   - a valid positive level_width;
-   - a goal in the expected scene/group after entering the tree.
-4. Verify Level 6:
-   - has randomize_spawns enabled;
-   - has eligible spawn platforms;
-   - can spawn the configured number of enemies and coins;
-   - does not place enemies on start or goal platforms.
-5. Instantiate Player.tscn and verify expected signals/actions exist.
-6. Validate all configured audio paths and skin texture paths.
-7. Validate regular and premium case weight totals.
-8. Validate every skin ID is unique.
-9. Validate every quest ID is unique.
-10. Test highscore comparison behavior.
-11. Test basic progression save/load in an isolated temporary user directory.
-12. Test default/starter skin behavior.
-13. Exercise level-transition cancellation:
-    - normal transition;
-    - restart during transition;
-    - exit to menu during transition.
-14. Ensure no obsolete transition loads a level afterward.
-15. Exit with a nonzero status when any assertion fails.
-
-Test architecture:
-- Place tests in a clearly named directory such as tests/.
-- Provide a single headless runner script or test scene.
-- Print concise PASS/FAIL output.
-- Avoid frame-rate-sensitive tests where possible.
-- Seed random behavior when testing procedural spawns.
-- Clean up nodes and temporary save files between tests.
-- Never read or overwrite the developer’s actual save directory.
-- If overriding user-data paths requires command-line/environment configuration, document the command precisely.
-
-Suggested command:
-Provide a command similar to:
-
-Godot --headless --path . --script res://tests/run_smoke_tests.gd
-
-The exact command may differ if needed for autoload initialization.
-
-Documentation:
-- Add a “Testing” section to README.md.
-- Document:
-  - required Godot version;
-  - test command;
-  - expected exit codes;
-  - isolation from production saves.
-
-Validation:
-- Run the suite more than once.
-- Confirm deterministic results.
-- Confirm a deliberate failing assertion produces a nonzero exit code, then remove the deliberate failure.
-- Run the normal project headlessly afterward.
-
-Constraints:
-- GDScript only.
-- No C#.
-- Prefer no external dependencies.
-- Do not commit or push unless explicitly requested.
-
-Deliverables:
-- Headless smoke-test suite.
-- Test-running documentation.
-- Actual test output.
-- List of covered and intentionally uncovered behaviors.
-```
+update this prompt to be current-state aware. DO NOT change any files.
 
 ## Prompt 10 — Split `Game.gd` into focused components
 
@@ -400,6 +146,112 @@ Deliverables:
 - Any intentionally deferred cleanup.
 ```
 
+
+
+
+
+
+## Prompt 11: Updating "You Win!"-screens to match Greenglen look
+
+You are working on “Goblins of Greenglen,” a Godot 4.6 platformer written in GDScript.
+
+Relevant file:
+- scripts/Game.gd
+
+References:
+- The attached screenshot shows the current oversized “Ouch!” death message.
+- The existing main menu and completed-run menu define the desired Greenglen style.
+
+Strategic direction:
+The game currently contains six fixed levels, but it may evolve into an infinite runner. Outcome language and architecture should therefore describe a run ending rather than the player simply winning or losing.
+
+Use these outcome names:
+- Fatal damage or fall: “Run Over”
+- Completing Level 6: “Run Complete”
+- Replay action: “Run Again”
+
+Replace “Ouch!”, “You Win!”, “Play Again,” and similar outcome-specific wording where appropriate.
+
+Task:
+Replace the separate death message and completed-run implementation with one reusable, outcome-driven run-result menu. Both outcomes must share the same layout, theme, controls, and lifecycle behavior while displaying appropriate content.
+
+Required architecture:
+1. Refactor the existing win menu into a neutral result component such as `run_result_menu`.
+2. Introduce an explicit result type, preferably an enum such as:
+   - `FAILED`
+   - `COMPLETED`
+3. Use one method such as `_show_run_result(result)` to populate and display both states.
+4. Do not duplicate separate death and completion menu trees.
+5. Keep the existing transient label only for short messages such as “Level Cleared!” Rename it if necessary so it is no longer misleadingly called `win_label`.
+6. Keep all gameplay communication and progression hooks signal-based.
+7. Do not redesign the broader health, scoring, quest, or level systems.
+
+Visual design:
+1. Match the existing main menu and Greenglen completed-run screen.
+2. Keep the final gameplay frame visible beneath a restrained dark overlay.
+3. Use the shared `ui_theme`, Cinzel fonts, Greenglen nine-patch buttons, cream text, brown outlines, and existing accent colors.
+4. Use a centered Container-based layout that fits comfortably at 960x540.
+5. Show:
+   - outcome title;
+   - final score;
+   - collected coins;
+   - current best completed run;
+   - conditional “New Highscore!” for qualifying completed runs.
+6. Use a warm muted failure accent for “Run Over” and the existing gold accent for “Run Complete.”
+7. Avoid oversized labels, overlapping elements, decorative cards, or a second visual system.
+8. Add two centered buttons:
+   - “Run Again”
+   - “Main Menu”
+9. Give “Run Again” initial keyboard focus.
+
+Outcome behavior:
+- `FAILED`: shown after fatal enemy damage or a fatal fall; play death SFX and stop music.
+- `COMPLETED`: shown after completing Level 6; play win SFX, process completion quests, and submit the completed run to the local highscore.
+- Preserve the current policy that only completed runs update `highscore.cfg`. Do not silently make failed runs eligible. Keep `_submit_run()` as the future policy hook for endless mode.
+- Both outcomes display the run’s score and coins.
+
+Lifecycle behavior:
+- Disable the finished `level_root`, but keep the result menu interactive with `PROCESS_MODE_ALWAYS`.
+- “Run Again” and `R` must start a completely clean run from Level 1 through the existing centralized restart and `_load_level()` paths.
+- “Main Menu” must call `_show_main_menu()` so transition tokens, music, pause state, HUD visibility, invulnerability, and level state are cleaned up consistently.
+- `_load_level()` must centrally hide the result menu and restore the gameplay HUD.
+- Prevent pause or stale transition UI from appearing over the result screen.
+- Fatal overlap signals must not reopen or repopulate the result screen repeatedly.
+
+Preserve:
+- Score, coins, health, invulnerability, and damage tracking.
+- Daily and weekly quest behavior.
+- Highscore comparison and tie-breaking.
+- Level-clear timing and transition-generation protection.
+- Win/death SFX and music behavior.
+- The existing `R` shortcut.
+
+Acceptance tests:
+- Die from enemy contact and confirm “Run Over.”
+- Die from a fall and confirm the same result screen.
+- Complete Level 6 and confirm “Run Complete.”
+- Verify score, coins, best values, and conditional highscore text.
+- Confirm failed runs do not update the completed-run highscore.
+- Test “Run Again,” `R`, and “Main Menu” from both outcomes.
+- Confirm all restart paths reset health, score, coins, damage flags, transitions, and invulnerability.
+- Verify mouse and keyboard interaction at 960x540 and 1280x720.
+- Confirm the level remains visible without UI overlap.
+- Run a Godot 4.6 parser/import check and runtime smoke check.
+
+Constraints:
+- GDScript only.
+- No new dependencies, physics layers, or unrelated redesigns.
+- Reuse the existing Greenglen theme and helpers.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- One shared, future-ready run-result menu.
+- Matching “Run Over” and “Run Complete” states.
+- Functional Run Again, Main Menu, and `R` actions.
+- Brief explanation of the result-state architecture and highscore policy.
+- Validation results.
+
+##Prompt 12: infinite arcade-style survival run
 
 You are working on “Goblins of Greenglen,” a Godot 4.6 2D platformer written entirely in GDScript.
 

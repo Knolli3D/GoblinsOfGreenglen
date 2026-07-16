@@ -101,9 +101,15 @@ var owned_skins: Array = []
 var equipped_skin := ""
 
 func _ready() -> void:
-	# Vor JEDEM Save-Load: alte Saves aus "Cloude Game" übernehmen (einmalig, idempotent).
-	# Progression ist Autoload → läuft vor Game.gd, deckt also auch highscore.cfg ab.
-	SaveMigration.migrate_old_saves()
+	var test_dir := SaveData.test_save_dir()
+	if test_dir != "":
+		# Test-Isolation (siehe SaveData.TEST_SAVE_DIR_ENV): Save-Pfad umleiten und die
+		# Migration überspringen — sie würde sonst in den echten user://-Ordner schreiben.
+		save_path = test_dir.path_join("progression.cfg")
+	else:
+		# Vor JEDEM Save-Load: alte Saves aus "Cloude Game" übernehmen (einmalig, idempotent).
+		# Progression ist Autoload → läuft vor Game.gd, deckt also auch highscore.cfg ab.
+		SaveMigration.migrate_old_saves()
 	load_and_validate()
 
 # Kompletter Lade-Pfad (wird auch vom Test-Harness ohne Autoload aufgerufen):

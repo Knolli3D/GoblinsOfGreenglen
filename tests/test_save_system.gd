@@ -1,32 +1,42 @@
 extends SceneTree
 
 # Test-Harness für das versionierte Save-System (SaveData.gd + Progression.gd + Game.gd).
-# Headless ausführen:
+# Headless ausführen (einzeln, oder komplett über res://tests/run_all.gd):
 #
 #   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s res://tests/test_save_system.gd
 #
-# Die Tests schreiben ausschließlich unter user://test_saves/ mit eigenen Instanzen
-# (Progression.save_path / Game.highscore_path werden pro Test umgebogen). Das
-# Progression-AUTOLOAD bootet im -s-Modus trotzdem normal mit und liest den echten
-# Save — exakt wie ein regulärer Spielstart, die Testdaten bleiben davon getrennt.
+# Vollständig isoliert: _init() setzt (falls der Runner sie nicht schon vererbt hat)
+# GOGG_TEST_SAVE_DIR auf ein frisches Temp-Verzeichnis, BEVOR die Autoloads starten —
+# dadurch liest/schreibt auch das mitbootende Progression-Autoload nur dort und die
+# Save-Migration wird übersprungen. Die Testdateien der Suite selbst liegen in einem
+# eigenen Unterordner; Progression.save_path / Game.highscore_path werden pro Test
+# umgebogen. Echte Saves unter user:// werden nie berührt.
 # Exit-Code 0 = alle Checks ok, 1 = mindestens ein Check fehlgeschlagen.
 # WARNING-Zeilen im Output sind erwartet: die Tests füttern absichtlich kaputte Saves.
 
 const ProgressionScript := preload("res://scripts/Progression.gd")
 const SaveData := preload("res://scripts/SaveData.gd")
-
-const TEST_DIR := "user://test_saves"
+const TestEnv := preload("res://tests/test_env.gd")
 
 var checks := 0
 var failures := 0
 var today: String = Time.get_date_string_from_system()
 var this_week: int = int((Time.get_unix_time_from_system() / 86400.0 + 3.0) / 7.0)
+# Isoliertes Basis-Verzeichnis (GOGG_TEST_SAVE_DIR) + eigener Unterordner dieser Suite.
+var save_dir := ""
+var owns_save_dir := false
+var test_dir := ""
 # Game.gd referenziert das Autoload "Progression" und kompiliert deshalb erst, wenn die
 # Autoloads registriert sind — das passiert im -s-Modus NACH _init(), vor dem ersten
 # Frame. Daher kein preload, sondern Laden zur Laufzeit in _run_all().
 var game_script: GDScript
 
 func _init() -> void:
+	var iso: Dictionary = TestEnv.ensure_isolated("save")
+	save_dir = iso.dir
+	owns_save_dir = iso.owned
+	test_dir = save_dir.path_join("save_suite")
+	seed(20260716)  # deterministische Quest-Rolls (shuffle) in den Testinstanzen
 	process_frame.connect(_run_all, CONNECT_ONE_SHOT)
 
 func _run_all() -> void:
@@ -56,9 +66,11 @@ func _run_all() -> void:
 	print("")
 	if failures == 0:
 		print("ALLE TESTS OK (%d Checks)" % checks)
-		_remove_test_dir()
+		TestEnv.remove_dir_recursive(test_dir)
+		if owns_save_dir:
+			TestEnv.remove_dir_recursive(save_dir)
 	else:
-		printerr("FEHLGESCHLAGEN: %d von %d Checks (Dateien in %s belassen)" % [failures, checks, TEST_DIR])
+		printerr("FEHLGESCHLAGEN: %d von %d Checks (Dateien in %s belassen)" % [failures, checks, test_dir])
 	quit(0 if failures == 0 else 1)
 
 # --- Infrastruktur -----------------------------------------------------------
@@ -72,21 +84,14 @@ func check(cond: bool, name: String) -> void:
 		printerr("  FAIL %s" % name)
 
 func _reset_test_dir() -> void:
-	DirAccess.make_dir_recursive_absolute(TEST_DIR)
-	var d := DirAccess.open(TEST_DIR)
+	DirAccess.make_dir_recursive_absolute(test_dir)
+	var d := DirAccess.open(test_dir)
 	if d != null:
 		for f: String in d.get_files():
 			d.remove(f)
-
-func _remove_test_dir() -> void:
-	var d := DirAccess.open(TEST_DIR)
-	if d != null:
-		for f: String in d.get_files():
-			d.remove(f)
-	DirAccess.remove_absolute(TEST_DIR)
 
 func _path(fname: String) -> String:
-	return TEST_DIR.path_join(fname)
+	return test_dir.path_join(fname)
 
 func _write_cfg(path: String, sections: Dictionary) -> void:
 	var cfg := ConfigFile.new()

@@ -17,6 +17,18 @@ extends RefCounted
 
 const UNVERSIONED := 1
 
+# --- Test-Isolation ----------------------------------------------------------
+
+# Nur für automatisierte Tests: Ist diese Umgebungsvariable gesetzt (vom Test-Runner
+# bzw. den Test-Suiten in tests/, VOR der Autoload-Registrierung), leiten Progression
+# und Game ihre Save-Pfade in dieses Verzeichnis um und die Save-Migration wird
+# übersprungen — die echten Saves unter user:// werden dann weder gelesen noch
+# geschrieben. Ohne die Variable ist das Produktionsverhalten exakt unverändert.
+const TEST_SAVE_DIR_ENV := "GOGG_TEST_SAVE_DIR"
+
+static func test_save_dir() -> String:
+	return OS.get_environment(TEST_SAVE_DIR_ENV)
+
 # --- Laden & Backup-Recovery -------------------------------------------------
 
 # Lädt path; ist die Datei unlesbar/korrupt, wird <path>.bak versucht und bei Erfolg

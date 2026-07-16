@@ -4,7 +4,7 @@
 
 A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 6 increasingly challenging levels — including two horizontally scrolling stages and a final level with randomized enemy/coin placement.
 
-**Status:** Fully playable end to end — all 6 levels, combat, coins, and win/death flow work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
+**Status:** Fully playable end to end — all 6 levels, combat, coins, and a shared run-result flow ("Run Complete" / "Run Over") work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
 
 ---
 
@@ -15,7 +15,7 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 - **Collect coins** scattered across each level
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
-- **Greenglen win menu** shows score, coins, best run, and new-record status after Level 6, with Play Again and Main Menu buttons
+- **Shared Greenglen result menu** for both run outcomes — "Run Complete" after Level 6, "Run Over" on a fatal hit or fall. Both show score, coins, and your best completed run; only a qualifying completed run adds "New Highscore!". Run Again and Main Menu buttons (or `R`) continue from either outcome
 
 ---
 
@@ -63,12 +63,27 @@ No external plugins or dependencies required.
 
 ---
 
+## Testing
+
+The project ships a dependency-free headless test harness (plain GDScript, no external framework). It requires **Godot 4.6**. One command runs the complete suite:
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s res://tests/run_all.gd
+```
+
+- **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
+- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (118 checks: all scenes and levels, resources, run-result lifecycle, transition cancellation).
+- **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
+- **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`/`progression.cfg` (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
+
+---
+
 ## Project Structure
 
 ```
 cloude-game/
 ├── scripts/
-│   ├── Game.gd          # Main controller: HUD, menus including results, level loading, POW!, meta UI
+│   ├── Game.gd          # Main controller: HUD, shared run-result handling, menus, level loading, POW!, meta UI
 │   ├── Progression.gd   # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
 │   ├── Player.gd        # CharacterBody2D: movement, double-jump, swept stomp detection, signals, skins
 │   ├── Enemy.gd         # CharacterBody2D: patrol AI, previous position tracking, kill logic
@@ -76,7 +91,13 @@ cloude-game/
 │   ├── Goal.gd          # Area2D: level exit flag
 │   ├── Platform.gd      # StaticBody2D: sprite scaling from collision shape
 │   ├── Level.gd         # Node2D base: parallax background, optional randomized spawns
-│   └── SaveMigration.gd # One-time save migration from the pre-rename "Cloude Game" user dir
+│   ├── SaveMigration.gd # One-time save migration from the pre-rename "Cloude Game" user dir
+│   └── SaveData.gd      # Versioned save helpers: typed reads, [meta] schema version, .bak backup/recovery
+├── tests/
+│   ├── run_all.gd           # Headless test runner: both suites + save-isolation canary
+│   ├── test_save_system.gd  # Save validation, schema upgrade, and recovery suite
+│   ├── test_smoke.gd        # Scene, resource, run-result, and transition-lifecycle suite
+│   └── test_env.gd          # Test isolation helper (redirects save I/O to a temp dir)
 ├── scenes/
 │   ├── Main.tscn       # Entry point
 │   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn
@@ -158,7 +179,7 @@ Before each `move_and_slide()`, the player records its previous global position 
 | Invincibility frames | 1 second after taking damage or a non-fatal fall; never carries over into a new level, restart, or run |
 | POW! effect | Animated label that floats and fades on stomp |
 | Pause menu | Resume, Try Again, Exit to Menu |
-| Win & death screens | Dedicated themed results menu with Play Again/Main Menu; compact death message; `R` retries |
+| Run results | One shared themed result menu for "Run Complete" and "Run Over" with Run Again/Main Menu; `R` starts a clean run |
 | Scrolling levels | Camera clamps to `level_width` per level |
 
 ---
@@ -169,13 +190,13 @@ All music and sound effects are generated chiptune WAVs (`tools/generate_audio.p
 
 ## Highscore
 
-Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
+Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. **Only completed runs are submitted**: a run that ends in "Run Over" never updates your saved best. Higher score wins; on a tie, more coins break it. Beat your previous best and the result menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
 
 ---
 
 ## Look & Feel
 
-The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. The completed-run screen uses the same theme in a centered full-screen overlay, leaving the finished level visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
+The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. Both run outcomes share one centered Greenglen result overlay — "Run Complete" in the established gold accent, "Run Over" in a restrained warm accent — leaving the final gameplay frame visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
 
 ---
 

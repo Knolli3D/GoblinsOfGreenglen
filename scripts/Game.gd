@@ -40,25 +40,41 @@ const HIGHSCORE_SAVE_VERSION := 2
 const MUSIC_NORMAL_DB := 0.0
 const MUSIC_PAUSED_DB := -14.0
 
+# Ergebnis des aktuellen Runs. NONE = Run läuft. FAILED (tödlicher Treffer/Fall) und
+# COMPLETED (Level 6 geschafft) sind final: _finish_run() setzt sie genau einmal,
+# erst _load_level() bzw. _show_main_menu() setzen zurück auf NONE. Terminologie ist
+# bewusst Run-orientiert ("Run Over"/"Run Complete"/"Run Again") — das Spiel soll
+# später ggf. ein Infinite Runner werden.
+enum RunOutcome { NONE, FAILED, COMPLETED }
+
+# Akzentfarben des Result-Menü-Titels: Gold wie die bestehenden Legendary-/Highscore-
+# Akzente (TIER_COLORS.legendary) für "Run Complete", zurückhaltendes warmes
+# Rot-Orange für "Run Over".
+const RESULT_COMPLETED_ACCENT := Color(1.0, 0.65, 0.15)
+const RESULT_FAILED_ACCENT := Color(0.9, 0.45, 0.32)
+
 var current_level := 0
 var health := MAX_HEALTH
 var score := 0
 var coin_count := 0
 var transitioning := false
-# Generation-Token für Level-Übergänge: jeder Level-Load und jede Rückkehr ins Hauptmenü
-# erhöht es. Die reach_goal()-Coroutine validiert nach ihrem await dagegen, damit ein
-# veralteter Übergang (Restart/Menü während "Level Cleared!") keinen Level mehr lädt.
+# Generation-Token für Level-Übergänge: jeder Level-Load, jede Rückkehr ins Hauptmenü
+# und jedes Run-Ende (_finish_run) erhöht es. Die reach_goal()-Coroutine validiert nach
+# ihrem await dagegen, damit ein veralteter Übergang (Restart/Menü/Run-Ende während
+# "Level Cleared!") keinen Level mehr lädt.
 var transition_gen := 0
 var invuln_until := 0.0
+var run_outcome := RunOutcome.NONE
 var hud_label: Label
 var coin_label: Label
-var win_label: Label
-var win_menu: Control
-var win_score_value: Label
-var win_coins_value: Label
-var win_best_label: Label
-var win_record_label: Label
-var win_play_again_btn: Button
+var message_label: Label  # nur noch transiente Meldungen ("Level Cleared!")
+var run_result_menu: Control
+var result_title_label: Label
+var result_score_value: Label
+var result_coins_value: Label
+var result_best_label: Label
+var result_record_label: Label
+var result_run_again_btn: Button
 var pause_menu: Control
 var level_root: Node2D
 var player: CharacterBody2D
@@ -129,11 +145,15 @@ const TIER_COLORS := {
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("game")
+	var test_dir := SaveData.test_save_dir()
+	if test_dir != "":
+		# Test-Isolation (siehe SaveData.TEST_SAVE_DIR_ENV): nie den echten Highscore anfassen.
+		highscore_path = test_dir.path_join("highscore.cfg")
 	_load_highscore()
 	_build_ui_theme()
 	_build_audio()
 	_build_hud()
-	_build_win_menu()
+	_build_run_result_menu()
 	_build_pause_menu()
 	_build_main_menu()
 	_build_quests_menu()
@@ -322,73 +342,75 @@ func _build_pause_menu() -> void:
 	exit_btn.pressed.connect(_exit_to_main_menu)
 	box.add_child(exit_btn)
 
-func _build_win_menu() -> void:
+# Ein gemeinsames Result-Menü für beide Ausgänge (Run Complete / Run Over) — gleiche
+# Control-Hierarchie, nur Titeltext/-farbe und Recordzeile wechseln in _show_run_result().
+func _build_run_result_menu() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 8
 	add_child(layer)
 
-	win_menu = Control.new()
-	win_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_menu.process_mode = Node.PROCESS_MODE_ALWAYS
-	win_menu.theme = ui_theme
-	win_menu.visible = false
-	layer.add_child(win_menu)
+	run_result_menu = Control.new()
+	run_result_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# PROCESS_MODE_ALWAYS: Buttons bleiben bedienbar, obwohl level_root deaktiviert ist.
+	run_result_menu.process_mode = Node.PROCESS_MODE_ALWAYS
+	run_result_menu.theme = ui_theme
+	run_result_menu.visible = false
+	layer.add_child(run_result_menu)
 
 	var dim := ColorRect.new()
 	dim.color = Color(0.025, 0.035, 0.04, 0.68)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_menu.add_child(dim)
+	run_result_menu.add_child(dim)
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	win_menu.add_child(center)
+	run_result_menu.add_child(center)
 
 	var box := VBoxContainer.new()
 	box.custom_minimum_size = Vector2(460, 0)
 	box.add_theme_constant_override("separation", 14)
 	center.add_child(box)
 
-	var title := Label.new()
-	title.text = "You Win!"
-	_apply_heading_style(title, 44)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(title)
+	result_title_label = Label.new()
+	_apply_heading_style(result_title_label, 44)
+	result_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(result_title_label)
 
 	var stats := HBoxContainer.new()
 	stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	stats.add_theme_constant_override("separation", 36)
 	box.add_child(stats)
-	win_score_value = _add_win_stat(stats, "FINAL SCORE", UI_CREAM)
-	win_coins_value = _add_win_stat(stats, "COINS", Color("#F4D35E"))
+	result_score_value = _add_result_stat(stats, "FINAL SCORE", UI_CREAM)
+	result_coins_value = _add_result_stat(stats, "COINS", Color("#F4D35E"))
 
-	win_best_label = Label.new()
-	win_best_label.add_theme_font_override("font", ui_body_font)
-	win_best_label.add_theme_font_size_override("font_size", 18)
-	win_best_label.add_theme_color_override("font_color", Color(0.72, 0.84, 0.92))
-	win_best_label.add_theme_color_override("font_outline_color", UI_BROWN)
-	win_best_label.add_theme_constant_override("outline_size", 3)
-	win_best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	win_best_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(win_best_label)
+	result_best_label = Label.new()
+	result_best_label.add_theme_font_override("font", ui_body_font)
+	result_best_label.add_theme_font_size_override("font_size", 18)
+	result_best_label.add_theme_color_override("font_color", Color(0.72, 0.84, 0.92))
+	result_best_label.add_theme_color_override("font_outline_color", UI_BROWN)
+	result_best_label.add_theme_constant_override("outline_size", 3)
+	result_best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_best_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(result_best_label)
 
-	win_record_label = Label.new()
-	win_record_label.custom_minimum_size.y = 28
-	win_record_label.add_theme_font_override("font", ui_heading_font)
-	win_record_label.add_theme_font_size_override("font_size", 21)
-	win_record_label.add_theme_color_override("font_color", TIER_COLORS.legendary)
-	win_record_label.add_theme_color_override("font_outline_color", UI_BROWN)
-	win_record_label.add_theme_constant_override("outline_size", 4)
-	win_record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	win_record_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(win_record_label)
+	result_record_label = Label.new()
+	result_record_label.custom_minimum_size.y = 28
+	result_record_label.add_theme_font_override("font", ui_heading_font)
+	result_record_label.add_theme_font_size_override("font_size", 21)
+	result_record_label.add_theme_color_override("font_color", TIER_COLORS.legendary)
+	result_record_label.add_theme_color_override("font_outline_color", UI_BROWN)
+	result_record_label.add_theme_constant_override("outline_size", 4)
+	result_record_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_record_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(result_record_label)
 
-	win_play_again_btn = Button.new()
-	win_play_again_btn.text = "Play Again"
-	win_play_again_btn.custom_minimum_size = Vector2(280, 46)
-	win_play_again_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	win_play_again_btn.pressed.connect(_restart_level_from_menu)
-	box.add_child(win_play_again_btn)
+	result_run_again_btn = Button.new()
+	result_run_again_btn.text = "Run Again"
+	result_run_again_btn.custom_minimum_size = Vector2(280, 46)
+	result_run_again_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	result_run_again_btn.pressed.connect(_restart_level_from_menu)
+	box.add_child(result_run_again_btn)
 
 	var main_menu_btn := Button.new()
 	main_menu_btn.text = "Main Menu"
@@ -397,7 +419,7 @@ func _build_win_menu() -> void:
 	main_menu_btn.pressed.connect(_exit_to_main_menu)
 	box.add_child(main_menu_btn)
 
-func _add_win_stat(parent: HBoxContainer, caption: String, value_color: Color) -> Label:
+func _add_result_stat(parent: HBoxContainer, caption: String, value_color: Color) -> Label:
 	var column := VBoxContainer.new()
 	column.custom_minimum_size = Vector2(170, 0)
 	column.add_theme_constant_override("separation", 2)
@@ -523,14 +545,15 @@ func _show_main_menu() -> void:
 	transition_gen += 1  # macht jede noch wartende reach_goal()-Coroutine ungültig
 	transitioning = false
 	invuln_until = 0.0  # Gameplay-Zustand räumen — kein Schutzfenster überlebt das Menü
+	run_outcome = RunOutcome.NONE
 	in_main_menu = true
 	get_tree().paused = false
 	pause_menu.visible = false
 	hud_label.visible = false
 	coin_label.visible = false
 	keys_label.visible = false
-	win_label.visible = false
-	win_menu.visible = false
+	message_label.visible = false
+	run_result_menu.visible = false
 	if level_root:
 		level_root.queue_free()
 		level_root = null
@@ -572,8 +595,16 @@ func _toggle_pause() -> void:
 	pause_menu.visible = paused
 	_set_music_ducked(paused)
 
+# Pause-Menü "Try Again" und Result-Menü "Run Again" — Klick-Sound + zentraler Clean-Run.
 func _restart_level_from_menu() -> void:
 	play_sfx("click")
+	_start_new_run()
+
+# DER zentrale Clean-Run-Pfad (Run Again, Try Again, R): setzt Pause, Musik-Ducking,
+# Score, Coins und Run-Schadens-Tracking zurück und lädt Level 1. Alles Übrige
+# (Health, transitioning, run_outcome, transition_gen, invuln_until, Result-UI/HUD)
+# räumt _load_level() als Lifecycle-Grenze zentral auf.
+func _start_new_run() -> void:
 	get_tree().paused = false
 	pause_menu.visible = false
 	_set_music_ducked(false)
@@ -1122,14 +1153,14 @@ func _build_hud() -> void:
 	keys_label.visible = false
 	layer.add_child(keys_label)
 
-	win_label = Label.new()
-	win_label.position = Vector2(VIEW.x * 0.5 - 180, VIEW.y * 0.5 - 30)
-	win_label.add_theme_font_size_override("font_size", 36)
-	win_label.add_theme_color_override("font_color", Color(1, 0.95, 0.4))
-	win_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	win_label.add_theme_constant_override("outline_size", 6)
-	win_label.visible = false
-	layer.add_child(win_label)
+	message_label = Label.new()
+	message_label.position = Vector2(VIEW.x * 0.5 - 180, VIEW.y * 0.5 - 30)
+	message_label.add_theme_font_size_override("font_size", 36)
+	message_label.add_theme_color_override("font_color", Color(1, 0.95, 0.4))
+	message_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	message_label.add_theme_constant_override("outline_size", 6)
+	message_label.visible = false
+	layer.add_child(message_label)
 
 func _update_hud() -> void:
 	var hearts := ""
@@ -1158,8 +1189,9 @@ func _load_level(idx: int) -> void:
 	# Plattform nicht als spawn_platform). Falls später gewünscht, hier eine benannte
 	# Konstante (z.B. SPAWN_PROTECTION := 1.0) statt eines geerbten Timers verwenden.
 	invuln_until = 0.0
-	win_label.visible = false
-	win_menu.visible = false
+	run_outcome = RunOutcome.NONE
+	message_label.visible = false
+	run_result_menu.visible = false
 	hud_label.visible = true
 	coin_label.visible = true
 	keys_label.visible = true
@@ -1231,7 +1263,7 @@ func enemy_killed() -> void:
 	_update_hud()
 
 func damage_player() -> void:
-	if win_label.visible or win_menu.visible:
+	if run_outcome != RunOutcome.NONE or transitioning:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < invuln_until:
@@ -1243,15 +1275,13 @@ func damage_player() -> void:
 	took_damage_this_run = true
 	_update_hud()
 	if health <= 0:
-		play_sfx("death")
-		music_player.stop()
-		_show_message("Ouch!\nPress R to retry")
+		_finish_run(RunOutcome.FAILED)
 	else:
 		play_sfx("hit")
 		player.velocity.y = 0
 
 func fell_off_world() -> void:
-	if win_label.visible or win_menu.visible:
+	if run_outcome != RunOutcome.NONE or transitioning:
 		return
 	health -= 1
 	score -= 1
@@ -1259,9 +1289,7 @@ func fell_off_world() -> void:
 	took_damage_this_run = true
 	_update_hud()
 	if health <= 0:
-		play_sfx("death")
-		music_player.stop()
-		_show_message("Ouch!\nPress R to retry")
+		_finish_run(RunOutcome.FAILED)
 	else:
 		play_sfx("hit")
 		var spawn_marker := level_root.find_child("PlayerSpawn", true, false) as Marker2D
@@ -1271,7 +1299,7 @@ func fell_off_world() -> void:
 		invuln_until = Time.get_ticks_msec() / 1000.0 + 1.0
 
 func reach_goal() -> void:
-	if transitioning:
+	if transitioning or run_outcome != RunOutcome.NONE:
 		return
 	transitioning = true
 	if not took_damage_this_level:
@@ -1287,38 +1315,66 @@ func reach_goal() -> void:
 		# process_always=false: Pause friert den 1s-Timer ein — der Übergang läuft nur
 		# bei laufendem Spiel weiter (kein Levelwechsel hinter dem Pause-Menü).
 		await get_tree().create_timer(1.0, false).timeout
-		# Veraltet, wenn inzwischen ein Level geladen oder das Hauptmenü geöffnet wurde
-		# (beides erhöht transition_gen — deckt R, Try Again, Exit to Menu, neuen Run ab).
+		# Veraltet, wenn inzwischen ein Level geladen, das Hauptmenü geöffnet oder der Run
+		# beendet wurde (alle drei erhöhen transition_gen — deckt R, Try Again,
+		# Exit to Menu, neuen Run und _finish_run ab).
 		if my_gen != transition_gen or in_main_menu:
 			return
 		_load_level(next_level)
 	else:
+		_finish_run(RunOutcome.COMPLETED)
+
+# EINZIGER Lifecycle-Eintrittspunkt für das Run-Ende (beide Ausgänge). Genau-einmal-
+# Garantie: run_outcome != NONE macht jeden weiteren Aufruf (doppelte Fatal-Signale,
+# nachlaufende Callbacks) zum No-Op — Highscore-Submit und Quest-Fortschritt können
+# daher nie doppelt vergeben werden. Nur COMPLETED submittet den Highscore und vergibt
+# finish_run/no_damage_run; FAILED zeigt nur das Ergebnis (Fehlversuche ändern den
+# gespeicherten Bestwert nie).
+func _finish_run(outcome: RunOutcome) -> void:
+	if outcome == RunOutcome.NONE or run_outcome != RunOutcome.NONE:
+		return
+	run_outcome = outcome
+	transition_gen += 1  # macht jede noch wartende reach_goal()-Coroutine ungültig
+	transitioning = false
+	music_player.stop()
+	var is_new_highscore := false
+	if outcome == RunOutcome.COMPLETED:
 		Progression.add_quest_progress("finish_run")
 		if not took_damage_this_run:
 			Progression.add_quest_progress("no_damage_run")
 		play_sfx("win")
-		music_player.stop()
-		var is_new_highscore := _submit_run(score, coin_count)
-		_show_win_menu(is_new_highscore)
+		is_new_highscore = _submit_run(score, coin_count)
+	else:
+		play_sfx("death")
+	_show_run_result(outcome, is_new_highscore)
 
-func _show_win_menu(is_new_highscore: bool) -> void:
-	win_score_value.text = str(score)
-	win_coins_value.text = str(coin_count)
-	win_best_label.text = "Best Run   Score %d   Coins %d" % [best_score, best_coins]
-	win_record_label.text = "New Highscore!" if is_new_highscore else ""
-	win_label.visible = false
+# Präsentation des gemeinsamen Result-Menüs: gleiche Hierarchie für beide Ausgänge,
+# nur Titel (Text + Akzentfarbe) und die stabile optionale Record-Zeile unterscheiden sich.
+func _show_run_result(outcome: RunOutcome, is_new_highscore := false) -> void:
+	var completed := outcome == RunOutcome.COMPLETED
+	result_title_label.text = "Run Complete" if completed else "Run Over"
+	result_title_label.add_theme_color_override(
+		"font_color", RESULT_COMPLETED_ACCENT if completed else RESULT_FAILED_ACCENT)
+	result_score_value.text = str(score)
+	result_coins_value.text = str(coin_count)
+	result_best_label.text = "Best Run   Score %d   Coins %d" % [best_score, best_coins] \
+		if has_highscore else "No completed run yet"
+	result_record_label.text = "New Highscore!" if is_new_highscore else ""
+	message_label.visible = false
+	pause_menu.visible = false
 	hud_label.visible = false
 	coin_label.visible = false
 	keys_label.visible = false
-	win_menu.visible = true
+	run_result_menu.visible = true
 	if level_root:
 		level_root.process_mode = Node.PROCESS_MODE_DISABLED
-	win_play_again_btn.grab_focus()
+	result_run_again_btn.grab_focus()
 
 func _show_message(msg: String) -> void:
-	win_menu.visible = false
-	win_label.text = msg
-	win_label.visible = true
+	if run_outcome != RunOutcome.NONE:
+		return  # nie über dem Result-Menü
+	message_label.text = msg
+	message_label.visible = true
 	if level_root:
 		level_root.process_mode = Node.PROCESS_MODE_DISABLED
 
@@ -1326,15 +1382,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if in_main_menu:
 		return
 	if event.is_action_pressed("pause"):
-		_toggle_pause()
+		# Kein Pause-Menü über dem Result-Menü — Escape ist dort bewusst wirkungslos.
+		if run_outcome == RunOutcome.NONE:
+			_toggle_pause()
 		return
 	if event.is_action_pressed("restart"):
-		get_tree().paused = false
-		pause_menu.visible = false
-		_set_music_ducked(false)
-		if not music_player.playing:
-			music_player.play()
-		score = 0
-		coin_count = 0
-		took_damage_this_run = false
-		_load_level(0)
+		_start_new_run()
