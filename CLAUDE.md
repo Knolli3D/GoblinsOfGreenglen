@@ -85,6 +85,7 @@ assets/
   level_bg.png        # Wolken-Himmel (opak → aktuell ungenutzt, siehe Parallax-Abschnitt)
   menubackground.png  # Hauptmenü-Hintergrundbild (Schloss-Artwork)
   menu_bg_quests.png / menu_bg_cases.png / menu_bg_skins.png  # Submenü-Hintergründe
+  menu_bg_map.png     # Dedizierter Kampagnenkarten-Hintergrund (Map-Shell, beide Regionen)
   LOGO_menu_GoGg.png  # Titel-Logo im Hauptmenü (ersetzt Text-Label, siehe UI-Theme-Abschnitt)
   icon_GoGg.png       # App-/Fenster-Icon, via `config/icon` in project.godot referenziert
   ui/buttons/button_greenglen_*.png  # Nine-Patch-Button-Texturen (normal/hover/pressed/disabled)
@@ -101,7 +102,7 @@ tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (52 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (190 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (194 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -152,7 +153,7 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 Die Weltkarten-Kampagne ist als technische Grundlage implementiert, aber noch **kein öffentlich
 erreichbarer Spielmodus**. `Start Game` startet weiterhin den bekannten linearen Run durch die
 sechs vorhandenen Level; automatische Übergänge, Result-Menü und Highscore-Policy bleiben
-unverändert. Namen, Kartenpositionen und Hintergrund-Art sind vorerst Platzhalter.
+unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
 
 - **Catalog als Source of Truth**: `CampaignCatalog.gd` definiert stabile IDs, Reihenfolge,
   Szenenpfade, Voraussetzungen, Kartenpositionen, Fokus-Nachbarn, Core Trials und Verbindungen.
@@ -181,8 +182,11 @@ unverändert. Namen, Kartenpositionen und Hintergrund-Art sind vorerst Platzhalt
   des kumulierten Run-Werts. Bestwertvergleich: höherer Score, bei Gleichstand mehr Coins.
 - **Karten-Shell**: `CampaignMapController` besitzt einen `PROCESS_MODE_ALWAYS`-Layer 14, nutzt
   das gemeinsame Greenglen-Theme und rendert Region 1 sowie die unveröffentlichte Region 2.
-  Map-Nodes verwenden kompakte lokale Styles, normale Aktionen die original proportionierten
-  Greenglen-Buttons. Unveröffentlichte/gesperrte Level können keinen `level_requested`-Intent
+  Vollbild-Hintergrund ist das dedizierte `assets/menu_bg_map.png` (TextureRect `MapBackground`,
+  `KEEP_ASPECT_COVERED`, einmal beim `initialize()` erzeugt, identisch für beide Regionen —
+  noch kein Per-Region-Switching); fehlt die Datei, warnt der Controller nur und der dunkle
+  Dimmer bleibt als Fallback-Backdrop. Map-Nodes verwenden kompakte lokale Styles, normale
+  Aktionen die original proportionierten Greenglen-Buttons. Unveröffentlichte/gesperrte Level können keinen `level_requested`-Intent
   auslösen. Die Shell ist nur über `Game.show_campaign_map_preview()` für Entwicklung/Tests
   erreichbar und wird von `_show_main_menu()` zuverlässig versteckt.
 
@@ -609,13 +613,14 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (325 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+- **Suiten (329 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
   `HighscoreStore`-Test), `test_campaign_progress.gd` (52: Catalog-Validierung,
   frischer/kaputter Save, Backup-Recovery, stabile IDs, Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (190: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (194: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
-  verborgene Karten-Shell beider Regionen, Fokus/Play-Guards, Liniensemantik,
+  verborgene Karten-Shell beider Regionen inkl. einmaligem dedizierten Map-Hintergrund,
+  Fokus/Play-Guards, Liniensemantik,
   Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
   Player-Szene inkl. Signale, Input-Actions, Audio- und
   Skin-Ressourcen, Case-Gewichtssummen, Quest-/Skin-ID-Eindeutigkeit, alle 6 Level

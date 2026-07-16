@@ -462,6 +462,16 @@ func _test_campaign_map_shell() -> void:
 	)
 	check(_direct_canvas_layers(game.campaign_map) == 1,
 		"wiederholtes Initialize dupliziert den Map-Layer nicht")
+	var map_bg := game.campaign_map.map_background as TextureRect
+	check(map_bg != null and map_bg.texture != null \
+		and map_bg.texture.resource_path == "res://assets/menu_bg_map.png",
+		"Map-Shell nutzt das dedizierte Karten-Artwork")
+	check(_direct_texture_rects(game.campaign_map.menu) == 1 \
+		and map_bg.get_parent() == game.campaign_map.menu and map_bg.get_index() == 0,
+		"genau EIN Map-Hintergrund, hinter Graph, Details und Buttons")
+	check(map_bg.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_COVERED \
+		and map_bg.expand_mode == TextureRect.EXPAND_IGNORE_SIZE,
+		"Map-Hintergrund füllt den Viewport seitenverhältnis-erhaltend ohne Ränder")
 	check(game.campaign_map.menu.process_mode == Node.PROCESS_MODE_ALWAYS,
 		"Map-Shell verarbeitet Input unabhängig vom Gameplay")
 	game.show_campaign_map_preview("region_01")
@@ -503,6 +513,9 @@ func _test_campaign_map_shell() -> void:
 		"unreleased Region zeigt Coming Soon und deaktiviert Play")
 	game.campaign_map.play_button.pressed.emit()
 	check(requested[0] == 0, "unreleased Node kann keinen Level-Request emittieren")
+	check(game.campaign_map.map_background == map_bg \
+		and _direct_texture_rects(game.campaign_map.menu) == 1,
+		"Initialize/Show/Refresh erstellen den Map-Hintergrund nie neu")
 	game.campaign_map.back_button.pressed.emit()
 	check(not game.campaign_map.menu.visible and game.menus.main_menu.visible,
 		"Back räumt Map-Shell auf und kehrt ins normale Main-Menü zurück")
@@ -604,6 +617,13 @@ func _direct_canvas_layers(owner: Node) -> int:
 	var count := 0
 	for child: Node in owner.get_children():
 		if child is CanvasLayer:
+			count += 1
+	return count
+
+func _direct_texture_rects(owner: Node) -> int:
+	var count := 0
+	for child: Node in owner.get_children():
+		if child is TextureRect:
 			count += 1
 	return count
 

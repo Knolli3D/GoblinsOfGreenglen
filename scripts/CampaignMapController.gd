@@ -4,6 +4,7 @@ const GreenglenUI := preload("res://scripts/GreenglenUI.gd")
 const CampaignMapPathLayer := preload("res://scripts/CampaignMapPathLayer.gd")
 
 const VIEW := Vector2(960, 540)
+const MAP_BACKGROUND_PATH := "res://assets/menu_bg_map.png"
 const MAP_ORIGIN := Vector2(20, 88)
 const MAP_SIZE := Vector2(650, 370)
 const NODE_SIZE := Vector2(94, 42)
@@ -22,6 +23,7 @@ var body_font: Font
 
 var layer: CanvasLayer
 var menu: Control
+var map_background: TextureRect
 var path_layer: Control
 var region_selector: OptionButton
 var region_title: Label
@@ -118,12 +120,17 @@ func _build_map_shell() -> void:
 	menu.visible = false
 	layer.add_child(menu)
 
-	var bg := TextureRect.new()
-	bg.texture = load("res://assets/menubackground.png")
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	menu.add_child(bg)
+	map_background = TextureRect.new()
+	map_background.name = "MapBackground"
+	if ResourceLoader.exists(MAP_BACKGROUND_PATH, "Texture2D"):
+		map_background.texture = load(MAP_BACKGROUND_PATH)
+	else:
+		# Textureless the map falls back to the dim overlay backdrop below.
+		push_warning("Campaign map background missing: %s" % MAP_BACKGROUND_PATH)
+	map_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	map_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	menu.add_child(map_background)
 
 	var dim := ColorRect.new()
 	dim.color = Color(0.025, 0.045, 0.04, 0.78)
