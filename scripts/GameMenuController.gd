@@ -100,8 +100,8 @@ func _build_pause_menu() -> void:
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
-	box.position = Vector2(VIEW.x * 0.5 - 110, VIEW.y * 0.5 - 110)
-	box.custom_minimum_size = Vector2(220, 0)
+	box.position = Vector2(VIEW.x * 0.5 - 120, VIEW.y * 0.5 - 110)
+	box.custom_minimum_size = Vector2(240, 0)
 	pause_menu.add_child(box)
 
 	var title := Label.new()
@@ -113,19 +113,19 @@ func _build_pause_menu() -> void:
 
 	var resume_button := Button.new()
 	resume_button.text = "Resume"
-	resume_button.custom_minimum_size = Vector2(220, 40)
+	GreenglenUI.configure_button(resume_button, 40)
 	resume_button.pressed.connect(resume_requested.emit)
 	box.add_child(resume_button)
 
 	var restart_button := Button.new()
 	restart_button.text = "Try Again"
-	restart_button.custom_minimum_size = Vector2(220, 40)
+	GreenglenUI.configure_button(restart_button, 40)
 	restart_button.pressed.connect(restart_requested.emit)
 	box.add_child(restart_button)
 
 	var exit_button := Button.new()
 	exit_button.text = "Exit to Menu"
-	exit_button.custom_minimum_size = Vector2(220, 40)
+	GreenglenUI.configure_button(exit_button, 40)
 	exit_button.pressed.connect(main_menu_requested.emit)
 	box.add_child(exit_button)
 
@@ -194,14 +194,14 @@ func _build_run_result_menu() -> void:
 
 	result_run_again_btn = Button.new()
 	result_run_again_btn.text = "Run Again"
-	result_run_again_btn.custom_minimum_size = Vector2(280, 46)
+	GreenglenUI.configure_button(result_run_again_btn, 46)
 	result_run_again_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	result_run_again_btn.pressed.connect(restart_requested.emit)
 	box.add_child(result_run_again_btn)
 
 	var main_menu_button := Button.new()
 	main_menu_button.text = "Main Menu"
-	main_menu_button.custom_minimum_size = Vector2(280, 46)
+	GreenglenUI.configure_button(main_menu_button, 46)
 	main_menu_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	main_menu_button.pressed.connect(main_menu_requested.emit)
 	box.add_child(main_menu_button)
@@ -286,28 +286,28 @@ func _build_main_menu() -> void:
 	spacer.custom_minimum_size = Vector2(0, 8)
 	box.add_child(spacer)
 
-	_add_main_button(box, "Start Game", Vector2(260, 48), start_requested.emit)
-	_add_main_button(box, "Quests", Vector2(260, 40), quests_requested.emit)
-	_add_main_button(box, "Cases", Vector2(260, 40), cases_requested.emit)
-	_add_main_button(box, "Skins", Vector2(260, 40), skins_requested.emit)
+	_add_main_button(box, "Start Game", 48, start_requested.emit)
+	_add_main_button(box, "Quests", 40, quests_requested.emit)
+	_add_main_button(box, "Cases", 40, cases_requested.emit)
+	_add_main_button(box, "Skins", 40, skins_requested.emit)
 
 	var quit_button := Button.new()
 	quit_button.text = "Quit Game"
-	quit_button.custom_minimum_size = Vector2(140, 40)
+	GreenglenUI.configure_button(quit_button, 40)
 	quit_button.add_theme_font_size_override("font_size", 15)
 	quit_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	quit_button.offset_left = -226
-	quit_button.offset_top = -58
+	quit_button.offset_left = -256
+	quit_button.offset_top = -56
 	quit_button.offset_right = -16
 	quit_button.offset_bottom = -16
 	quit_button.pressed.connect(quit_requested.emit)
 	main_menu.add_child(quit_button)
 
 
-func _add_main_button(parent: VBoxContainer, text: String, minimum_size: Vector2, handler: Callable) -> void:
+func _add_main_button(parent: VBoxContainer, text: String, height: float, handler: Callable) -> void:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = minimum_size
+	GreenglenUI.configure_button(button, height)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.pressed.connect(handler)
 	parent.add_child(button)

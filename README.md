@@ -72,7 +72,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (150 checks: component ownership/wiring, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **229 checks total.**
+- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (152 checks: component ownership/wiring, centered menu controls, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **231 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`/`progression.cfg` (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 

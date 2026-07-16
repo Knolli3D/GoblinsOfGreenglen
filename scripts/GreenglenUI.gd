@@ -11,6 +11,8 @@ const BTN_TEX := {
 
 const UI_CREAM := Color("#FFF1C4")
 const UI_BROWN := Color("#351D0E")
+const BUTTON_ASPECT_RATIO := 6.0
+const BUTTON_CONTENT_SIDE_MARGIN := 32.0
 
 const TIER_COLORS := {
 	"common": Color(0.55, 0.85, 0.55),
@@ -59,6 +61,15 @@ static func apply_heading_style(label: Label, heading_font: Font, size: int) -> 
 	label.add_theme_color_override("font_color", UI_CREAM)
 	label.add_theme_color_override("font_outline_color", UI_BROWN)
 	label.add_theme_constant_override("outline_size", 5)
+
+
+static func button_size(height: float) -> Vector2:
+	return Vector2(height * BUTTON_ASPECT_RATIO, height)
+
+
+static func configure_button(button: Button, height: float) -> void:
+	button.custom_minimum_size = button_size(height)
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
 static func build_submenu_shell(
@@ -113,14 +124,10 @@ static func build_submenu_shell(
 static func _make_button_style(state: String) -> StyleBoxTexture:
 	var style := StyleBoxTexture.new()
 	style.texture = load(BTN_TEX[state])
-	style.texture_margin_left = 85
-	style.texture_margin_right = 85
-	style.texture_margin_top = 10
-	style.texture_margin_bottom = 10
 	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
 	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
-	style.content_margin_left = 64
-	style.content_margin_right = 64
+	style.content_margin_left = BUTTON_CONTENT_SIDE_MARGIN
+	style.content_margin_right = BUTTON_CONTENT_SIDE_MARGIN
 	style.content_margin_top = 6
 	style.content_margin_bottom = 6
 	return style

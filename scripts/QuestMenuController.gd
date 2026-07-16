@@ -24,7 +24,8 @@ func initialize(theme: Theme, heading_font: Font, audio_controller: Node) -> voi
 
 	var back_button := Button.new()
 	back_button.text = "Back"
-	back_button.custom_minimum_size = Vector2(300, 40)
+	GreenglenUI.configure_button(back_button, 40)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back_button.pressed.connect(back_requested.emit)
 	shell.box.add_child(back_button)
 
@@ -84,7 +85,7 @@ func _add_quest_row(quest: Dictionary, claim_text: String, claim_handler: Callab
 	row.add_child(label)
 
 	var claim_button := Button.new()
-	claim_button.custom_minimum_size = Vector2(100, 32)
+	GreenglenUI.configure_button(claim_button, 32)
 	if quest.claimed:
 		claim_button.text = "Claimed"
 		claim_button.disabled = true

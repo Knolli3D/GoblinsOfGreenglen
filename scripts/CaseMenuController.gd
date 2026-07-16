@@ -40,14 +40,14 @@ func initialize(theme: Theme, heading_font: Font, audio_controller: Node) -> voi
 
 	open_case_button = Button.new()
 	open_case_button.text = "Open Case (1 🔑)"
-	open_case_button.custom_minimum_size = Vector2(300, 44)
+	GreenglenUI.configure_button(open_case_button, 50)
 	open_case_button.add_theme_font_size_override("font_size", 16)
 	open_case_button.pressed.connect(_on_open_case_pressed.bind(false))
 	shell.box.add_child(open_case_button)
 
 	premium_case_button = Button.new()
 	premium_case_button.text = "Premium Case (3 🔑) — Rare+"
-	premium_case_button.custom_minimum_size = Vector2(300, 44)
+	GreenglenUI.configure_button(premium_case_button, 50)
 	premium_case_button.add_theme_font_size_override("font_size", 13)
 	premium_case_button.pressed.connect(_on_open_case_pressed.bind(true))
 	shell.box.add_child(premium_case_button)
@@ -61,7 +61,7 @@ func initialize(theme: Theme, heading_font: Font, audio_controller: Node) -> voi
 
 	back_button = Button.new()
 	back_button.text = "Back"
-	back_button.custom_minimum_size = Vector2(300, 40)
+	GreenglenUI.configure_button(back_button, 50)
 	back_button.pressed.connect(back_requested.emit)
 	shell.box.add_child(back_button)
 	_build_reel()

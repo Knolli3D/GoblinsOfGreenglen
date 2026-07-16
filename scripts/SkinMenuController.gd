@@ -71,14 +71,14 @@ func initialize(theme: Theme, heading_font: Font, audio_controller: Node) -> voi
 	preview.add_child(preview_equipped)
 
 	equip_button = Button.new()
-	equip_button.custom_minimum_size = Vector2(200, 40)
+	GreenglenUI.configure_button(equip_button, 40)
 	equip_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	equip_button.pressed.connect(_on_equip_selected)
 	preview.add_child(equip_button)
 
 	var back_button := Button.new()
 	back_button.text = "Back"
-	back_button.custom_minimum_size = Vector2(120, 40)
+	GreenglenUI.configure_button(back_button, 40)
 	back_button.position = Vector2(80, 490)
 	back_button.pressed.connect(back_requested.emit)
 	menu.add_child(back_button)
@@ -101,8 +101,8 @@ func refresh() -> void:
 		child.queue_free()
 	for skin: Dictionary in selectable_skins():
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(320, 36)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		GreenglenUI.configure_button(button, 50)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		button.add_theme_font_size_override("font_size", 16)
 		var prefix := "▶ " if skin.id == selected_skin_id else "    "
 		button.text = "%s%s" % [prefix, skin.name]

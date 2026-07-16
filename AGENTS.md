@@ -93,7 +93,7 @@ tools/
 tests/
   run_all.gd          # DER Test-Runner: beide Suiten als isolierte Kind-Prozesse + Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (79 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (150 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (152 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -495,12 +495,14 @@ und kein zweites visuelles System pro Komponente.
 - **Button-Texturen**: `assets/ui/buttons/button_greenglen_{normal,hover,pressed,disabled}.png`
   (900×150, transparent) als `StyleBoxTexture` pro Zustand; `focus` nutzt bewusst die
   Hover-Textur statt Godots Standard-Fokusrahmen. `GreenglenUI._make_button_style(state)` baut jede Stylebox:
-  - `texture_margin_left/right = 85` (dekorierte Metall-Enden mit Vine-Ranken bleiben fix),
-  - `texture_margin_top/bottom = 10` — **bewusst klein**, da Buttons nur 32–48px hoch sind;
-    zu große vertikale Margins lassen die Holz-Mitte kollabieren (behobener Bug: 30+30=60px
-    > Button-Höhe → nur Rahmen sichtbar, kein Holz), siehe Commit-Historie.
-  - `axis_stretch_horizontal/vertical = AXIS_STRETCH_MODE_STRETCH` (Nine-Patch),
-  - `content_margin_left/right = 64` hält Text von Gems/Vines fern, mittig auf dem Holz.
+  - die komplette Textur wird ohne `region_rect`-Zuschnitt und ohne Nine-Patch-Randaufteilung
+    gerendert; dadurch bleiben Metall-Enden, Gems, Holz und Vine-Ranken vollständig erhalten,
+  - `GreenglenUI.configure_button(button, height)` erzwingt überall das originale Seitenverhältnis
+    6:1 (z.B. 192×32 Claims, 240×40 Standard, 300×50 Cases) und horizontale Textzentrierung,
+    damit Textur und Ausrichtung nicht zwischen Menüs abweichen,
+  - `content_margin_left/right = 32` hält alle Texte innerhalb der Holzfläche und fern von Gems/Vines;
+    identische obere/untere Content-Margins halten Godots Textlayout vertikal zentriert, lange
+    Labels nutzen weiterhin gezielte kleinere Font-Größen.
 - **Typografie**: `Cinzel-SemiBold.ttf` für Buttons (18px, `UI_CREAM` = `#FFF1C4`, Outline
   `UI_BROWN` = `#351D0E`, Größe 3), `Cinzel-Bold.ttf` für Menü-Überschriften via
   `GreenglenUI.apply_heading_style()` (Outline-Größe 5). Beide Fonts aus `res://Cinzel/static/`
@@ -537,8 +539,8 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
 `test_smoke.gd`) und isolieren sich dann selbst. WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (229 Checks gesamt)**: `test_save_system.gd` (79, Save-System inkl. direktem
-  `HighscoreStore`-Test) und `test_smoke.gd` (150: Main-Komponenten/Interfaces,
+- **Suiten (231 Checks gesamt)**: `test_save_system.gd` (79, Save-System inkl. direktem
+  `HighscoreStore`-Test) und `test_smoke.gd` (152: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
   Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
   Player-Szene inkl. Signale, Input-Actions, Audio- und

@@ -405,6 +405,10 @@ func _test_meta_menus(prog: Node) -> void:
 	game.menus.skins_requested.emit()
 	check(game.skin_menu.menu.visible and game.skin_menu.skins_list.get_child_count() >= 2,
 		"Skin-Intent öffnet Liste mit Default und Starter")
+	check(_all_buttons_centered(game), "alle Button-Texte sind horizontal zentriert")
+	var button_style := game.ui_theme.get_stylebox("normal", "Button") as StyleBoxTexture
+	check(is_equal_approx(button_style.content_margin_top, button_style.content_margin_bottom),
+		"Button-Content ist vertikal symmetrisch zentriert")
 	game.skin_menu._on_select_skin("princess_blue")
 	check(game.skin_menu.preview_name.text == "Sapphire Princess", "Skin-Auswahl aktualisiert Preview")
 	game.skin_menu._on_equip_selected()
@@ -459,3 +463,11 @@ func _direct_canvas_layers(owner: Node) -> int:
 		if child is CanvasLayer:
 			count += 1
 	return count
+
+func _all_buttons_centered(node: Node) -> bool:
+	if node is Button and (node as Button).alignment != HORIZONTAL_ALIGNMENT_CENTER:
+		return false
+	for child: Node in node.get_children():
+		if not _all_buttons_centered(child):
+			return false
+	return true
