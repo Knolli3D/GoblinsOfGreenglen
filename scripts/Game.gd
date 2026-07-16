@@ -26,6 +26,12 @@ const SFX_FILES := {
 const MUSIC_FILE := "res://assets/audio/music.wav"
 const SFX_VOICES := 8
 const SAVE_PATH := "user://highscore.cfg"
+const SaveData := preload("res://scripts/SaveData.gd")
+
+# Schema-Version von highscore.cfg ([meta] version): v1 = unversioniertes Original-Schema
+# (nur [highscore] score/coins), v2 = gleiche Felder + [meta] version. Alte v1-Dateien
+# bleiben dauerhaft ladbar und werden beim ersten Laden einmalig auf v2 gehoben (idempotent).
+const HIGHSCORE_SAVE_VERSION := 2
 
 # music_player.volume_db ist der Player-Pegel und addiert sich auf den Music-Bus
 # (-6 dB in default_bus_layout.tres). Diese Werte sind also KEIN Gesamtausgang:
@@ -65,6 +71,8 @@ var sfx_next := 0
 var best_score := 0
 var best_coins := 0
 var has_highscore := false
+# Im Test-Harness überschreibbar (tests/test_save_system.gd); Produktion nutzt SAVE_PATH.
+var highscore_path: String = SAVE_PATH
 var highscore_label: Label
 var took_damage_this_level := false
 var took_damage_this_run := false
@@ -230,19 +238,31 @@ func _apply_heading_style(label: Label, size: int) -> void:
 func _set_music_ducked(ducked: bool) -> void:
 	music_player.volume_db = MUSIC_PAUSED_DB if ducked else MUSIC_NORMAL_DB
 
+# Lädt den Highscore mit Backup-Recovery und getypten Reads. Ein unbrauchbarer
+# score-Wert gilt als "kein Highscore" (der nächste beendete Run überschreibt ihn);
+# ein kaputtes coins-Feld allein verwirft den gültigen Score dagegen nicht.
 func _load_highscore() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
+	var cfg: ConfigFile = SaveData.load_with_backup(highscore_path)
+	if cfg == null:
 		return
+	var loaded_version: int = SaveData.read_version(cfg, HIGHSCORE_SAVE_VERSION, "highscore.cfg")
+	var raw_score: Variant = cfg.get_value("highscore", "score", null)
+	if not (raw_score is int or raw_score is float):
+		if raw_score != null:
+			push_warning("Save: highscore/score hat Typ %s — kein Highscore geladen" % type_string(typeof(raw_score)))
+		return
+	best_score = SaveData.read_int(cfg, "highscore", "score", 0)
+	best_coins = SaveData.read_int(cfg, "highscore", "coins", 0)
 	has_highscore = true
-	best_score = cfg.get_value("highscore", "score", 0)
-	best_coins = cfg.get_value("highscore", "coins", 0)
+	if loaded_version < HIGHSCORE_SAVE_VERSION:
+		_save_highscore()  # einmaliges v1→v2-Upgrade (legt dabei auch das .bak an)
 
 func _save_highscore() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", HIGHSCORE_SAVE_VERSION)
 	cfg.set_value("highscore", "score", best_score)
 	cfg.set_value("highscore", "coins", best_coins)
-	cfg.save(SAVE_PATH)
+	SaveData.save_with_backup(cfg, highscore_path)
 
 # true wenn der aktuelle Run ein neuer Highscore ist (und dann gespeichert wurde)
 func _submit_run(run_score: int, run_coins: int) -> bool:

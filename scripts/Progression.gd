@@ -2,6 +2,18 @@ extends Node
 
 const SAVE_PATH := "user://progression.cfg"
 const SaveMigration := preload("res://scripts/SaveMigration.gd")
+const SaveData := preload("res://scripts/SaveData.gd")
+
+# Schema-Version von progression.cfg ([meta] version):
+#   v1 = unversioniertes Original-Schema (keine [meta]-Sektion) — bleibt dauerhaft ladbar.
+#   v2 = identisches Feld-Layout + [meta] version; Laden validiert Typen und normalisiert
+#        Quest-Arrays/Inventar (siehe _normalize_state()).
+# Upgrade v1→v2 = Normalisieren + Neuschreiben mit Versions-Tag in load_and_validate() —
+# idempotent, ein bereits normalisierter Save ändert sich beim Wiederholen nicht.
+const SAVE_VERSION := 2
+
+const DAILY_SLOTS := 3
+const WEEKLY_SLOTS := 2
 
 const QUEST_POOL := [
 	{"id": "stomp_goblins", "desc": "Stomp %d goblins", "stat": "stomp", "target": 5},
@@ -63,6 +75,12 @@ const PREMIUM_CASE_COST := 3
 const PREMIUM_WEIGHTS := {"rare": 55, "epic": 30, "legendary": 15}
 const TIER_RANK := {"": 0, "common": 1, "rare": 2, "epic": 3, "legendary": 4}
 
+# Im Test-Harness überschreibbar (tests/test_save_system.gd), damit Tests nie den
+# echten Save berühren. Produktion nutzt immer den Default SAVE_PATH.
+var save_path: String = SAVE_PATH
+# Version des zuletzt geladenen Saves; < SAVE_VERSION triggert den Upgrade-Save.
+var loaded_version := SAVE_VERSION
+
 var keys := 0
 var key_fragments := 0
 var dup_shards := 0
@@ -71,14 +89,14 @@ var best_pull := ""
 var last_reset := ""
 var daily_claims_today := 0
 var active_ids: Array = []
-var progress: Array = [0, 0, 0]
-var completed: Array = [false, false, false]
-var claimed: Array = [false, false, false]
+var progress: Array = []
+var completed: Array = []
+var claimed: Array = []
 var week_id := 0
 var weekly_ids: Array = []
-var weekly_progress: Array = [0, 0]
-var weekly_completed: Array = [false, false]
-var weekly_claimed: Array = [false, false]
+var weekly_progress: Array = []
+var weekly_completed: Array = []
+var weekly_claimed: Array = []
 var owned_skins: Array = []
 var equipped_skin := ""
 
@@ -86,21 +104,29 @@ func _ready() -> void:
 	# Vor JEDEM Save-Load: alte Saves aus "Cloude Game" übernehmen (einmalig, idempotent).
 	# Progression ist Autoload → läuft vor Game.gd, deckt also auch highscore.cfg ab.
 	SaveMigration.migrate_old_saves()
+	load_and_validate()
+
+# Kompletter Lade-Pfad (wird auch vom Test-Harness ohne Autoload aufgerufen):
+# Laden (inkl. Backup-Recovery) → Normalisieren → Schema-Upgrade/Reparatur sofort
+# persistieren → Tages-/Wochen-Reset. Idempotent: ein zweiter Durchlauf auf einem
+# bereits normalisierten v2-Save ändert nichts mehr.
+func load_and_validate() -> void:
 	_load()
-	_ensure_starter_skins()
+	if _normalize_state() or loaded_version < SAVE_VERSION:
+		_save()
 	check_daily_reset()
 	check_weekly_reset()
 
 # Garantiert, dass Starter-Skins besessen sind — auch bei frischer Installation oder
-# Alt-Saves von vor dem Starter-Feature.
-func _ensure_starter_skins() -> void:
+# Alt-Saves von vor dem Starter-Feature. Speichert nicht selbst; der Aufrufer
+# (_normalize_inventory) sammelt das changed-Flag ein.
+func _ensure_starter_skins() -> bool:
 	var changed := false
 	for id: String in STARTER_SKINS:
 		if id not in owned_skins:
 			owned_skins.append(id)
 			changed = true
-	if changed:
-		_save()
+	return changed
 
 func _def_in(pool: Array, id: String) -> Dictionary:
 	for q: Dictionary in pool:
@@ -145,21 +171,29 @@ func _roll_new_quests() -> void:
 	var indices := range(QUEST_POOL.size())
 	indices.shuffle()
 	active_ids = []
-	for i in range(min(3, indices.size())):
+	for i in range(mini(DAILY_SLOTS, indices.size())):
 		active_ids.append(QUEST_POOL[indices[i]].id)
-	progress = [0, 0, 0]
-	completed = [false, false, false]
-	claimed = [false, false, false]
+	progress = []
+	completed = []
+	claimed = []
+	for _i in active_ids.size():
+		progress.append(0)
+		completed.append(false)
+		claimed.append(false)
 
 func _roll_new_weeklies() -> void:
 	var indices := range(WEEKLY_POOL.size())
 	indices.shuffle()
 	weekly_ids = []
-	for i in range(min(2, indices.size())):
+	for i in range(mini(WEEKLY_SLOTS, indices.size())):
 		weekly_ids.append(WEEKLY_POOL[indices[i]].id)
-	weekly_progress = [0, 0]
-	weekly_completed = [false, false]
-	weekly_claimed = [false, false]
+	weekly_progress = []
+	weekly_completed = []
+	weekly_claimed = []
+	for _i in weekly_ids.size():
+		weekly_progress.append(0)
+		weekly_completed.append(false)
+		weekly_claimed.append(false)
 
 func _quest_views(pool: Array, ids: Array, prog: Array, comp: Array, clm: Array) -> Array:
 	var result: Array = []
@@ -345,31 +379,146 @@ func get_equipped_skin() -> Dictionary:
 				return skin
 	return get_default_skin()
 
+# Getypte Reads: jedes Feld fällt einzeln auf seinen Default zurück (Warnung inklusive),
+# ein kaputtes Feld resettet also nie den restlichen Save. Numerische Felder werden
+# direkt hier auf >= 0 geklemmt; Semantik (Quest-IDs, Skins) prüft _normalize_state().
 func _load() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
-		return
-	keys = cfg.get_value("currency", "keys", 0)
-	key_fragments = cfg.get_value("currency", "key_fragments", 0)
-	dup_shards = cfg.get_value("currency", "dup_shards", 0)
-	cases_opened = cfg.get_value("stats", "cases_opened", 0)
-	best_pull = cfg.get_value("stats", "best_pull", "")
-	last_reset = cfg.get_value("quests", "last_reset", "")
-	daily_claims_today = cfg.get_value("quests", "daily_claims_today", 0)
-	active_ids = cfg.get_value("quests", "active_ids", [])
-	progress = cfg.get_value("quests", "progress", [0, 0, 0])
-	completed = cfg.get_value("quests", "completed", [false, false, false])
-	claimed = cfg.get_value("quests", "claimed", [false, false, false])
-	week_id = cfg.get_value("quests", "week_id", 0)
-	weekly_ids = cfg.get_value("quests", "weekly_ids", [])
-	weekly_progress = cfg.get_value("quests", "weekly_progress", [0, 0])
-	weekly_completed = cfg.get_value("quests", "weekly_completed", [false, false])
-	weekly_claimed = cfg.get_value("quests", "weekly_claimed", [false, false])
-	owned_skins = cfg.get_value("inventory", "owned_skins", [])
-	equipped_skin = cfg.get_value("inventory", "equipped_skin", "")
+	var cfg: ConfigFile = SaveData.load_with_backup(save_path)
+	if cfg == null:
+		return  # frische Installation (oder Save + Backup unlesbar → Defaults)
+	loaded_version = SaveData.read_version(cfg, SAVE_VERSION, "progression.cfg")
+	keys = SaveData.read_int(cfg, "currency", "keys", 0)
+	key_fragments = SaveData.read_int(cfg, "currency", "key_fragments", 0)
+	dup_shards = SaveData.read_int(cfg, "currency", "dup_shards", 0)
+	cases_opened = SaveData.read_int(cfg, "stats", "cases_opened", 0)
+	best_pull = SaveData.read_string(cfg, "stats", "best_pull", "")
+	last_reset = SaveData.read_string(cfg, "quests", "last_reset", "")
+	daily_claims_today = SaveData.read_int(cfg, "quests", "daily_claims_today", 0)
+	active_ids = SaveData.read_array(cfg, "quests", "active_ids")
+	progress = SaveData.read_array(cfg, "quests", "progress")
+	completed = SaveData.read_array(cfg, "quests", "completed")
+	claimed = SaveData.read_array(cfg, "quests", "claimed")
+	week_id = SaveData.read_int(cfg, "quests", "week_id", 0)
+	weekly_ids = SaveData.read_array(cfg, "quests", "weekly_ids")
+	weekly_progress = SaveData.read_array(cfg, "quests", "weekly_progress")
+	weekly_completed = SaveData.read_array(cfg, "quests", "weekly_completed")
+	weekly_claimed = SaveData.read_array(cfg, "quests", "weekly_claimed")
+	owned_skins = SaveData.read_array(cfg, "inventory", "owned_skins")
+	equipped_skin = SaveData.read_string(cfg, "inventory", "equipped_skin", "")
 
-func _save() -> void:
+# Repariert die geladenen Felder in-place. true = etwas wurde geändert → der Aufrufer
+# persistiert den reparierten Stand sofort. Auf einem gültigen Save ist jede dieser
+# Funktionen ein No-Op (Idempotenz — wiederholte Load/Save-Zyklen ändern nichts).
+func _normalize_state() -> bool:
+	var changed := _normalize_daily_state()
+	changed = _normalize_weekly_state() or changed
+	changed = _normalize_inventory() or changed
+	changed = _normalize_stats() or changed
+	return changed
+
+func _normalize_daily_state() -> bool:
+	var n := _normalize_quest_block(QUEST_POOL, active_ids, progress, completed, claimed, DAILY_SLOTS)
+	active_ids = n.ids
+	progress = n.progress
+	completed = n.completed
+	claimed = n.claimed
+	# Alle Quests weggefiltert, aber der Tag ist bereits angebrochen (last_reset gesetzt):
+	# sicherer Reroll statt leerem Quest-Menü — daily_claims_today bleibt dabei erhalten.
+	# Frische Saves (last_reset == "") rollt check_daily_reset() ohnehin.
+	if active_ids.is_empty() and last_reset != "":
+		_roll_new_quests()
+		return true
+	return n.changed
+
+func _normalize_weekly_state() -> bool:
+	var n := _normalize_quest_block(WEEKLY_POOL, weekly_ids, weekly_progress, weekly_completed, weekly_claimed, WEEKLY_SLOTS)
+	weekly_ids = n.ids
+	weekly_progress = n.progress
+	weekly_completed = n.completed
+	weekly_claimed = n.claimed
+	# Reroll nur, wenn der Save die aktuelle Woche betrifft — sonst rollt check_weekly_reset().
+	if weekly_ids.is_empty() and week_id == _current_week_id():
+		_roll_new_weeklies()
+		return true
+	return n.changed
+
+# Filtert unbekannte, doppelte und falsch getypte Quest-IDs und richtet die parallelen
+# Arrays (progress/completed/claimed) exakt an den verbleibenden IDs aus. Slot-Daten
+# wandern mit ihrer ID mit (Index vor dem Filtern); fehlende Einträge werden gedefaultet.
+# Invarianten danach: progress ∈ [0, target], completed folgt aus progress >= target,
+# claimed nur wenn completed, alle vier Arrays gleich lang, höchstens max_slots Einträge.
+func _normalize_quest_block(pool: Array, ids: Array, prog: Array, comp: Array, clm: Array, max_slots: int) -> Dictionary:
+	var out := {"ids": [], "progress": [], "completed": [], "claimed": [], "changed": false}
+	for i in range(ids.size()):
+		if out.ids.size() >= max_slots:
+			push_warning("Save: überzählige Quest-Slots verworfen (%d > %d)" % [ids.size(), max_slots])
+			break
+		var id: Variant = ids[i]
+		if not (id is String):
+			push_warning("Save: Quest-ID mit Typ %s entfernt" % type_string(typeof(id)))
+			continue
+		var def := _def_in(pool, id)
+		if def.is_empty():
+			push_warning("Save: unbekannte Quest-ID \"%s\" entfernt" % id)
+			continue
+		if id in out.ids:
+			push_warning("Save: doppelte Quest-ID \"%s\" entfernt" % id)
+			continue
+		var target := int(def.target)
+		var p: int = mini(SaveData.int_at(prog, i, 0), target)
+		var c: bool = SaveData.bool_at(comp, i, false) or p >= target
+		out.ids.append(id)
+		out.progress.append(p)
+		out.completed.append(c)
+		out.claimed.append(SaveData.bool_at(clm, i, false) and c)
+	out.changed = out.ids != ids or out.progress != prog \
+		or out.completed != comp or out.claimed != clm
+	return out
+
+# Inventar: unbekannte/falsch getypte Skin-IDs raus, Duplikate dedupliziert, Starter-Skins
+# garantiert, und ein nicht (mehr) besessener equipped_skin fällt auf den Default Knight
+# ("") zurück. Reihenfolge wichtig: Starter zuerst sichern, damit ein equippter
+# Starter-Skin einen korrupten owned_skins-Eintrag überlebt.
+func _normalize_inventory() -> bool:
+	var valid_ids := _all_skin_ids()
+	var deduped: Array = []
+	for id: Variant in owned_skins:
+		if not (id is String) or id not in valid_ids:
+			push_warning("Save: ungültige Skin-ID %s aus dem Inventar entfernt" % [str(id)])
+			continue
+		if id in deduped:
+			continue  # stilles Deduplizieren — kein Datenverlust, keine Warnung nötig
+		deduped.append(id)
+	var changed: bool = deduped != owned_skins
+	owned_skins = deduped
+	changed = _ensure_starter_skins() or changed
+	if equipped_skin != "" and equipped_skin not in owned_skins:
+		push_warning("Save: ausgerüsteter Skin \"%s\" nicht besessen — zurück zum Default Knight" % equipped_skin)
+		equipped_skin = ""
+		changed = true
+	return changed
+
+func _normalize_stats() -> bool:
+	# TIER_RANK ist die Quelle gültiger best_pull-Werte ("" = noch nichts gezogen;
+	# "starter" fehlt bewusst, da weight 0 nie aus Cases fällt).
+	if not TIER_RANK.has(best_pull):
+		push_warning("Save: unbekannter best_pull-Tier \"%s\" — zurückgesetzt" % best_pull)
+		best_pull = ""
+		return true
+	return false
+
+func _all_skin_ids() -> Array:
+	var ids: Array = []
+	for tier: String in SKIN_TIERS:
+		for skin: Dictionary in SKIN_TIERS[tier].skins:
+			ids.append(skin.id)
+	return ids
+
+# false = Schreiben fehlgeschlagen (Warnung kommt aus SaveData; der Zustand im Speicher
+# bleibt gültig und der nächste erfolgreiche _save() holt alles nach).
+func _save() -> bool:
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", SAVE_VERSION)
 	cfg.set_value("currency", "keys", keys)
 	cfg.set_value("currency", "key_fragments", key_fragments)
 	cfg.set_value("currency", "dup_shards", dup_shards)
@@ -388,4 +537,4 @@ func _save() -> void:
 	cfg.set_value("quests", "weekly_claimed", weekly_claimed)
 	cfg.set_value("inventory", "owned_skins", owned_skins)
 	cfg.set_value("inventory", "equipped_skin", equipped_skin)
-	cfg.save(SAVE_PATH)
+	return SaveData.save_with_backup(cfg, save_path)
