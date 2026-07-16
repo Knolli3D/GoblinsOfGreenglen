@@ -39,7 +39,15 @@ Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-
 
 ```
 scripts/
-  Game.gd         # Haupt-Controller: HUD, Menüs inkl. gemeinsamem Run-Result-Menü, Level laden, POW!, Meta-UI
+  Game.gd         # Run-Coordinator: Gameplay-State, Level-Lifecycle, Player-Signale, Transitions
+  AudioController.gd # Musik/SFX-Player, Voice-Pool und Pause-Ducking
+  HUDController.gd   # HUD-Snapshot, transiente Meldung und POW!-Feedback
+  GameMenuController.gd # Haupt-/Pause-/Result-Menü; emittiert nur Navigations-Intents
+  QuestMenuController.gd # Daily-/Weekly-Quest-Darstellung und Claims
+  CaseMenuController.gd  # Case-Reel, Spin-State und Rarity-Reveal
+  SkinMenuController.gd  # Skin-Liste, Preview und Equip-Aktion
+  HighscoreStore.gd      # Highscore-V2 laden/vergleichen/speichern via SaveData
+  GreenglenUI.gd         # Gemeinsame Theme-/Font-/Submenu-Factory
   Progression.gd  # Autoload-Singleton: Daily Quests, Keys-Währung, Case-Opening, Skin-Inventory
   Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Swept-Stomp-Test, Signals, apply_skin()
   Enemy.gd        # CharacterBody2D: Patrol, vorherige Globalposition, Kill-Logik
@@ -51,7 +59,7 @@ scripts/
   SaveData.gd     # Statische Save-Helfer: getypte Reads, [meta]-Versionierung, .bak-Backups (siehe Save-System)
 
 scenes/
-  Main.tscn         # Einstieg → lädt Game.gd
+  Main.tscn         # Einstieg: Game.gd-Root + sieben explizite Controller-Kinder
   Player.tscn       # CharacterBody2D + CollisionShape2D + Sprite2D
   Enemy.tscn        # CharacterBody2D + CollisionShape2D + Sprite2D
   Coin.tscn         # Area2D + CircleShape2D
@@ -85,7 +93,7 @@ tools/
 tests/
   run_all.gd          # DER Test-Runner: beide Suiten als isolierte Kind-Prozesse + Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (79 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (118 Checks: Szenen, Level, Run-Results, Transitions)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (150 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -94,7 +102,22 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 ## Architektur
 
 - **Level als .tscn-Dateien** → im Godot 2D-Editor visuell editierbar
-- **Game.gd** ist der zentrale Controller; lädt Level-Scenes via `load(LEVELS[idx]).instantiate()`
+- **Game.gd** ist der schlanke Run-Coordinator und alleinige Besitzer von Levelindex, Health,
+  Score, Coins, Damage-Flags, Invulnerability, `RunOutcome` und `transition_gen`. Er lädt
+  Level-Scenes via `load(LEVELS[idx]).instantiate()` und verteilt Zustands-Snapshots/Intents
+  über kleine Controller-APIs; UI-Komponenten besitzen keine Kopie des Gameplay-Zustands.
+- **Main.tscn komponiert die Controller sichtbar im Scene-Tree**: `AudioController`,
+  `HighscoreStore`, `HUDController`, `GameMenuController`, `QuestMenuController`,
+  `CaseMenuController`, `SkinMenuController`. `Game._ready()` injiziert EIN gemeinsames
+  Theme und den Audio-Service, verbindet Intent-Signale genau einmal und startet danach
+  den normalen Menü-Lifecycle. Kein Controller ist ein zusätzlicher Autoload.
+- **Kommunikationsgrenzen**: `GameMenuController` emittiert Start/Resume/Restart/Main-Menu/
+  Submenu/Quit-Intents; die drei Submenüs emittieren `back_requested`, das Quest-Menü
+  zusätzlich `keys_changed`. Nur Game entscheidet über Run-/Level-Lifecycle. Meta-Menüs
+  lesen/ändern die Source of Truth `Progression`; Audio wird als explizite Referenz injiziert.
+- **UI-/CanvasLayer-Ownership**: `GameMenuController` besitzt Result (8), Main (9) und Pause
+  (10), die Submenü-Controller je ihren Layer (11/12/13), `HUDController` den Gameplay-HUD
+  plus temporäre POW-Layer (20), `CaseMenuController` temporäre Reveal-Layer (21).
 - **Player** wird von Game.gd per `find_child("PlayerSpawn")` im Level platziert
 - **Kommunikation per Signals** (nicht get_parent().get_parent()):
   - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`, `jumped`, `double_jumped`
@@ -104,7 +127,7 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
   `Game._on_player_stomped_enemy()` prüft vor Kill/Score/SFX/Quest/POW nochmals `is_enemy()`, damit
   ein veraltetes oder doppeltes Signal niemals mehrfach belohnt wird.
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
-- **Progression.gd** ist der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
+- **Progression.gd** bleibt der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
   da Meta-Progression session-übergreifend und auch im Hauptmenü ohne geladenes Level lesbar sein muss)
 - **Level-Übergänge (Race-Schutz)**: `reach_goal()` wartet 1s ("Level Cleared!", Timer pausiert
   mit dem Spiel) und validiert danach gegen das Generation-Token `transition_gen`, das von
@@ -133,9 +156,10 @@ Ein gemeinsames, outcome-getriebenes Result-Menü ersetzt den alten Win-Screen u
   Ergebnis — Fehlversuche ändern `highscore.cfg` nie.
 - **Transition-Invalidierung**: `_finish_run()` erhöht `transition_gen` — eine noch
   wartende `reach_goal()`-Coroutine (1s-"Level Cleared!"-Fenster) lädt danach nichts mehr.
-- **Präsentation**: `_show_run_result(outcome, is_new_highscore)` bespielt EINE geteilte
-  Control-Hierarchie (`run_result_menu`, CanvasLayer 8, `PROCESS_MODE_ALWAYS`, Theme
-  `ui_theme`, Cinzel-Bold-Titel): Titel wechselt Text + Akzentfarbe
+- **Präsentation**: `Game._show_run_result()` übergibt nur Outcome, Run-Werte und
+  `HighscoreStore.result_text()` an `GameMenuController.show_result()`. Der Menü-Controller
+  besitzt EINE geteilte Control-Hierarchie (`run_result_menu`, CanvasLayer 8,
+  `PROCESS_MODE_ALWAYS`, gemeinsames Theme, Cinzel-Bold-Titel): Titel wechselt Text + Akzentfarbe
   (`RESULT_COMPLETED_ACCENT` = Gold wie Legendary-/Highscore-Akzente,
   `RESULT_FAILED_ACCENT` = zurückhaltendes warmes Rot-Orange); darunter Final Score,
   Coins, Best-Run-Zeile (bzw. "No completed run yet") und die stabile optionale
@@ -143,14 +167,14 @@ Ein gemeinsames, outcome-getriebenes Result-Menü ersetzt den alten Win-Screen u
   Gameplay-Bild bleibt hinter dem dunklen Dimmer sichtbar (`level_root` =
   `PROCESS_MODE_DISABLED`), HUD ist ausgeblendet.
 - **Kein UI über dem Result**: Escape öffnet KEIN Pause-Menü, solange ein Result aktiv
-  ist (`_unhandled_input`-Guard); `_show_message()` ("Level Cleared!" auf `message_label`,
-  dem früheren `win_label`) zeigt nichts über einem aktiven Result.
+  ist (`_unhandled_input`-Guard); `_show_message()` delegiert "Level Cleared!" an
+  `HUDController.message_label` und zeigt nichts über einem aktiven Result.
 - **Clean-Run-Pfad**: `_start_new_run()` ist DER zentrale Neustart — R,
   Result-"Run Again" und Pause-"Try Again" laufen alle über
   `_restart_level_from_menu()`/`_start_new_run()`: Pause + Musik-Ducking zurücksetzen,
   Score/Coins/Run-Schaden nullen, Musik starten, `_load_level(0)`. `_load_level()` ist
   die Lifecycle-Grenze und setzt zentral Health, `transitioning`, `run_outcome`,
-  `transition_gen`, `invuln_until` zurück und blendet Result-UI aus / HUD ein.
+  `transition_gen`, `invuln_until` zurück und blendet Result-UI/HUD über die Controller-APIs um.
   "Main Menu" nutzt `_show_main_menu()` (räumt Musik, Pause, HUD, Transitions,
   Invulnerability, Result-Zustand und Gameplay-Nodes konsistent ab).
 - **Unverändert**: 1s-Schutz nach nicht-tödlichem Treffer/Fall-Respawn, bewusst keine
@@ -258,21 +282,23 @@ Sprites werden in `_ready()` der jeweiligen Scripts skaliert (kein White-Keying 
 
 ## POW!-Effekt
 
-`Game.gd._spawn_pow(pos)` erstellt einen animierten `Label`-Node auf einem temporären `CanvasLayer` (layer=20), der hochschwebt und ausfadet.
+`HUDController.spawn_pow(pos)` erstellt einen animierten `Label`-Node auf einem temporären,
+vom HUD-Controller besessenen `CanvasLayer` (layer=20), der hochschwebt und ausfadet.
 
 ## Audio
 
 Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` → `assets/audio/`).
 - **Busse** (`default_bus_layout.tres`): `Master` → `Music` (-6 dB), `SFX`
-- **Game.gd** besitzt alle Audio-Nodes: 1× `AudioStreamPlayer` für Musik (Bus Music),
+- **AudioController.gd** besitzt alle Audio-Nodes: 1× `AudioStreamPlayer` für Musik (Bus Music),
   8 Round-Robin-Voices für SFX (Bus SFX). `play_sfx(name, pitch_jitter)` spielt aus `SFX_FILES`;
   `pitch_jitter` variiert `pitch_scale` leicht gegen Monotonie (Coin, Stomp, Jump).
 - **Musik**: `music.wav` loopt via `AudioStreamWAV.LOOP_FORWARD` (loop_end aus `get_length() × mix_rate`
   berechnet, da der Import QOA-komprimiert). Start bei Spielstart, Stop bei Tod/Win/Hauptmenü.
-- **Jump-Sounds**: Player emittiert `jumped`/`double_jumped`, Game.gd verbindet sie in `_load_level()`.
+- **Jump-Sounds**: Player emittiert `jumped`/`double_jumped`; Game verbindet sie in
+  `_load_level()` mit seinem schmalen `play_sfx()`-Facade zum AudioController.
 - Events: jump, double_jump, coin, stomp, hit, death, level_clear, win, click (UI-Buttons).
 - **Musik-Lautstärke (zentralisiert)**: einziger Schreibzugriff auf `music_player.volume_db`
-  ist `_set_music_ducked(bool)`, gesteuert über `MUSIC_NORMAL_DB` (0 dB) / `MUSIC_PAUSED_DB`
+  ist `AudioController.set_music_ducked(bool)`, gesteuert über `MUSIC_NORMAL_DB` (0 dB) / `MUSIC_PAUSED_DB`
   (-14 dB) — beide Werte addieren sich auf den Music-Bus (-6 dB), Ducking ergibt also -20 dB
   Gesamtausgang. `_toggle_pause()`, `_restart_level_from_menu()`, `_start_game()` und
   `_show_main_menu()` rufen alle `_set_music_ducked(false)`/`(true)` auf — verhindert, dass
@@ -284,8 +310,10 @@ Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` →
 Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFile, Sektionen
 `[meta]` (Schema-Version) + `[highscore]` mit `score` + `coins` — Validierung/Versionierung/Backup
 siehe Abschnitt "Save-System"). Nur lokal — kein Online-Leaderboard (geplant: später via Website).
-- **Game.gd**: `_load_highscore()` in `_ready()`, `_submit_run(score, coins)` ausschließlich
-  im COMPLETED-Zweig von `_finish_run()` — nur abgeschlossene Runs werden submittet,
+- **HighscoreStore.gd** besitzt Pfad, Schema-Version, Laden, Backup-kompatibles Speichern und
+  Vergleich. `Game._submit_run(score, coins)` bleibt der eine künftige Web-Leaderboard-Hook
+  und delegiert an `HighscoreStore.submit()` ausschließlich im COMPLETED-Zweig von
+  `_finish_run()` — nur abgeschlossene Runs werden submittet,
   Fehlversuche ("Run Over") ändern den Bestwert nie. Gespeichert wird nur, wenn besser:
   höherer Score, bei Gleichstand mehr Coins → Result-Menü zeigt "New Highscore!" bzw. den
   bestehenden Bestwert. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
@@ -299,7 +327,8 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
 `Progression.gd` mit `QUEST_POOL`/`WEEKLY_POOL`/`SKIN_TIERS` als Source of Truth.
 
 - **Schema-Versionen** (`[meta] version`): beide Dateien aktuell **v2**
-  (`Progression.SAVE_VERSION`, `Game.HIGHSCORE_SAVE_VERSION`). Fehlt die `[meta]`-Sektion,
+  (`Progression.SAVE_VERSION`, `HighscoreStore.SAVE_VERSION`; Game exportiert nur einen
+  Kompatibilitäts-Alias). Fehlt die `[meta]`-Sektion,
   gilt die Datei als **v1** = unversioniertes Original-Schema und bleibt dauerhaft ladbar
   (v1 und v2 haben identisches Feld-Layout, v2 ergänzt nur `[meta]` + Validierung beim Laden).
   Das v1→v2-Upgrade passiert beim ersten Laden (Normalisieren + Neuschreiben) und ist
@@ -331,7 +360,8 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
   Speicher bleibt gültig, der nächste erfolgreiche Save holt alles nach. Der Spielstart
   wird nie blockiert (gleiche Philosophie wie SaveMigration.gd).
 - **Highscore-Semantik unverändert**: höherer Score gewinnt, bei Gleichstand mehr Coins
-  (`_submit_run()`). Ein unbrauchbarer `score`-Wert gilt als "kein Highscore" (nächster
+  (`HighscoreStore.submit()`, aufgerufen über `Game._submit_run()`). Ein unbrauchbarer
+  `score`-Wert gilt als "kein Highscore" (nächster
   beendeter Run überschreibt); ein kaputtes `coins`-Feld allein verwirft den Score nicht.
 - **Tests**: `tests/test_save_system.gd` (79 Checks: frische Installation, gültiger
   v2-Save, v1-Upgrade, fehlende Felder, falsche Typen, negative Werte, unbekannte/doppelte
@@ -407,7 +437,7 @@ Abschnitt "Save-System".
   (`TRANS_QUINT`/`EASE_OUT`, 2.8s) unter eine Gold-Markierung; Tick-SFX in `_process`
   bei Kartenwechsel; Buttons (beide Cases + Back) via `is_spinning` gesperrt.
   Karten-Art nutzt das gleiche Textur/Tint-Muster wie die Skins-Preview.
-- **Reveal-Effekte pro Tier** (`Game._spawn_skin_reveal()`, Tween-Muster wie `_spawn_pow()`):
+- **Reveal-Effekte pro Tier** (`CaseMenuController._spawn_skin_reveal()`, Tween-Muster wie POW):
   Common = Float-Label; Rare = + Farb-Flash (`TIER_COLORS`) + `level_clear`-SFX;
   Epic/Legendary = stärkerer Flash + Shake am `reel_frame` + `win`-SFX (Legendary am kräftigsten).
   Dupe-Label zeigt "+1 Shard" bzw. "+1 Key from Shards!" bei Konvertierung.
@@ -432,7 +462,7 @@ Abschnitt "Save-System".
   (id `""`, Basis-Ritter, Tier "default") — bewusst NICHT in `SKIN_TIERS`/`owned_skins`, also nie
   aus Cases ziehbar und nicht in der Collection-Zählung. `equip_skin("")` ist explizit erlaubt und
   persistiert `equipped_skin=""` (kanonischer "kein Skin"-Wert, alte Saves kompatibel). Das
-  Skins-Menü listet ihn via `Game._selectable_skins()` (Default + besessene) immer als ersten
+  Skins-Menü listet ihn via `SkinMenuController.selectable_skins()` (Default + besessene) immer als ersten
   Eintrag, damit man nach dem Ausrüsten eines Skins zum Basis-Ritter zurückkehren kann.
 - **Artwork-Anforderung**: Textur-Skins müssen **transparenten Hintergrund** haben. Einige
   gelieferte Sprites (Prinzessinnen, Black Knight) kamen als opakes RGB mit weißem Hintergrund und
@@ -457,13 +487,14 @@ Abschnitt "Save-System".
 
 ## UI-Theme (Greenglen-Buttons + Cinzel-Typografie)
 
-Ein einziges `Theme`-Objekt (`ui_theme`, gebaut von `_build_ui_theme()` in `_ready()`) wird auf
-alle Menü-Root-Controls gesetzt (Hauptmenü, Pause, Win, Quests/Cases/Skins) und vererbt sich auf
-sämtliche Button-Kinder — kein wiederholtes Stylebox-Bauen pro Button nötig.
+`GreenglenUI.build_theme_bundle()` baut in `Game._ready()` genau EIN `Theme`-Objekt plus
+Heading-/Body-Font. Game injiziert dieselbe Instanz in `GameMenuController` und alle drei
+Submenü-Controller; sämtliche Button-Kinder erben sie — kein wiederholtes Stylebox-Bauen
+und kein zweites visuelles System pro Komponente.
 
 - **Button-Texturen**: `assets/ui/buttons/button_greenglen_{normal,hover,pressed,disabled}.png`
   (900×150, transparent) als `StyleBoxTexture` pro Zustand; `focus` nutzt bewusst die
-  Hover-Textur statt Godots Standard-Fokusrahmen. `_make_button_style(state)` baut jede Stylebox:
+  Hover-Textur statt Godots Standard-Fokusrahmen. `GreenglenUI._make_button_style(state)` baut jede Stylebox:
   - `texture_margin_left/right = 85` (dekorierte Metall-Enden mit Vine-Ranken bleiben fix),
   - `texture_margin_top/bottom = 10` — **bewusst klein**, da Buttons nur 32–48px hoch sind;
     zu große vertikale Margins lassen die Holz-Mitte kollabieren (behobener Bug: 30+30=60px
@@ -472,7 +503,7 @@ sämtliche Button-Kinder — kein wiederholtes Stylebox-Bauen pro Button nötig.
   - `content_margin_left/right = 64` hält Text von Gems/Vines fern, mittig auf dem Holz.
 - **Typografie**: `Cinzel-SemiBold.ttf` für Buttons (18px, `UI_CREAM` = `#FFF1C4`, Outline
   `UI_BROWN` = `#351D0E`, Größe 3), `Cinzel-Bold.ttf` für Menü-Überschriften via
-  `_apply_heading_style(label, size)` (Outline-Größe 5). Beide Fonts aus `res://Cinzel/static/`
+  `GreenglenUI.apply_heading_style()` (Outline-Größe 5). Beide Fonts aus `res://Cinzel/static/`
   (SIL-OFL-lizenziert, nicht umbenennen/duplizieren). Cinzel deckt keine Emoji/Sonderzeichen ab
   (🔑 🪙 ▶ ★) — `FontFile.fallbacks = [ThemeDB.fallback_font]` wird auf beide Fonts gesetzt.
   Einzelne besonders lange Labels (z.B. "Premium Case (3 🔑) — Rare+", "Quit Game") bekommen
@@ -482,15 +513,15 @@ sämtliche Button-Kinder — kein wiederholtes Stylebox-Bauen pro Button nötig.
   Hintergrund darunter. `assets/icon_GoGg.png` (1024×1024) ist via `config/icon` in
   `project.godot` das Fenster-/Dock-Icon und wird im macOS-Export-Preset als App-Icon verwendet
   (`export_presets.cfg` ist gitignored).
-- **Result-Menü**: `_build_run_result_menu()` erzeugt einen eigenen `CanvasLayer` (layer 8) mit
+- **Result-Menü**: `GameMenuController` erzeugt einen eigenen `CanvasLayer` (layer 8) mit
   abgedunkeltem, weiterhin sichtbarem Level, zentriertem Container-Layout, outcome-abhängigem
   Titel ("Run Complete" Gold / "Run Over" warmer Akzent), Final Score, Coins, Bestwert und
   stabiler optionaler Highscore-Zeile — Details siehe Abschnitt "Run-Result-System".
-  "Run Again" nutzt `_restart_level_from_menu()`/`_start_new_run()`, "Main Menu" nutzt
-  `_show_main_menu()`; `_load_level()` blendet das Result-Menü zentral aus und stellt den
-  Gameplay-HUD wieder her. `run_result_menu.process_mode = PROCESS_MODE_ALWAYS` hält die
-  Buttons bedienbar, obwohl das `level_root` deaktiviert ist. `message_label` (der frühere
-  `win_label`) bleibt nur für die transiente "Level Cleared!"-Meldung.
+  Seine Buttons emittieren nur `restart_requested`/`main_menu_requested`; Game routet diese
+  in `_start_new_run()` bzw. `_show_main_menu()`. `_load_level()` blendet Result über
+  `menus.hide_result()` aus und den HUD über `hud.show_gameplay()` ein.
+  `run_result_menu.process_mode = PROCESS_MODE_ALWAYS` hält die Buttons bedienbar, obwohl
+  `level_root` deaktiviert ist. `HUDController.message_label` bleibt nur für "Level Cleared!".
 
 ## Tests (headless, deterministisch, isoliert)
 
@@ -506,8 +537,11 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
 `test_smoke.gd`) und isolieren sich dann selbst. WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (197 Checks gesamt)**: `test_save_system.gd` (79, Save-System) und
-  `test_smoke.gd` (118: Main-/Player-Szene inkl. Signale, Input-Actions, Audio- und
+- **Suiten (229 Checks gesamt)**: `test_save_system.gd` (79, Save-System inkl. direktem
+  `HighscoreStore`-Test) und `test_smoke.gd` (150: Main-Komponenten/Interfaces,
+  einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
+  Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
+  Player-Szene inkl. Signale, Input-Actions, Audio- und
   Skin-Ressourcen, Case-Gewichtssummen, Quest-/Skin-ID-Eindeutigkeit, alle 6 Level
   (PlayerSpawn/Platforms/level_width/Goal), Level-6-Randomisierung (Anzahlen, Platzierung
   nur auf `spawn_platforms`, Start-/Ziel-Plattform unmarkiert), Run-Result-Lifecycle
@@ -517,7 +551,8 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
   Registrierung (Autoloads starten im `-s`-Modus nach `_init`, vor dem ersten Frame) —
   `GOGG_TEST_SAVE_DIR` (siehe `SaveData.test_save_dir()` und `tests/test_env.gd`) auf ein
   frisches Temp-Verzeichnis. Dadurch leiten auch das mitbootende Progression-Autoload und
-  Game.gd ihre Save-Pfade dorthin um und die Save-Migration wird übersprungen — echte
+  Progression und `HighscoreStore` ihre Save-Pfade dorthin um und die Save-Migration wird
+  übersprungen — echte
   Saves unter `user://` werden weder gelesen noch geschrieben. Der Runner gibt jeder
   Suite ein eigenes Unterverzeichnis und BEWEIST die Isolation per Canary: MD5-Hashes
   von `highscore.cfg`/`progression.cfg` (+ `.bak`) vor und nach dem Lauf; jede Änderung
@@ -526,11 +561,12 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
 - **Determinismus**: Zufall geseedet (Quest-Rolls, Level-6-Spawns via `seed()`); Warte-
   Assertions nutzen großzügige Zeitmargen statt Frame-Zählungen. Zwei aufeinanderfolgende
   Läufe liefern identische Ergebnisse; ein absichtlich fehlschlagender Check liefert
-  nachweislich Exit `1`.
+  nachweislich Exit `1`. `run_all.gd` verlangt zusätzlich den Erfolgsmarker jeder Suite,
+  weil Godot bei einem frühen Script-Parsefehler gelegentlich trotzdem Exit 0 liefert.
 - **Wichtig für neue Tests**: Game.gd referenziert das Autoload `Progression` und
   kompiliert im `-s`-Modus erst nach der Autoload-Registrierung — Game.gd daher nie
   `preload`en, sondern zur Laufzeit (nach dem ersten Frame) laden bzw. über Main.tscn
-  instanziieren. `Progression.save_path` und `Game.highscore_path` bleiben zusätzlich
+  instanziieren. `Progression.save_path` und `HighscoreStore.save_path` bleiben zusätzlich
   pro Instanz übersteuerbar.
 
 ## Viewport

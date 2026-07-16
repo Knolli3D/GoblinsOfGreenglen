@@ -72,7 +72,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (118 checks: all scenes and levels, resources, run-result lifecycle, transition cancellation).
+- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (150 checks: component ownership/wiring, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **229 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`/`progression.cfg` (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 
@@ -83,7 +83,15 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 cloude-game/
 ├── scripts/
-│   ├── Game.gd          # Main controller: HUD, shared run-result handling, menus, level loading, POW!, meta UI
+│   ├── Game.gd          # Run coordinator: gameplay state, level lifecycle, signals, transitions
+│   ├── AudioController.gd     # Music, SFX voice pool, and pause ducking
+│   ├── HUDController.gd       # HUD snapshots, transient messages, and POW! feedback
+│   ├── GameMenuController.gd  # Main, pause, and shared run-result presentation
+│   ├── QuestMenuController.gd # Daily/weekly quest rendering and claims
+│   ├── CaseMenuController.gd  # Case reel, spin state, and rarity reveals
+│   ├── SkinMenuController.gd  # Skin list, preview, and equip UI
+│   ├── HighscoreStore.gd      # Versioned local best-run persistence and comparison
+│   ├── GreenglenUI.gd         # Shared theme, fonts, and submenu construction helpers
 │   ├── Progression.gd   # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
 │   ├── Player.gd        # CharacterBody2D: movement, double-jump, swept stomp detection, signals, skins
 │   ├── Enemy.gd         # CharacterBody2D: patrol AI, previous position tracking, kill logic
@@ -99,7 +107,7 @@ cloude-game/
 │   ├── test_smoke.gd        # Scene, resource, run-result, and transition-lifecycle suite
 │   └── test_env.gd          # Test isolation helper (redirects save I/O to a temp dir)
 ├── scenes/
-│   ├── Main.tscn       # Entry point
+│   ├── Main.tscn       # Entry point: Game coordinator plus explicit controller children
 │   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn
 │   ├── Level1–3.tscn   # Hand-placed levels
 │   ├── Level4.tscn     # Horizontal scrolling (1920 px wide)
@@ -126,7 +134,9 @@ cloude-game/
 
 The game uses a **signal-based, scene-driven** architecture, mostly avoiding singletons:
 
-- **`Game.gd`** is the central controller added to the `"game"` group. It loads level scenes dynamically, spawns the player at the `PlayerSpawn` marker, and handles all game state (health, score, coins, transitions).
+- **`Game.gd`** is the run coordinator added to the `"game"` group. It remains the sole owner of gameplay state and lifecycle decisions: level loading, player signal wiring, health, score, coins, invulnerability, transitions, and run outcomes.
+- **Controller nodes declared in `Main.tscn`** own focused presentation and services: audio, HUD/feedback, main/pause/result menus, quests, cases, skins, and highscore persistence. Menu actions are sent back to `Game.gd` as intent signals; UI controllers do not keep competing copies of run state.
+- **`GreenglenUI.gd`** builds one shared Theme/font bundle that is injected into every menu controller, preserving the existing visual system across the component split.
 - **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly. Combat remains lightweight and manual: rectangle colliders classify contact without adding physical Player/Enemy collision.
 - **`Coin.gd`** finds the game controller via `get_tree().get_first_node_in_group("game")`.
 - **`Progression.gd`** is the project's one deliberate autoload/singleton — meta-progression (quests, keys, cases, skins) needs to persist across level loads and be readable from the main menu, where the group-lookup pattern doesn't apply.
@@ -186,11 +196,11 @@ Before each `move_and_slide()`, the player records its previous global position 
 
 ## Audio
 
-All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). A looping background track plays during gameplay, with round-robin SFX voices for jump, double-jump, coin pickup, stomp, hit, death, level clear, and win — pitch-jittered slightly so they don't feel repetitive. Music ducks during the pause menu and consistently restores to normal volume on resume, restart, or exiting to the main menu.
+All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). `AudioController.gd` owns the looping music player, round-robin SFX voices, pitch jitter, and pause ducking; the run coordinator invokes its small playback API. Music consistently restores to normal volume on resume, restart, or exiting to the main menu.
 
 ## Highscore
 
-Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. **Only completed runs are submitted**: a run that ends in "Run Over" never updates your saved best. Higher score wins; on a tie, more coins break it. Beat your previous best and the result menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
+Your best completed run (score + coins) is saved locally to `user://highscore.cfg` by `HighscoreStore.gd` through the shared versioned `SaveData.gd` layer — no online leaderboard yet. **Only completed runs are submitted**: a run that ends in "Run Over" never updates your saved best. Higher score wins; on a tie, more coins break it. Beat your previous best and the result menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
 
 ---
 

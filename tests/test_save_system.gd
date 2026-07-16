@@ -1,6 +1,7 @@
 extends SceneTree
 
-# Test-Harness für das versionierte Save-System (SaveData.gd + Progression.gd + Game.gd).
+# Test-Harness für das versionierte Save-System
+# (SaveData.gd + Progression.gd + HighscoreStore.gd).
 # Headless ausführen (einzeln, oder komplett über res://tests/run_all.gd):
 #
 #   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s res://tests/test_save_system.gd
@@ -9,13 +10,14 @@ extends SceneTree
 # GOGG_TEST_SAVE_DIR auf ein frisches Temp-Verzeichnis, BEVOR die Autoloads starten —
 # dadurch liest/schreibt auch das mitbootende Progression-Autoload nur dort und die
 # Save-Migration wird übersprungen. Die Testdateien der Suite selbst liegen in einem
-# eigenen Unterordner; Progression.save_path / Game.highscore_path werden pro Test
+# eigenen Unterordner; Progression.save_path / HighscoreStore.save_path werden pro Test
 # umgebogen. Echte Saves unter user:// werden nie berührt.
 # Exit-Code 0 = alle Checks ok, 1 = mindestens ein Check fehlgeschlagen.
 # WARNING-Zeilen im Output sind erwartet: die Tests füttern absichtlich kaputte Saves.
 
 const ProgressionScript := preload("res://scripts/Progression.gd")
 const SaveData := preload("res://scripts/SaveData.gd")
+const HighscoreStoreScript := preload("res://scripts/HighscoreStore.gd")
 const TestEnv := preload("res://tests/test_env.gd")
 
 var checks := 0
@@ -26,10 +28,6 @@ var this_week: int = int((Time.get_unix_time_from_system() / 86400.0 + 3.0) / 7.
 var save_dir := ""
 var owns_save_dir := false
 var test_dir := ""
-# Game.gd referenziert das Autoload "Progression" und kompiliert deshalb erst, wenn die
-# Autoloads registriert sind — das passiert im -s-Modus NACH _init(), vor dem ersten
-# Frame. Daher kein preload, sondern Laden zur Laufzeit in _run_all().
-var game_script: GDScript
 
 func _init() -> void:
 	var iso: Dictionary = TestEnv.ensure_isolated("save")
@@ -59,10 +57,8 @@ func _run_all() -> void:
 	_test_corrupt_main_without_backup()
 	_test_write_failure()
 	_test_idempotent_cycles()
-	game_script = ResourceLoader.load("res://scripts/Game.gd", "GDScript", ResourceLoader.CACHE_MODE_IGNORE)
-	check(game_script != null and game_script.can_instantiate(), "Game.gd kompiliert (Autoloads registriert)")
-	if game_script != null and game_script.can_instantiate():
-		_test_highscore()
+	check(HighscoreStoreScript != null, "HighscoreStore.gd kompiliert")
+	_test_highscore()
 	print("")
 	if failures == 0:
 		print("ALLE TESTS OK (%d Checks)" % checks)
@@ -399,65 +395,65 @@ func _test_idempotent_cycles() -> void:
 
 # --- Highscore-Szenarien -----------------------------------------------------
 
-func _make_game(path: String) -> Node2D:
-	var g: Node2D = game_script.new()
-	g.highscore_path = path
-	g._load_highscore()
-	return g
+func _make_highscore_store(path: String) -> Node:
+	var store: Node = HighscoreStoreScript.new()
+	store.configure(path)
+	store.load_data()
+	return store
 
 func _test_highscore() -> void:
 	print("Highscore:")
 	# frisch — keine Datei
-	var g := _make_game(_path("hs_fresh.cfg"))
-	check(not g.has_highscore, "frisch: kein Highscore")
-	g.free()
+	var store := _make_highscore_store(_path("hs_fresh.cfg"))
+	check(not store.has_highscore, "frisch: kein Highscore")
+	store.free()
 	# unversionierter v1-Save → laden + Upgrade
 	var v1_path := _path("hs_v1.cfg")
 	_write_cfg(v1_path, {"highscore": {"score": 12, "coins": 30}})
-	g = _make_game(v1_path)
-	check(g.has_highscore and g.best_score == 12 and g.best_coins == 30, "v1 geladen")
+	store = _make_highscore_store(v1_path)
+	check(store.has_highscore and store.best_score == 12 and store.best_coins == 30, "v1 geladen")
 	var cfg := ConfigFile.new()
-	var hs_version: int = game_script.HIGHSCORE_SAVE_VERSION
+	var hs_version: int = HighscoreStoreScript.SAVE_VERSION
 	check(cfg.load(v1_path) == OK and cfg.get_value("meta", "version", -1) == hs_version, "v1 → v2 gehoben")
 	var bak := ConfigFile.new()
 	check(bak.load(v1_path + ".bak") == OK and not bak.has_section("meta"), "v1-Stand als .bak gesichert")
 	# Vergleichs-Semantik unverändert: höherer Score gewinnt, Gleichstand → mehr Coins
-	check(g._submit_run(12, 30) == false, "gleicher Run ist kein neuer Rekord")
-	check(g._submit_run(11, 99) == false, "weniger Score verliert trotz mehr Coins")
-	check(g._submit_run(12, 31) == true, "Gleichstand + mehr Coins gewinnt")
-	check(g._submit_run(13, 0) == true, "höherer Score gewinnt immer")
-	g.free()
+	check(store.submit(12, 30) == false, "gleicher Run ist kein neuer Rekord")
+	check(store.submit(11, 99) == false, "weniger Score verliert trotz mehr Coins")
+	check(store.submit(12, 31) == true, "Gleichstand + mehr Coins gewinnt")
+	check(store.submit(13, 0) == true, "höherer Score gewinnt immer")
+	store.free()
 	# negative Werte werden geklemmt
 	var neg_path := _path("hs_neg.cfg")
 	_write_cfg(neg_path, {"highscore": {"score": -7, "coins": -1}})
-	g = _make_game(neg_path)
-	check(g.has_highscore and g.best_score == 0 and g.best_coins == 0, "negative Werte → 0")
-	g.free()
+	store = _make_highscore_store(neg_path)
+	check(store.has_highscore and store.best_score == 0 and store.best_coins == 0, "negative Werte → 0")
+	store.free()
 	# falscher score-Typ → kein Highscore, aber kein Crash
 	var bad_path := _path("hs_bad.cfg")
 	_write_cfg(bad_path, {"highscore": {"score": "viele", "coins": 5}})
-	g = _make_game(bad_path)
-	check(not g.has_highscore, "unbrauchbarer score → als 'kein Highscore' behandelt")
-	g.free()
+	store = _make_highscore_store(bad_path)
+	check(not store.has_highscore, "unbrauchbarer score → als 'kein Highscore' behandelt")
+	store.free()
 	# kaputtes coins-Feld verwirft den gültigen Score nicht
 	var coin_path := _path("hs_coins.cfg")
 	_write_cfg(coin_path, {"highscore": {"score": 8, "coins": "viele"}})
-	g = _make_game(coin_path)
-	check(g.has_highscore and g.best_score == 8 and g.best_coins == 0, "score bleibt trotz kaputtem coins-Feld")
-	g.free()
+	store = _make_highscore_store(coin_path)
+	check(store.has_highscore and store.best_score == 8 and store.best_coins == 0, "score bleibt trotz kaputtem coins-Feld")
+	store.free()
 	# korrupter Haupt-Save + gültiges Backup
 	var rec_path := _path("hs_recover.cfg")
 	_write_cfg(rec_path + ".bak", {"meta": {"version": 2}, "highscore": {"score": 21, "coins": 9}})
 	_write_raw(rec_path, "[kaputt")
-	g = _make_game(rec_path)
-	check(g.has_highscore and g.best_score == 21 and g.best_coins == 9, "aus Backup wiederhergestellt")
+	store = _make_highscore_store(rec_path)
+	check(store.has_highscore and store.best_score == 21 and store.best_coins == 9, "aus Backup wiederhergestellt")
 	check(cfg.load(rec_path) == OK, "Haupt-Save repariert")
-	g.free()
+	store.free()
 	# Schreibfehler
-	g = game_script.new()
-	g.highscore_path = _path("gibt_es_nicht/hs.cfg")
-	g.best_score = 3
-	g.has_highscore = true
-	g._save_highscore()
-	check(g.best_score == 3, "Schreibfehler crasht nicht, Zustand bleibt")
-	g.free()
+	store = HighscoreStoreScript.new()
+	store.configure(_path("gibt_es_nicht/hs.cfg"))
+	store.best_score = 3
+	store.has_highscore = true
+	store.save_data()
+	check(store.best_score == 3, "Schreibfehler crasht nicht, Zustand bleibt")
+	store.free()

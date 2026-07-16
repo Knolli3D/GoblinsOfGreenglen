@@ -50,7 +50,12 @@ func _run() -> void:
 		for chunk: String in output:
 			print(chunk.strip_edges(false, true))
 		print("→ %s beendet mit Exit-Code %d" % [suite.get_file(), code])
-		if code != 0:
+		# Godot kann bei einem Script-Parsefehler trotzdem Exit 0 liefern. Der explizite
+		# Erfolgsmarker verhindert, dass ein gar nicht gestarteter Test als grün gilt.
+		var suite_output := "\n".join(output)
+		if code != 0 or not suite_output.contains("ALLE TESTS OK ("):
+			if code == 0:
+				printerr("Suite lieferte keinen Erfolgsmarker (Parse-/Startfehler möglich)")
 			failed = true
 
 	var canary_after := _canary_hashes(real_dir)

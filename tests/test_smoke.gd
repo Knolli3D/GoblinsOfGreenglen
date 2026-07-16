@@ -14,6 +14,7 @@ extends SceneTree
 
 const TestEnv := preload("res://tests/test_env.gd")
 const ProgressionScript := preload("res://scripts/Progression.gd")
+const AudioControllerScript := preload("res://scripts/AudioController.gd")
 
 const PLAYER_SIGNALS := ["stomped_enemy", "hit_enemy", "fell_off", "reached_goal", "jumped", "double_jumped"]
 const INPUT_ACTIONS := ["move_left", "move_right", "jump", "restart", "pause"]
@@ -39,6 +40,7 @@ func _run_all() -> void:
 	check(main_scene != null and main_scene.can_instantiate(), "Main.tscn lädt und ist instanziierbar")
 	game = main_scene.instantiate() as Node2D
 	check(game != null and game.get_script() != null, "Main-Root trägt Game.gd")
+	_test_component_scene()
 
 	_test_player_scene()
 	_test_input_actions()
@@ -51,6 +53,8 @@ func _run_all() -> void:
 
 	root.remove_child(game)
 	game.free()
+	await process_frame
+	await process_frame
 	print("")
 	if failures == 0:
 		print("ALLE TESTS OK (%d Checks)" % checks)
@@ -85,10 +89,28 @@ func _test_input_actions() -> void:
 
 func _test_audio_resources() -> void:
 	print("Audio-Ressourcen:")
-	var sfx: Dictionary = game.SFX_FILES
+	var sfx: Dictionary = AudioControllerScript.SFX_FILES
 	for key: String in sfx:
 		check(ResourceLoader.exists(sfx[key]), "SFX '%s' existiert (%s)" % [key, sfx[key]])
-	check(ResourceLoader.exists(game.MUSIC_FILE), "Musik existiert (%s)" % game.MUSIC_FILE)
+	check(ResourceLoader.exists(AudioControllerScript.MUSIC_FILE),
+		"Musik existiert (%s)" % AudioControllerScript.MUSIC_FILE)
+
+func _test_component_scene() -> void:
+	print("Main-Komponenten:")
+	var expected := [
+		"AudioController",
+		"HighscoreStore",
+		"HUDController",
+		"GameMenuController",
+		"QuestMenuController",
+		"CaseMenuController",
+		"SkinMenuController",
+	]
+	for component_name: String in expected:
+		check(game.has_node(component_name), "%s ist in Main.tscn deklariert" % component_name)
+	check(game.get_node("AudioController").has_method("play_sfx"), "AudioController hat explizite SFX-API")
+	check(game.get_node("HighscoreStore").has_method("submit"), "HighscoreStore hat Submit-API")
+	check(game.get_node("HUDController").has_method("update_status"), "HUDController hat Snapshot-API")
 
 func _test_skin_definitions() -> void:
 	print("Skin-Definitionen:")
@@ -233,23 +255,38 @@ func _test_run_results() -> void:
 	root.add_child(game)  # _ready: Menüs, Audio, isolierter Highscore
 	var RO: Dictionary = game.RunOutcome
 	var prog: Node = root.get_node("/root/Progression")
+	check(game.menus.main_menu.theme == game.ui_theme, "Main-Menü nutzt das gemeinsame Theme")
+	check(game.quest_menu.menu.theme == game.ui_theme and game.case_menu.menu.theme == game.ui_theme \
+		and game.skin_menu.menu.theme == game.ui_theme, "Submenüs teilen dieselbe Theme-Instanz")
+	check(game.menus.start_requested.get_connections().size() == 1,
+		"Start-Signal ist genau einmal mit dem Coordinator verbunden")
+	check(game.quest_menu.keys_changed.get_connections().size() == 1,
+		"Quest-Key-Signal ist genau einmal verbunden")
+	check(_direct_canvas_layers(game.menus) == 3, "GameMenuController besitzt genau 3 CanvasLayers")
+	check(_direct_canvas_layers(game.hud) == 1, "HUDController besitzt genau 1 CanvasLayer")
+	check(_direct_canvas_layers(game.quest_menu) == 1 and _direct_canvas_layers(game.case_menu) == 1 \
+		and _direct_canvas_layers(game.skin_menu) == 1, "jedes Submenü besitzt genau 1 CanvasLayer")
+	await _test_meta_menus(prog)
 
 	# — FAILED —
-	game._start_game()
+	game.menus.start_requested.emit()
 	check(game.level_root != null and game.current_level == 0, "Run startet in Level 1")
+	var player_sprite := game.player.find_child("Sprite2D", true, false) as Sprite2D
+	check(player_sprite != null and player_sprite.texture.resource_path.ends_with("sprite_princess_blue.png"),
+		"ausgerüsteter Skin wird beim Levelstart angewendet")
 	game.score = 7
 	game.coin_count = 3
 	game._finish_run(RO.FAILED)
 	check(game.run_outcome == RO.FAILED, "Outcome = FAILED")
-	check(game.run_result_menu.visible, "Result-Menü sichtbar")
-	check(game.result_title_label.text == "Run Over", "Titel 'Run Over'")
-	check(game.result_score_value.text == "7" and game.result_coins_value.text == "3", "Score/Coins angezeigt")
-	check(game.result_record_label.text == "", "keine Record-Zeile bei FAILED")
-	check(not game.has_highscore, "FAILED submittet keinen Highscore")
+	check(game.menus.run_result_menu.visible, "Result-Menü sichtbar")
+	check(game.menus.result_title_label.text == "Run Over", "Titel 'Run Over'")
+	check(game.menus.result_score_value.text == "7" and game.menus.result_coins_value.text == "3", "Score/Coins angezeigt")
+	check(game.menus.result_record_label.text == "", "keine Record-Zeile bei FAILED")
+	check(not game.highscore_store.has_highscore, "FAILED submittet keinen Highscore")
 	check(not FileAccess.file_exists(save_dir.path_join("highscore.cfg")), "highscore.cfg wurde nicht geschrieben")
-	check(not game.hud_label.visible and not game.message_label.visible, "HUD/Message hinter dem Result versteckt")
+	check(not game.hud.hud_label.visible and not game.hud.message_label.visible, "HUD/Message hinter dem Result versteckt")
 	check(game.level_root.process_mode == Node.PROCESS_MODE_DISABLED, "Level deaktiviert")
-	check(game.result_run_again_btn.has_focus(), "'Run Again' hat Tastatur-Fokus")
+	check(game.menus.result_run_again_btn.has_focus(), "'Run Again' hat Tastatur-Fokus")
 
 	# Wiederholte Fatal-Signale / nachlaufende Callbacks → No-Ops
 	game._finish_run(RO.FAILED)
@@ -258,25 +295,25 @@ func _test_run_results() -> void:
 	game.fell_off_world()
 	check(game.run_outcome == RO.FAILED, "wiederholtes _finish_run ändert Outcome nicht")
 	check(game.health == int(game.MAX_HEALTH), "nachlaufender Schaden wird ignoriert")
-	check(not game.has_highscore, "auch nachträglich kein Highscore-Submit")
+	check(not game.highscore_store.has_highscore, "auch nachträglich kein Highscore-Submit")
 
 	# Escape öffnet KEIN Pause-Menü über dem Result
 	var pause_ev := InputEventAction.new()
 	pause_ev.action = "pause"
 	pause_ev.pressed = true
 	game._unhandled_input(pause_ev)
-	check(not paused and not game.pause_menu.visible, "Escape öffnet kein Pause-Menü über dem Result")
+	check(not paused and not game.menus.pause_menu.visible, "Escape öffnet kein Pause-Menü über dem Result")
 
 	# R vom FAILED-Result → zentraler Clean-Run
 	var restart_ev := InputEventAction.new()
 	restart_ev.action = "restart"
 	restart_ev.pressed = true
 	game._unhandled_input(restart_ev)
-	check(game.run_outcome == RO.NONE and not game.run_result_menu.visible, "R räumt das Result auf")
+	check(game.run_outcome == RO.NONE and not game.menus.run_result_menu.visible, "R räumt das Result auf")
 	check(game.score == 0 and game.coin_count == 0 and game.health == int(game.MAX_HEALTH), "Clean-Run: Score/Coins/Health zurückgesetzt")
 	check(game.current_level == 0 and not game.transitioning and game.invuln_until == 0.0, "Clean-Run: Level 1, keine Transition, keine Invulnerability")
 	check(not game.took_damage_this_run and not game.took_damage_this_level, "Clean-Run: Schadens-Tracking zurückgesetzt")
-	check(game.hud_label.visible, "HUD wieder sichtbar")
+	check(game.hud.hud_label.visible, "HUD wieder sichtbar")
 
 	# — COMPLETED (mit erzwungenen Weeklies für die Genau-einmal-Prüfung) —
 	prog.weekly_ids = ["w_finish_runs", "w_no_damage_run"]
@@ -289,9 +326,10 @@ func _test_run_results() -> void:
 	game.took_damage_this_run = false
 	game.reach_goal()  # letztes Level → synchroner _finish_run(COMPLETED)
 	check(game.run_outcome == RO.COMPLETED, "Outcome = COMPLETED")
-	check(game.result_title_label.text == "Run Complete", "Titel 'Run Complete'")
-	check(game.result_record_label.text == "New Highscore!", "erster Abschluss zeigt 'New Highscore!'")
-	check(game.has_highscore and game.best_score == 10 and game.best_coins == 5, "_submit_run() gespeichert (10/5)")
+	check(game.menus.result_title_label.text == "Run Complete", "Titel 'Run Complete'")
+	check(game.menus.result_record_label.text == "New Highscore!", "erster Abschluss zeigt 'New Highscore!'")
+	check(game.highscore_store.has_highscore and game.highscore_store.best_score == 10 \
+		and game.highscore_store.best_coins == 5, "_submit_run() gespeichert (10/5)")
 	check(FileAccess.file_exists(save_dir.path_join("highscore.cfg")), "highscore.cfg geschrieben")
 	check(int(prog.weekly_progress[0]) == 1, "finish_run-Progress genau 1x")
 	check(int(prog.weekly_progress[1]) == 1, "no_damage_run-Progress vergeben (schadensfrei)")
@@ -301,11 +339,12 @@ func _test_run_results() -> void:
 	game._finish_run(RO.COMPLETED)
 	game._finish_run(RO.FAILED)
 	check(int(prog.weekly_progress[0]) == 1 and int(prog.weekly_progress[1]) == 1, "Quest-Progress bleibt bei 1 (keine Doppelvergabe)")
-	check(game.best_score == 10 and game.best_coins == 5, "kein doppelter Highscore-Submit")
+	check(game.highscore_store.best_score == 10 and game.highscore_store.best_coins == 5,
+		"kein doppelter Highscore-Submit")
 	check(game.run_outcome == RO.COMPLETED, "Outcome bleibt COMPLETED")
 
 	# Run Again vom COMPLETED-Result (Maus-Pfad = Button-Handler)
-	game._restart_level_from_menu()
+	game.menus.restart_requested.emit()
 	check(game.run_outcome == RO.NONE and game.current_level == 0, "'Run Again' startet Clean-Run")
 
 	# Vergleichssemantik: schlechterer abgeschlossener Run ändert den Bestwert nicht
@@ -313,26 +352,66 @@ func _test_run_results() -> void:
 	game.score = 9
 	game.coin_count = 99
 	game.reach_goal()
-	check(game.best_score == 10 and game.best_coins == 5, "niedrigerer Score schlägt Best nicht (trotz mehr Coins)")
-	check(game.result_record_label.text == "", "keine Record-Zeile ohne neuen Rekord")
-	check(game.result_best_label.text.begins_with("Best Run"), "stabile Best-Run-Zeile")
+	check(game.highscore_store.best_score == 10 and game.highscore_store.best_coins == 5,
+		"niedrigerer Score schlägt Best nicht (trotz mehr Coins)")
+	check(game.menus.result_record_label.text == "", "keine Record-Zeile ohne neuen Rekord")
+	check(game.menus.result_best_label.text.begins_with("Best Run"), "stabile Best-Run-Zeile")
 
 	# damage_player während FAILED-Run: kein Schaden, aber Weekly no_damage bleibt korrekt —
 	# hier nur: Pause-Menü "Try Again" nutzt denselben Clean-Run-Pfad
 	game._restart_level_from_menu()
 	game._toggle_pause()
-	check(paused and game.pause_menu.visible, "Pause-Menü öffnet im Lauf")
+	check(paused and game.menus.pause_menu.visible, "Pause-Menü öffnet im Lauf")
 	game._restart_level_from_menu()
-	check(not paused and not game.pause_menu.visible and game.current_level == 0, "'Try Again' hebt Pause auf und startet Clean-Run")
+	check(not paused and not game.menus.pause_menu.visible and game.current_level == 0,
+		"'Try Again' hebt Pause auf und startet Clean-Run")
 
 	# Main Menu vom Result aus
 	game.current_level = game.LEVELS.size() - 1
 	game.reach_goal()
-	game._exit_to_main_menu()
+	game.menus.main_menu_requested.emit()
 	check(game.in_main_menu and game.level_root == null, "'Main Menu' räumt Gameplay auf")
-	check(not game.run_result_menu.visible and game.run_outcome == RO.NONE, "Result-Zustand im Menü zurückgesetzt")
-	check(game.highscore_label.text.begins_with("Best:"), "Hauptmenü zeigt aktualisierten Bestwert")
+	check(not game.menus.run_result_menu.visible and game.run_outcome == RO.NONE,
+		"Result-Zustand im Menü zurückgesetzt")
+	check(game.menus.highscore_label.text.begins_with("Best:"), "Hauptmenü zeigt aktualisierten Bestwert")
 	await create_timer(0.05).timeout  # queue_free des Levels abwickeln
+
+func _test_meta_menus(prog: Node) -> void:
+	print("Menü-Komponenten:")
+	game.menus.quests_requested.emit()
+	check(game.quest_menu.menu.visible and not game.menus.main_menu.visible,
+		"Quest-Intent öffnet nur das Quest-Menü")
+	check(game.quest_menu.quests_list.get_child_count() > 0, "Quest-Menü rendert Daily/Weekly-Inhalt")
+	game.quest_menu.back_requested.emit()
+	check(game.menus.main_menu.visible and not game.quest_menu.menu.visible,
+		"Quest-Back-Intent kehrt ins Hauptmenü zurück")
+
+	prog.keys = 1
+	var cases_before: int = prog.get_cases_opened()
+	game.menus.cases_requested.emit()
+	check(game.case_menu.menu.visible and not game.menus.main_menu.visible,
+		"Case-Intent öffnet nur das Cases-Menü")
+	game.case_menu._on_open_case_pressed(false)
+	check(game.case_menu.is_spinning, "regulärer Case-Spin startet")
+	check(game.case_menu.open_case_button.disabled and game.case_menu.premium_case_button.disabled \
+		and game.case_menu.back_button.disabled, "Case-Navigation ist während des Spins gesperrt")
+	await create_timer(3.6).timeout
+	check(not game.case_menu.is_spinning and prog.get_cases_opened() == cases_before + 1,
+		"Case-Spin endet und vergibt genau einen Reward")
+	game.case_menu.back_requested.emit()
+	check(game.menus.main_menu.visible and not game.case_menu.menu.visible,
+		"Case-Back-Intent kehrt ins Hauptmenü zurück")
+
+	game.menus.skins_requested.emit()
+	check(game.skin_menu.menu.visible and game.skin_menu.skins_list.get_child_count() >= 2,
+		"Skin-Intent öffnet Liste mit Default und Starter")
+	game.skin_menu._on_select_skin("princess_blue")
+	check(game.skin_menu.preview_name.text == "Sapphire Princess", "Skin-Auswahl aktualisiert Preview")
+	game.skin_menu._on_equip_selected()
+	check(prog.equipped_skin == "princess_blue", "separater Equip-Befehl persistiert den Starter-Skin")
+	game.skin_menu.back_requested.emit()
+	check(game.menus.main_menu.visible and not game.skin_menu.menu.visible,
+		"Skin-Back-Intent kehrt ins Hauptmenü zurück")
 
 # --- Transition-Cancellation ------------------------------------------------------
 
@@ -341,7 +420,7 @@ func _test_transition_cancellation() -> void:
 	# a) Normaler verzögerter Übergang
 	game._start_game()
 	game.reach_goal()
-	check(game.transitioning and game.message_label.visible and game.message_label.text == "Level Cleared!",
+	check(game.transitioning and game.hud.message_label.visible and game.hud.message_label.text == "Level Cleared!",
 		"Level-Clear-Meldung während der Transition")
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level == 1, "normaler Übergang lädt Level 2")
@@ -364,6 +443,19 @@ func _test_transition_cancellation() -> void:
 	game._finish_run(game.RunOutcome.FAILED)
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level == 0, "kein veralteter Übergang nach Run-Ende")
-	check(game.run_result_menu.visible and game.run_outcome == game.RunOutcome.FAILED,
+	check(game.menus.run_result_menu.visible and game.run_outcome == game.RunOutcome.FAILED,
 		"Result bleibt nach abgelaufenem Timer bestehen")
+	check(game.menus.start_requested.get_connections().size() == 1 \
+		and game.menus.restart_requested.get_connections().size() == 1,
+		"Menü-Signale bleiben nach wiederholten Level-Loads einfach verbunden")
+	check(_direct_canvas_layers(game.menus) == 3 and _direct_canvas_layers(game.hud) == 1,
+		"Level-Loads duplizieren keine persistenten UI-Layer")
 	game._exit_to_main_menu()
+	await create_timer(0.05).timeout  # letzten queue_free-Lifecycle vor Suite-Ende abwickeln
+
+func _direct_canvas_layers(owner: Node) -> int:
+	var count := 0
+	for child: Node in owner.get_children():
+		if child is CanvasLayer:
+			count += 1
+	return count
