@@ -106,12 +106,18 @@ func _test_component_scene() -> void:
 		"QuestMenuController",
 		"CaseMenuController",
 		"SkinMenuController",
+		"CampaignProgressStore",
+		"CampaignMapController",
 	]
 	for component_name: String in expected:
 		check(game.has_node(component_name), "%s ist in Main.tscn deklariert" % component_name)
 	check(game.get_node("AudioController").has_method("play_sfx"), "AudioController hat explizite SFX-API")
 	check(game.get_node("HighscoreStore").has_method("submit"), "HighscoreStore hat Submit-API")
 	check(game.get_node("HUDController").has_method("update_status"), "HUDController hat Snapshot-API")
+	check(game.get_node("CampaignProgressStore").has_method("record_level_completion"),
+		"CampaignProgressStore hat Completion-API")
+	check(game.get_node("CampaignMapController").has_method("show_region"),
+		"CampaignMapController hat Präsentations-API")
 
 func _test_skin_definitions() -> void:
 	print("Skin-Definitionen:")
@@ -266,39 +272,55 @@ func _test_run_results() -> void:
 		"Start-Signal ist genau einmal mit dem Coordinator verbunden")
 	check(game.quest_menu.keys_changed.get_connections().size() == 1,
 		"Quest-Key-Signal ist genau einmal verbunden")
+	check(game.campaign_map.level_requested.get_connections().size() == 1 \
+		and game.campaign_map.back_requested.get_connections().size() == 1,
+		"Campaign-Map-Intents sind genau einmal verbunden")
 	check(_direct_canvas_layers(game.menus) == 3, "GameMenuController besitzt genau 3 CanvasLayers")
 	check(_direct_canvas_layers(game.hud) == 1, "HUDController besitzt genau 1 CanvasLayer")
 	check(_direct_canvas_layers(game.quest_menu) == 1 and _direct_canvas_layers(game.case_menu) == 1 \
 		and _direct_canvas_layers(game.skin_menu) == 1, "jedes Submenü besitzt genau 1 CanvasLayer")
+	await _test_campaign_map_shell()
 	await _test_meta_menus(prog)
 
-	# — FAILED —
+	# — FAILED via tödlichem Gegnerkontakt —
 	game.menus.start_requested.emit()
-	check(game.level_root != null and game.current_level == 0, "Run startet in Level 1")
+	check(game.level_root != null and game.current_level == 0 \
+		and game.current_region_id == "region_01" and game.current_level_id == "r01_level_01",
+		"Run startet mit stabilen IDs in Region 1 Level 1")
 	var player_sprite := game.player.find_child("Sprite2D", true, false) as Sprite2D
 	check(player_sprite != null and player_sprite.texture.resource_path.ends_with("sprite_princess_blue.png"),
 		"ausgerüsteter Skin wird beim Levelstart angewendet")
-	game.score = 7
+	game.health = 1
+	game.score = 8
 	game.coin_count = 3
-	game._finish_run(RO.FAILED)
-	check(game.run_outcome == RO.FAILED, "Outcome = FAILED")
+	game.damage_player()
+	check(game.run_outcome == RO.FAILED and game.health == 0 and game.score == 7,
+		"tödlicher Gegnerkontakt endet den Run genau einmal")
 	check(game.menus.run_result_menu.visible, "Result-Menü sichtbar")
 	check(game.menus.result_title_label.text == "Run Over", "Titel 'Run Over'")
 	check(game.menus.result_score_value.text == "7" and game.menus.result_coins_value.text == "3", "Score/Coins angezeigt")
 	check(game.menus.result_record_label.text == "", "keine Record-Zeile bei FAILED")
+	game.menus.show_result(false, 7, 3, "No completed run yet", true)
+	check(game.menus.result_record_label.text == "",
+		"FAILED unterdrückt Record-Text auch bei fehlerhaftem true-Flag")
 	check(not game.highscore_store.has_highscore, "FAILED submittet keinen Highscore")
 	check(not FileAccess.file_exists(save_dir.path_join("highscore.cfg")), "highscore.cfg wurde nicht geschrieben")
+	check(game.campaign_progress.get_completed_level_ids().is_empty(),
+		"FAILED erzeugt keinen Campaign-Completion-Record")
 	check(not game.hud.hud_label.visible and not game.hud.message_label.visible, "HUD/Message hinter dem Result versteckt")
 	check(game.level_root.process_mode == Node.PROCESS_MODE_DISABLED, "Level deaktiviert")
+	check(game.menus.run_result_menu.process_mode == Node.PROCESS_MODE_ALWAYS,
+		"Result-Menü bleibt bei deaktiviertem Level interaktiv")
 	check(game.menus.result_run_again_btn.has_focus(), "'Run Again' hat Tastatur-Fokus")
 
 	# Wiederholte Fatal-Signale / nachlaufende Callbacks → No-Ops
+	var failed_health: int = game.health
 	game._finish_run(RO.FAILED)
 	game._finish_run(RO.COMPLETED)
 	game.damage_player()
 	game.fell_off_world()
 	check(game.run_outcome == RO.FAILED, "wiederholtes _finish_run ändert Outcome nicht")
-	check(game.health == int(game.MAX_HEALTH), "nachlaufender Schaden wird ignoriert")
+	check(game.health == failed_health, "nachlaufender Schaden wird ignoriert")
 	check(not game.highscore_store.has_highscore, "auch nachträglich kein Highscore-Submit")
 
 	# Escape öffnet KEIN Pause-Menü über dem Result
@@ -319,12 +341,47 @@ func _test_run_results() -> void:
 	check(not game.took_damage_this_run and not game.took_damage_this_level, "Clean-Run: Schadens-Tracking zurückgesetzt")
 	check(game.hud.hud_label.visible, "HUD wieder sichtbar")
 
+	# FAILED via tödlichem Fall → derselbe Screen, Maus-Run-Again und sauberer Run
+	game.health = 1
+	game.score = 5
+	game.coin_count = 2
+	game.fell_off_world()
+	check(game.run_outcome == RO.FAILED and game.menus.result_title_label.text == "Run Over",
+		"tödlicher Fall nutzt denselben Run-Over-Screen")
+	game.menus.result_run_again_btn.pressed.emit()
+	check(game.run_outcome == RO.NONE and game.current_level == 0 and game.health == int(game.MAX_HEALTH) \
+		and game.score == 0 and game.coin_count == 0 and game.invuln_until == 0.0,
+		"FAILED Run-Again-Button startet einen Clean-Run")
+
+	# FAILED → Main Menu über den echten Button; nachlaufende Gameplay-Callbacks bleiben No-Ops
+	game.health = 1
+	game.damage_player()
+	var result_main_menu := _find_button_by_text(game.menus.run_result_menu, "Main Menu")
+	check(result_main_menu != null, "Result-Main-Menu-Button vorhanden")
+	if result_main_menu != null:
+		result_main_menu.pressed.emit()
+	check(game.in_main_menu and game.level_root == null and not game.menus.run_result_menu.visible,
+		"FAILED Main Menu räumt Result und Gameplay auf")
+	var menu_health: int = game.health
+	var menu_score: int = game.score
+	var menu_generation: int = game.transition_gen
+	game.damage_player()
+	game.fell_off_world()
+	game.reach_goal()
+	game._finish_run(RO.FAILED)
+	check(game.in_main_menu and game.health == menu_health and game.score == menu_score \
+		and game.transition_gen == menu_generation and not game.transitioning \
+		and not game.menus.run_result_menu.visible,
+		"nachlaufende Gameplay-Callbacks können im Hauptmenü kein Result öffnen")
+
 	# — COMPLETED (mit erzwungenen Weeklies für die Genau-einmal-Prüfung) —
+	game.menus.start_requested.emit()
 	prog.weekly_ids = ["w_finish_runs", "w_no_damage_run"]
 	prog.weekly_progress = [0, 0]
 	prog.weekly_completed = [false, false]
 	prog.weekly_claimed = [false, false]
 	game.current_level = game.LEVELS.size() - 1  # als liefe Level 6
+	game.current_level_id = "r01_level_06"
 	game.score = 10
 	game.coin_count = 5
 	game.took_damage_this_run = false
@@ -347,12 +404,13 @@ func _test_run_results() -> void:
 		"kein doppelter Highscore-Submit")
 	check(game.run_outcome == RO.COMPLETED, "Outcome bleibt COMPLETED")
 
-	# Run Again vom COMPLETED-Result (Maus-Pfad = Button-Handler)
-	game.menus.restart_requested.emit()
+	# Run Again vom COMPLETED-Result über den echten Button
+	game.menus.result_run_again_btn.pressed.emit()
 	check(game.run_outcome == RO.NONE and game.current_level == 0, "'Run Again' startet Clean-Run")
 
 	# Vergleichssemantik: schlechterer abgeschlossener Run ändert den Bestwert nicht
 	game.current_level = game.LEVELS.size() - 1
+	game.current_level_id = "r01_level_06"
 	game.score = 9
 	game.coin_count = 99
 	game.reach_goal()
@@ -360,25 +418,94 @@ func _test_run_results() -> void:
 		"niedrigerer Score schlägt Best nicht (trotz mehr Coins)")
 	check(game.menus.result_record_label.text == "", "keine Record-Zeile ohne neuen Rekord")
 	check(game.menus.result_best_label.text.begins_with("Best Run"), "stabile Best-Run-Zeile")
+	game._unhandled_input(restart_ev)
+	check(game.run_outcome == RO.NONE and game.current_level == 0 and game.score == 0 \
+		and game.coin_count == 0 and game.health == int(game.MAX_HEALTH),
+		"R startet auch vom COMPLETED-Result einen Clean-Run")
 
-	# damage_player während FAILED-Run: kein Schaden, aber Weekly no_damage bleibt korrekt —
-	# hier nur: Pause-Menü "Try Again" nutzt denselben Clean-Run-Pfad
-	game._restart_level_from_menu()
+	# Pause-Menü "Try Again" nach echtem Schaden nutzt denselben Clean-Run-Pfad
+	game.damage_player()
+	check(game.health == int(game.MAX_HEALTH) - 1 and game.took_damage_this_run,
+		"nicht-tödlicher Schaden setzt Zustand vor Pause-Try-Again")
 	game._toggle_pause()
 	check(paused and game.menus.pause_menu.visible, "Pause-Menü öffnet im Lauf")
-	game._restart_level_from_menu()
-	check(not paused and not game.menus.pause_menu.visible and game.current_level == 0,
-		"'Try Again' hebt Pause auf und startet Clean-Run")
+	var try_again := _find_button_by_text(game.menus.pause_menu, "Try Again")
+	check(try_again != null, "Pause-Try-Again-Button vorhanden")
+	if try_again != null:
+		try_again.pressed.emit()
+	check(not paused and not game.menus.pause_menu.visible and game.current_level == 0 \
+		and game.health == int(game.MAX_HEALTH) and not game.took_damage_this_run \
+		and game.invuln_until == 0.0,
+		"Pause-Try-Again hebt Pause auf und startet Clean-Run")
 
 	# Main Menu vom Result aus
 	game.current_level = game.LEVELS.size() - 1
+	game.current_level_id = "r01_level_06"
 	game.reach_goal()
-	game.menus.main_menu_requested.emit()
+	result_main_menu = _find_button_by_text(game.menus.run_result_menu, "Main Menu")
+	if result_main_menu != null:
+		result_main_menu.pressed.emit()
 	check(game.in_main_menu and game.level_root == null, "'Main Menu' räumt Gameplay auf")
 	check(not game.menus.run_result_menu.visible and game.run_outcome == RO.NONE,
 		"Result-Zustand im Menü zurückgesetzt")
 	check(game.menus.highscore_label.text.begins_with("Best:"), "Hauptmenü zeigt aktualisierten Bestwert")
 	await create_timer(0.05).timeout  # queue_free des Levels abwickeln
+
+func _test_campaign_map_shell() -> void:
+	print("Campaign-Map-Shell:")
+	check(not game.campaign_map.menu.visible, "Map-Shell ist im normalen Main-Menü verborgen")
+	check(game.campaign_map.menu.theme == game.ui_theme, "Map-Shell nutzt das gemeinsame Theme")
+	check(_direct_canvas_layers(game.campaign_map) == 1, "CampaignMapController besitzt genau 1 CanvasLayer")
+	game.campaign_map.initialize(
+		game.ui_theme, game.ui_heading_font, game.ui_body_font,
+		game.campaign_catalog, game.campaign_progress, game.audio,
+	)
+	check(_direct_canvas_layers(game.campaign_map) == 1,
+		"wiederholtes Initialize dupliziert den Map-Layer nicht")
+	check(game.campaign_map.menu.process_mode == Node.PROCESS_MODE_ALWAYS,
+		"Map-Shell verarbeitet Input unabhängig vom Gameplay")
+	game.show_campaign_map_preview("region_01")
+	await process_frame
+	check(game.campaign_map.menu.visible and not game.menus.main_menu.visible,
+		"öffentliche Preview-API zeigt Region 1 ohne Main-Menü-Überlagerung")
+	check(game.campaign_map.node_buttons.size() == 6, "Region 1 rendert sechs kataloggetriebene Nodes")
+	check(game.campaign_map.path_layer.segments.size() == 5 \
+		and _count_optional_segments(game.campaign_map.path_layer.segments) == 0,
+		"Region 1 rendert fünf solide Main-Verbindungen")
+	check(game.campaign_map.selected_level_id == "r01_level_01" \
+		and not game.campaign_map.play_button.disabled,
+		"Entry-Level ist deterministisch ausgewählt und spielbar")
+	var entry_button := game.campaign_map.node_buttons["r01_level_01"] as Button
+	check(entry_button.has_focus(), "Entry-Level erhält initialen Tastatur-Fokus")
+	var locked_button := game.campaign_map.node_buttons["r01_level_02"] as Button
+	locked_button.pressed.emit()
+	check(game.campaign_map.selected_level_id == "r01_level_02" \
+		and game.campaign_map.play_button.disabled,
+		"Mauswahl kann Locked-Details ansehen, aber nicht starten")
+	game.campaign_map.select_level("r01_level_01", false)
+	game.campaign_map.refresh()
+	game.campaign_map.refresh()
+	check(game.campaign_map.node_buttons.size() == 6 and _direct_canvas_layers(game.campaign_map) == 1,
+		"wiederholtes Refresh dupliziert weder Nodes noch CanvasLayer")
+
+	var requested := [0]
+	game.campaign_map.level_requested.connect(func(_id: String) -> void: requested[0] += 1)
+	game.campaign_map.show_region("region_02")
+	await process_frame
+	check(game.campaign_map.node_buttons.size() == 10, "unreleased Region 2 rendert 8 Main- und 2 Bonus-Nodes")
+	check(_count_optional_segments(game.campaign_map.path_layer.segments) == 2,
+		"Region-2-Bonuspfad bleibt semantisch dotted/optional")
+	check(_count_locked_segments(game.campaign_map.path_layer.segments) \
+		== game.campaign_map.path_layer.segments.size(),
+		"unreleased Pfade bleiben über Unlock-State gedimmt")
+	check(game.campaign_map.location_status.text.begins_with("Coming Soon") \
+		and game.campaign_map.play_button.disabled,
+		"unreleased Region zeigt Coming Soon und deaktiviert Play")
+	game.campaign_map.play_button.pressed.emit()
+	check(requested[0] == 0, "unreleased Node kann keinen Level-Request emittieren")
+	game.campaign_map.back_button.pressed.emit()
+	check(not game.campaign_map.menu.visible and game.menus.main_menu.visible,
+		"Back räumt Map-Shell auf und kehrt ins normale Main-Menü zurück")
 
 func _test_meta_menus(prog: Node) -> void:
 	print("Menü-Komponenten:")
@@ -427,17 +554,28 @@ func _test_transition_cancellation() -> void:
 	print("Transition-Cancellation:")
 	# a) Normaler verzögerter Übergang
 	game._start_game()
+	game.score = 3
+	game.coin_count = 2
 	game.reach_goal()
 	check(game.transitioning and game.hud.message_label.visible and game.hud.message_label.text == "Level Cleared!",
 		"Level-Clear-Meldung während der Transition")
 	await create_timer(TRANSITION_WAIT).timeout
-	check(game.current_level == 1, "normaler Übergang lädt Level 2")
+	check(game.current_level == 1 and game.current_level_id == "r01_level_02",
+		"normaler Übergang lädt Level 2 über stabile ID")
+	var level_1_record: Dictionary = game.campaign_progress.get_level_record("r01_level_01")
+	check(level_1_record.has_record and level_1_record.score == 3 and level_1_record.coins == 2,
+		"Goal speichert Region-1-Level-1 genau mit lokalen Werten")
 
 	# b) Restart während Transition pending
+	game.score = 5
+	game.coin_count = 3
 	game.reach_goal()
 	game._start_new_run()
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level == 0, "Restart macht wartenden Übergang ungültig")
+	var level_2_record: Dictionary = game.campaign_progress.get_level_record("r01_level_02")
+	check(level_2_record.has_record and level_2_record.score == 2 and level_2_record.coins == 1,
+		"per-Level-Record verwendet Deltas statt kumulativer Run-Werte")
 
 	# c) Exit zum Hauptmenü während Transition pending
 	game.reach_goal()
@@ -454,7 +592,8 @@ func _test_transition_cancellation() -> void:
 	check(game.menus.run_result_menu.visible and game.run_outcome == game.RunOutcome.FAILED,
 		"Result bleibt nach abgelaufenem Timer bestehen")
 	check(game.menus.start_requested.get_connections().size() == 1 \
-		and game.menus.restart_requested.get_connections().size() == 1,
+		and game.menus.restart_requested.get_connections().size() == 1 \
+		and game.menus.main_menu_requested.get_connections().size() == 1,
 		"Menü-Signale bleiben nach wiederholten Level-Loads einfach verbunden")
 	check(_direct_canvas_layers(game.menus) == 3 and _direct_canvas_layers(game.hud) == 1,
 		"Level-Loads duplizieren keine persistenten UI-Layer")
@@ -475,3 +614,26 @@ func _all_buttons_centered(node: Node) -> bool:
 		if not _all_buttons_centered(child):
 			return false
 	return true
+
+func _find_button_by_text(node: Node, button_text: String) -> Button:
+	if node is Button and (node as Button).text == button_text:
+		return node as Button
+	for child: Node in node.get_children():
+		var found := _find_button_by_text(child, button_text)
+		if found != null:
+			return found
+	return null
+
+func _count_optional_segments(segments: Array) -> int:
+	var count := 0
+	for segment: Dictionary in segments:
+		if bool(segment.get("optional", false)):
+			count += 1
+	return count
+
+func _count_locked_segments(segments: Array) -> int:
+	var count := 0
+	for segment: Dictionary in segments:
+		if not bool(segment.get("unlocked", false)):
+			count += 1
+	return count

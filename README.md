@@ -72,9 +72,9 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (83 checks) and a scene/behavior smoke suite (154 checks: component ownership/wiring, centered menu controls, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **237 checks total.**
+- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (52 checks), and scene/behavior smoke coverage (190 checks: component ownership/wiring, hidden map shell, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **325 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
-- **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`/`progression.cfg` (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
+- **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 
 ---
 
@@ -84,6 +84,10 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 cloude-game/
 ├── scripts/
 │   ├── Game.gd          # Run coordinator: gameplay state, level lifecycle, signals, transitions
+│   ├── CampaignCatalog.gd      # Validated stable region, level, trial, and route definitions
+│   ├── CampaignProgressStore.gd # Versioned unlocks, completions, records, and milestones
+│   ├── CampaignMapController.gd # Hidden world-map shell and selection intents
+│   ├── CampaignMapPathLayer.gd # Required/optional route rendering and lock states
 │   ├── AudioController.gd     # Music, SFX voice pool, and pause ducking
 │   ├── HUDController.gd       # HUD snapshots, transient messages, and POW! feedback
 │   ├── GameMenuController.gd  # Main, pause, and shared run-result presentation
@@ -102,12 +106,13 @@ cloude-game/
 │   ├── SaveMigration.gd # One-time save migration from the pre-rename "Cloude Game" user dir
 │   └── SaveData.gd      # Versioned save helpers: typed reads, [meta] schema version, .bak backup/recovery
 ├── tests/
-│   ├── run_all.gd           # Headless test runner: both suites + save-isolation canary
+│   ├── run_all.gd           # Headless test runner: all three suites + save-isolation canary
 │   ├── test_save_system.gd  # Save validation, schema upgrade, and recovery suite
+│   ├── test_campaign_progress.gd # Catalog, unlock, record, trial, and persistence suite
 │   ├── test_smoke.gd        # Scene, resource, run-result, and transition-lifecycle suite
 │   └── test_env.gd          # Test isolation helper (redirects save I/O to a temp dir)
 ├── scenes/
-│   ├── Main.tscn       # Entry point: Game coordinator plus explicit controller children
+│   ├── Main.tscn       # Entry point: Game coordinator plus explicit controller/service children
 │   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn
 │   ├── Level1–3.tscn   # Hand-placed levels
 │   ├── Level4.tscn     # Horizontal scrolling (1920 px wide)
@@ -134,8 +139,11 @@ cloude-game/
 
 The game uses a **signal-based, scene-driven** architecture, mostly avoiding singletons:
 
-- **`Game.gd`** is the run coordinator added to the `"game"` group. It remains the sole owner of gameplay state and lifecycle decisions: level loading, player signal wiring, health, score, coins, invulnerability, transitions, and run outcomes.
-- **Controller nodes declared in `Main.tscn`** own focused presentation and services: audio, HUD/feedback, main/pause/result menus, quests, cases, skins, and highscore persistence. Menu actions are sent back to `Game.gd` as intent signals; UI controllers do not keep competing copies of run state.
+- **`Game.gd`** is the run coordinator added to the `"game"` group. It remains the sole owner of gameplay state and lifecycle decisions: active stable level ID, level loading, player signal wiring, health, score, coins, invulnerability, transitions, and run outcomes.
+- **Controller and service nodes declared in `Main.tscn`** own focused concerns: audio, HUD/feedback, main/pause/result menus, quests, cases, skins, highscores, campaign progress, and the hidden campaign map shell. Menu actions are sent back to `Game.gd` as intent signals; UI controllers do not keep competing copies of run state.
+- **`CampaignCatalog.gd`** is the source of truth for stable region/level IDs, scene paths, prerequisites, route types, and map metadata. Region 1 maps to the current six playable scenes; Region 2 is deliberately unreleased scaffolding for eight main locations and two optional bonus branches.
+- **`CampaignProgressStore.gd`** persists campaign data separately in `user://campaign.cfg` through the shared `SaveData.gd` layer. It records per-level best score/coin results, sequential unlocks, trials, and clear/explore/master milestones without changing the existing six-level Start Game flow.
+- **The campaign map is infrastructure, not a shipped menu yet.** Its Greenglen-styled placeholder shell can render required paths as solid lines and optional bonus branches as dotted lines, but normal players still enter the familiar sequential run from the main menu.
 - **`GreenglenUI.gd`** builds one shared Theme/font bundle that is injected into every menu controller, preserving the existing visual system across the component split.
 - **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly. Combat remains lightweight and manual: rectangle colliders classify contact without adding physical Player/Enemy collision.
 - **`Coin.gd`** finds the game controller via `get_tree().get_first_node_in_group("game")`.
@@ -190,6 +198,7 @@ Before each `move_and_slide()`, the player records its previous global position 
 | POW! effect | Animated label that floats and fades on stomp |
 | Pause menu | Resume, Try Again, Exit to Menu |
 | Run results | One shared themed result menu for "Run Complete" and "Run Over" with Run Again/Main Menu; `R` starts a clean run |
+| Campaign foundation | Stable region/level IDs, isolated progress saves, unlock rules, and a hidden placeholder world-map shell; the public flow remains the current six-level run |
 | Scrolling levels | Camera clamps to `level_width` per level |
 
 ---

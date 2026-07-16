@@ -19,9 +19,14 @@ const SaveData := preload("res://scripts/SaveData.gd")
 
 const SUITES := [
 	"res://tests/test_save_system.gd",
+	"res://tests/test_campaign_progress.gd",
 	"res://tests/test_smoke.gd",
 ]
-const CANARY_FILES := ["highscore.cfg", "highscore.cfg.bak", "progression.cfg", "progression.cfg.bak"]
+const CANARY_FILES := [
+	"highscore.cfg", "highscore.cfg.bak",
+	"progression.cfg", "progression.cfg.bak",
+	"campaign.cfg", "campaign.cfg.bak",
+]
 
 var base_dir := ""
 

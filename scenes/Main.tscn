@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dh3trkvrd6uv8"]
+[gd_scene load_steps=11 format=3 uid="uid://dh3trkvrd6uv8"]
 
 [ext_resource type="Script" uid="uid://cem1u50vcdgtp" path="res://scripts/Game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/AudioController.gd" id="2_audio"]
@@ -8,6 +8,8 @@
 [ext_resource type="Script" path="res://scripts/QuestMenuController.gd" id="6_quests"]
 [ext_resource type="Script" path="res://scripts/CaseMenuController.gd" id="7_cases"]
 [ext_resource type="Script" path="res://scripts/SkinMenuController.gd" id="8_skins"]
+[ext_resource type="Script" path="res://scripts/CampaignProgressStore.gd" id="9_campaign_progress"]
+[ext_resource type="Script" path="res://scripts/CampaignMapController.gd" id="10_campaign_map"]
 
 [node name="Main" type="Node2D" unique_id=647499754]
 script = ExtResource("1_game")
@@ -32,3 +34,9 @@ script = ExtResource("7_cases")
 
 [node name="SkinMenuController" type="Node" parent="."]
 script = ExtResource("8_skins")
+
+[node name="CampaignProgressStore" type="Node" parent="."]
+script = ExtResource("9_campaign_progress")
+
+[node name="CampaignMapController" type="Node" parent="."]
+script = ExtResource("10_campaign_map")

@@ -73,7 +73,7 @@ func show_result(
 	result_score_value.text = str(run_score)
 	result_coins_value.text = str(run_coins)
 	result_best_label.text = best_text
-	result_record_label.text = "New Highscore!" if is_new_highscore else ""
+	result_record_label.text = "New Highscore!" if completed and is_new_highscore else ""
 	pause_menu.visible = false
 	run_result_menu.visible = true
 	result_run_again_btn.grab_focus()

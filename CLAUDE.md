@@ -6,7 +6,10 @@ via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `
 alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` automatisch
 übernommen, siehe Abschnitt "Save-Migration".)
 
-**Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, gemeinsamer Run-Result-Flow "Run Complete"/"Run Over"). Der generierte Chiptune-Sound ist witzig und rundet das Ganze gut ab.
+**Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, gemeinsamer Run-Result-Flow
+"Run Complete"/"Run Over"). Die technische Grundlage für eine spätere Region-/Weltkarten-
+Kampagne ist vorhanden, im normalen Menüfluss aber noch bewusst unsichtbar. Der generierte
+Chiptune-Sound ist witzig und rundet das Ganze gut ab.
 
 ## Spielprinzip
 
@@ -40,6 +43,10 @@ Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-
 ```
 scripts/
   Game.gd         # Run-Coordinator: Gameplay-State, Level-Lifecycle, Player-Signale, Transitions
+  CampaignCatalog.gd # Validierter, unveränderlicher Region-/Level-/Verbindungs-Katalog
+  CampaignProgressStore.gd # campaign.cfg: Unlocks, Abschlüsse, Bestwerte und Meilensteine
+  CampaignMapController.gd # Verborgene Weltkarten-Präsentation und Auswahl-Intents
+  CampaignMapPathLayer.gd # Zeichnet Required-/Optional-Verbindungen und deren Zustände
   AudioController.gd # Musik/SFX-Player, Voice-Pool und Pause-Ducking
   HUDController.gd   # HUD-Snapshot, transiente Meldung und POW!-Feedback
   GameMenuController.gd # Haupt-/Pause-/Result-Menü; emittiert nur Navigations-Intents
@@ -59,7 +66,7 @@ scripts/
   SaveData.gd     # Statische Save-Helfer: getypte Reads, [meta]-Versionierung, .bak-Backups (siehe Save-System)
 
 scenes/
-  Main.tscn         # Einstieg: Game.gd-Root + sieben explizite Controller-Kinder
+  Main.tscn         # Einstieg: Game.gd-Root + neun explizite Controller-/Service-Kinder
   Player.tscn       # CharacterBody2D + CollisionShape2D + Sprite2D
   Enemy.tscn        # CharacterBody2D + CollisionShape2D + Sprite2D
   Coin.tscn         # Area2D + CircleShape2D
@@ -91,9 +98,10 @@ tools/
   generate_audio.py   # Erzeugt alle WAVs in assets/audio/ (Python-Stdlib)
 
 tests/
-  run_all.gd          # DER Test-Runner: beide Suiten als isolierte Kind-Prozesse + Canary (siehe Tests-Abschnitt)
+  run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (154 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
+  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (52 Checks)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (190 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -102,22 +110,25 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 ## Architektur
 
 - **Level als .tscn-Dateien** → im Godot 2D-Editor visuell editierbar
-- **Game.gd** ist der schlanke Run-Coordinator und alleinige Besitzer von Levelindex, Health,
-  Score, Coins, Damage-Flags, Invulnerability, `RunOutcome` und `transition_gen`. Er lädt
-  Level-Scenes via `load(LEVELS[idx]).instantiate()` und verteilt Zustands-Snapshots/Intents
-  über kleine Controller-APIs; UI-Komponenten besitzen keine Kopie des Gameplay-Zustands.
+- **Game.gd** ist der schlanke Run-Coordinator und alleinige Besitzer von aktiver Region-/Level-ID,
+  numerischem Kompatibilitätsindex, Health, Score, Coins, Damage-Flags, Invulnerability,
+  `RunOutcome` und `transition_gen`. Er löst Szenen über `CampaignCatalog` auf; `LEVELS` bleibt
+  nur als Kompatibilitätsansicht auf die sechs Region-1-Pfade bestehen. Zustands-Snapshots/Intents
+  laufen über kleine Controller-APIs; UI-Komponenten besitzen keine Kopie des Gameplay-Zustands.
 - **Main.tscn komponiert die Controller sichtbar im Scene-Tree**: `AudioController`,
   `HighscoreStore`, `HUDController`, `GameMenuController`, `QuestMenuController`,
-  `CaseMenuController`, `SkinMenuController`. `Game._ready()` injiziert EIN gemeinsames
-  Theme und den Audio-Service, verbindet Intent-Signale genau einmal und startet danach
-  den normalen Menü-Lifecycle. Kein Controller ist ein zusätzlicher Autoload.
+  `CaseMenuController`, `SkinMenuController`, `CampaignProgressStore` und
+  `CampaignMapController`. `Game._ready()` injiziert EIN gemeinsames Theme, Catalog,
+  Progress-Store und Audio-Service, verbindet Intent-Signale genau einmal und startet danach
+  den normalen Menü-Lifecycle. Kein Controller/Store ist ein zusätzlicher Autoload.
 - **Kommunikationsgrenzen**: `GameMenuController` emittiert Start/Resume/Restart/Main-Menu/
   Submenu/Quit-Intents; die drei Submenüs emittieren `back_requested`, das Quest-Menü
   zusätzlich `keys_changed`. Nur Game entscheidet über Run-/Level-Lifecycle. Meta-Menüs
   lesen/ändern die Source of Truth `Progression`; Audio wird als explizite Referenz injiziert.
 - **UI-/CanvasLayer-Ownership**: `GameMenuController` besitzt Result (8), Main (9) und Pause
   (10), die Submenü-Controller je ihren Layer (11/12/13), `HUDController` den Gameplay-HUD
-  plus temporäre POW-Layer (20), `CaseMenuController` temporäre Reveal-Layer (21).
+  plus temporäre POW-Layer (20), `CampaignMapController` die verborgene Karte (14),
+  `CaseMenuController` temporäre Reveal-Layer (21).
 - **Player** wird von Game.gd per `find_child("PlayerSpawn")` im Level platziert
 - **Kommunikation per Signals** (nicht get_parent().get_parent()):
   - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`, `jumped`, `double_jumped`
@@ -136,11 +147,51 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
   Level wechseln, ins Menü führen oder den Run beenden, müssen durch eine dieser
   Funktionen laufen (oder das Token selbst erhöhen)
 
+## Kampagnen-/Region-Infrastruktur
+
+Die Weltkarten-Kampagne ist als technische Grundlage implementiert, aber noch **kein öffentlich
+erreichbarer Spielmodus**. `Start Game` startet weiterhin den bekannten linearen Run durch die
+sechs vorhandenen Level; automatische Übergänge, Result-Menü und Highscore-Policy bleiben
+unverändert. Namen, Kartenpositionen und Hintergrund-Art sind vorerst Platzhalter.
+
+- **Catalog als Source of Truth**: `CampaignCatalog.gd` definiert stabile IDs, Reihenfolge,
+  Szenenpfade, Voraussetzungen, Kartenpositionen, Fokus-Nachbarn, Core Trials und Verbindungen.
+  Region 1 (`region_01`) enthält `r01_level_01` bis `r01_level_06` mit den sechs realen Szenen.
+  Region 2 (`region_02`) enthält acht Main- und zwei Bonus-Level als unveröffentlichte Platzhalter
+  mit leeren Szenenpfaden. Der Validator lehnt u.a. doppelte IDs, dangling references,
+  unerreichbare Required-Nodes, Zyklen und veröffentlichte Level ohne Szene ab.
+- **Verbindungssemantik**: `required` ist ein durchgezogener Progressionspfad; `optional` ist eine
+  gestrichelte Bonus-Abzweigung und nie Voraussetzung für `cleared`. Locked/undiscovered ist ein
+  eigener, gedimmter Darstellungszustand und ändert die Linienbedeutung nicht.
+- **Persistenz**: `CampaignProgressStore.gd` besitzt `user://campaign.cfg` (Schema v1) und nutzt
+  `SaveData.gd` für getypte Reads, Normalisierung, `.bak`-Recovery und Testpfad-Isolation. Alte
+  Installationen brauchen keine Migration: die Datei existierte vor dieser Infrastruktur nicht
+  und startet deshalb unabhängig von `progression.cfg`/`highscore.cfg` mit sicheren Defaults.
+  Gespeichert werden freigeschaltete Regionen/Level, abgeschlossene Level, lokale Bestwerte,
+  Trial-Fortschritt, genau-einmal-Meilensteine und die letzte Kartenauswahl.
+- **Freischaltung und Status**: Neu startet nur Region 1 / Level 1 offen. Ein abgeschlossenes
+  Main-Level schaltet seinen Required-Nachfolger frei. `cleared` verlangt alle Main-Level plus
+  alle Core Trials; `explored` ergänzt alle Bonus-Level; `mastered` verlangt alle Main-/Bonus-Level
+  plus Mastery Trials. Region 1 hat derzeit weder Bonus-Level noch Core/Mastery Trials und wird
+  daher nach allen sechs Main-Leveln zugleich cleared, explored und mastered. Bereits erreichte
+  Meilensteine werden beim späteren Veröffentlichen einer Folgeregion idempotent abgeglichen.
+- **Level-Ergebnisse**: `_load_level_by_id()` setzt `current_region_id`, `current_level_id` und
+  lokale Score-/Coin-Baselines. `reach_goal()` schreibt den stabilen Levelabschluss synchron und
+  genau einmal, bevor die 1s-Transition wartet; gespeichert wird das Delta dieses Levels statt
+  des kumulierten Run-Werts. Bestwertvergleich: höherer Score, bei Gleichstand mehr Coins.
+- **Karten-Shell**: `CampaignMapController` besitzt einen `PROCESS_MODE_ALWAYS`-Layer 14, nutzt
+  das gemeinsame Greenglen-Theme und rendert Region 1 sowie die unveröffentlichte Region 2.
+  Map-Nodes verwenden kompakte lokale Styles, normale Aktionen die original proportionierten
+  Greenglen-Buttons. Unveröffentlichte/gesperrte Level können keinen `level_requested`-Intent
+  auslösen. Die Shell ist nur über `Game.show_campaign_map_preview()` für Entwicklung/Tests
+  erreichbar und wird von `_show_main_menu()` zuverlässig versteckt.
+
 ## Run-Result-System (Game.gd)
 
 Ein gemeinsames, outcome-getriebenes Result-Menü ersetzt den alten Win-Screen und die
-"Ouch!"-Textmeldung. Terminologie ist bewusst Run-orientiert ("Run Over" / "Run Complete" /
-"Run Again"), da das Spiel später ggf. ein Infinite Runner wird.
+"Ouch!"-Textmeldung. Die bewusst mode-neutrale Run-Terminologie ("Run Over" / "Run Complete" /
+"Run Again") funktioniert sowohl im aktuellen Sechs-Level-Lauf als auch später innerhalb der
+Weltkarten-Kampagne oder eines getrennten Endless-Challenge-Modus.
 
 - **Zustand**: `enum RunOutcome { NONE, FAILED, COMPLETED }` + `run_outcome`. NONE = Run
   läuft; FAILED (tödlicher Treffer/Fall) und COMPLETED (Level 6 geschafft) sind final —
@@ -148,8 +199,10 @@ Ein gemeinsames, outcome-getriebenes Result-Menü ersetzt den alten Win-Screen u
 - **Genau-einmal-Garantie**: `_finish_run(outcome)` ist der EINZIGE Lifecycle-Eintritts-
   punkt für das Run-Ende. Guard: bei `run_outcome != NONE` ist jeder weitere Aufruf
   (doppelte Fatal-/Goal-Signale, nachlaufende Callbacks) ein No-Op — Highscore-Submit und
-  Quest-Fortschritt können nie doppelt vergeben werden. `damage_player()`/`fell_off_world()`/
-  `reach_goal()` sind zusätzlich über `run_outcome`/`transitioning` geguardet.
+  Quest-Fortschritt können nie doppelt vergeben werden. `_finish_run()`, `damage_player()`,
+  `fell_off_world()` und `reach_goal()` ignorieren außerdem Aufrufe im Hauptmenü; dadurch können
+  Signale eines per `queue_free()` abgeräumten Levels kein Result erneut öffnen. Die Gameplay-
+  Handler sind zusätzlich über `run_outcome`/`transitioning` geguardet.
 - **Completed-only-Policy**: `_submit_run()` (Highscore) und der `finish_run`-/
   `no_damage_run`-Quest-Progress laufen ausschließlich im COMPLETED-Zweig von
   `_finish_run()`. FAILED spielt den Death-SFX, stoppt die Musik und zeigt nur das
@@ -163,7 +216,9 @@ Ein gemeinsames, outcome-getriebenes Result-Menü ersetzt den alten Win-Screen u
   (`RESULT_COMPLETED_ACCENT` = Gold wie Legendary-/Highscore-Akzente,
   `RESULT_FAILED_ACCENT` = zurückhaltendes warmes Rot-Orange); darunter Final Score,
   Coins, Best-Run-Zeile (bzw. "No completed run yet") und die stabile optionale
-  "New Highscore!"-Zeile. "Run Again" erhält initialen Tastatur-Fokus. Das letzte
+  "New Highscore!"-Zeile. `show_result()` koppelt diese Zeile defensiv an `completed`, sodass
+  selbst ein fehlerhaftes `is_new_highscore=true` bei FAILED keinen Record-Text zeigt.
+  "Run Again" erhält initialen Tastatur-Fokus. Das letzte
   Gameplay-Bild bleibt hinter dem dunklen Dimmer sichtbar (`level_root` =
   `PROCESS_MODE_DISABLED`), HUD ist ausgeblendet.
 - **Kein UI über dem Result**: Escape öffnet KEIN Pause-Menü, solange ein Result aktiv
@@ -321,14 +376,16 @@ siehe Abschnitt "Save-System"). Nur lokal — kein Online-Leaderboard (geplant: 
 
 ## Save-System (SaveData.gd — Versionierung, Validierung & Backups)
 
-Beide Saves (`user://highscore.cfg`, `user://progression.cfg`) laufen über die statischen
-Helfer in `scripts/SaveData.gd` (getypte Reads, Versionierung, Backup/Recovery). Die
-inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
-`Progression.gd` mit `QUEST_POOL`/`WEEKLY_POOL`/`SKIN_TIERS` als Source of Truth.
+Alle drei Saves (`user://highscore.cfg`, `user://progression.cfg`, `user://campaign.cfg`)
+laufen über die statischen Helfer in `scripts/SaveData.gd` (getypte Reads, Versionierung,
+Backup/Recovery). Die inhaltliche Normalisierung bleibt bewusst bei den Besitzern der
+Definitionen — `Progression.gd` mit `QUEST_POOL`/`WEEKLY_POOL`/`SKIN_TIERS` und
+`CampaignCatalog.gd` mit Region-/Level-/Trial-Definitionen als jeweilige Source of Truth.
 
-- **Schema-Versionen** (`[meta] version`): beide Dateien aktuell **v2**
+- **Schema-Versionen** (`[meta] version`): Progression und Highscore aktuell **v2**
   (`Progression.SAVE_VERSION`, `HighscoreStore.SAVE_VERSION`; Game exportiert nur einen
-  Kompatibilitäts-Alias). Fehlt die `[meta]`-Sektion,
+  Kompatibilitäts-Alias), Campaign aktuell **v1** (`CampaignProgressStore.SAVE_VERSION`).
+  Fehlt bei den beiden älteren Save-Formaten die `[meta]`-Sektion,
   gilt die Datei als **v1** = unversioniertes Original-Schema und bleibt dauerhaft ladbar
   (v1 und v2 haben identisches Feld-Layout, v2 ergänzt nur `[meta]` + Validierung beim Laden).
   Das v1→v2-Upgrade passiert beim ersten Laden (Normalisieren + Neuschreiben) und ist
@@ -337,7 +394,9 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
 - **Getypte Reads** (`SaveData.read_int/read_string/read_array`, `int_at`/`bool_at` für
   Array-Elemente): jedes Feld fällt bei falschem Typ einzeln auf seinen Default zurück
   (mit `push_warning`) — ein einzelnes kaputtes Feld resettet nie den restlichen Save.
-  Numerische Felder (Keys, Fragmente, Shards, Zähler, Score, Coins) werden auf ≥ 0 geklemmt.
+  Numerische Progression-/Highscore-Felder (Keys, Fragmente, Shards, Zähler, Score, Coins)
+  werden auf ≥ 0 geklemmt. Campaign-Levelscore darf negativ sein, da Treffer/Fälle den
+  tatsächlichen Levelwert senken; Coins und Trial-Zähler bleiben nichtnegativ.
 - **Normalisierung** (`Progression._normalize_state()`, Teil von `load_and_validate()`,
   das `_ready()` nach der Migration aufruft):
   - **Daily/Weekly-Quests**: unbekannte, doppelte und falsch getypte Quest-IDs werden
@@ -352,6 +411,10 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
     (`""`) zurück. Das entfernt auch `bronze_knight`/`silver_knight` aus älteren Saves und
     persistiert die Bereinigung ohne Schema-Bump. `best_pull` muss ein Tier aus `TIER_RANK` sein,
     sonst Reset auf `""` (der entfernte Tierwert `common` wird dadurch ebenfalls bereinigt).
+- **Campaign-Normalisierung** (`CampaignProgressStore._normalize_state()`): unbekannte IDs,
+  unveröffentlichte Unlocks, ungültige Record-/Trial-Daten und widersprüchliche letzte Auswahl
+  werden entfernt bzw. sicher gedefaultet. Region 1 / Level 1 bleibt immer der gültige Einstieg;
+  abgeleitete Clear/Explore/Mastery-Meilensteine werden idempotent abgeglichen.
 - **Backups & Recovery** (`SaveData.save_with_backup`/`load_with_backup`): vor jedem
   Überschreiben wird die bestehende Datei — sofern sie noch als ConfigFile parst — nach
   `<datei>.bak` kopiert. Ist der Haupt-Save beim Laden korrupt, wird das Backup geladen
@@ -381,6 +444,8 @@ unauffindbar im alten `app_userdata`-Ordner).
 - **Aufruf**: `SaveMigration.migrate_old_saves()` als erste Zeile in `Progression._ready()` —
   Progression ist Autoload und läuft vor Game.gd, die Migration passiert also garantiert vor
   dem Laden BEIDER Saves (`progression.cfg` und `highscore.cfg`).
+  `campaign.cfg` wird nicht migriert, weil es im alten Produktzustand noch nicht existierte;
+  `CampaignProgressStore` legt bei Bedarf unabhängig einen frischen v1-Save an.
 - **Pfad-Ermittlung**: alter Ordner = Geschwister-Verzeichnis von `OS.get_user_data_dir()`
   (`.get_base_dir().path_join("Cloude Game")`) — kein hartkodierter absoluter Pfad,
   funktioniert auf macOS, Windows und Linux. Existiert der alte Ordner nicht (frische
@@ -539,30 +604,37 @@ komplette Suite (Godot 4.6):
 ```
 
 Exit-Code `0` = alle Suiten grün UND Canary unverändert; jeder Fehlschlag liefert `1`.
-Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bzw.
-`test_smoke.gd`) und isolieren sich dann selbst. WARNING-Zeilen im Output sind erwartet
+Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
+`test_campaign_progress.gd` bzw. `test_smoke.gd`) und isolieren sich dann selbst.
+WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (237 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
-  `HighscoreStore`-Test) und `test_smoke.gd` (154: Main-Komponenten/Interfaces,
+- **Suiten (325 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+  `HighscoreStore`-Test), `test_campaign_progress.gd` (52: Catalog-Validierung,
+  frischer/kaputter Save, Backup-Recovery, stabile IDs, Required-/Optional-Unlocks,
+  Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
+  und `test_smoke.gd` (190: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
+  verborgene Karten-Shell beider Regionen, Fokus/Play-Guards, Liniensemantik,
   Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
   Player-Szene inkl. Signale, Input-Actions, Audio- und
   Skin-Ressourcen, Case-Gewichtssummen, Quest-/Skin-ID-Eindeutigkeit, alle 6 Level
   (PlayerSpawn/Platforms/level_width/Goal), Level-6-Randomisierung (Anzahlen, Platzierung
   nur auf `spawn_platforms`, Start-/Ziel-Plattform unmarkiert), Run-Result-Lifecycle
-  (beide Ausgänge, Genau-einmal-Garantie, Highscore-Policy, Escape-/R-Verhalten,
-  Clean-Run-Resets) und Transition-Cancellation (normal, Restart, Menü-Exit, Run-Ende)).
+  (tödlicher Gegnerkontakt/Fall, beide Ausgänge, echte Result-/Pause-Button-Pfade,
+  Genau-einmal-Garantie, defensive Highscore-Policy, Escape-/R-Verhalten,
+  Hauptmenü-Callback-Guards, Clean-Run-Resets) und Transition-Cancellation
+  (normal, Restart, Menü-Exit, Run-Ende)).
 - **Isolation (verifiziert)**: Jede Suite setzt in `_init()` — also VOR der Autoload-
   Registrierung (Autoloads starten im `-s`-Modus nach `_init`, vor dem ersten Frame) —
   `GOGG_TEST_SAVE_DIR` (siehe `SaveData.test_save_dir()` und `tests/test_env.gd`) auf ein
-  frisches Temp-Verzeichnis. Dadurch leiten auch das mitbootende Progression-Autoload und
-  Progression und `HighscoreStore` ihre Save-Pfade dorthin um und die Save-Migration wird
-  übersprungen — echte
-  Saves unter `user://` werden weder gelesen noch geschrieben. Der Runner gibt jeder
+  frisches Temp-Verzeichnis. Dadurch leiten das mitbootende Progression-Autoload,
+  `HighscoreStore` und `CampaignProgressStore` ihre Save-Pfade dorthin um; die Save-Migration
+  wird übersprungen. Echte Saves unter `user://` werden weder gelesen noch geschrieben.
+  Der Runner gibt jeder
   Suite ein eigenes Unterverzeichnis und BEWEIST die Isolation per Canary: MD5-Hashes
-  von `highscore.cfg`/`progression.cfg` (+ `.bak`) vor und nach dem Lauf; jede Änderung
-  schlägt den Lauf fehl. Temp-Verzeichnisse werden bei Erfolg entfernt, bei Fehlschlag
+  von `highscore.cfg`/`progression.cfg`/`campaign.cfg` (+ `.bak`) vor und nach dem Lauf;
+  jede Änderung schlägt den Lauf fehl. Temp-Verzeichnisse werden bei Erfolg entfernt, bei Fehlschlag
   zur Analyse belassen. Ohne die Env-Variable ist das Produktionsverhalten unverändert.
 - **Determinismus**: Zufall geseedet (Quest-Rolls, Level-6-Spawns via `seed()`); Warte-
   Assertions nutzen großzügige Zeitmargen statt Frame-Zählungen. Zwei aufeinanderfolgende
@@ -572,8 +644,8 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
 - **Wichtig für neue Tests**: Game.gd referenziert das Autoload `Progression` und
   kompiliert im `-s`-Modus erst nach der Autoload-Registrierung — Game.gd daher nie
   `preload`en, sondern zur Laufzeit (nach dem ersten Frame) laden bzw. über Main.tscn
-  instanziieren. `Progression.save_path` und `HighscoreStore.save_path` bleiben zusätzlich
-  pro Instanz übersteuerbar.
+  instanziieren. `Progression.save_path`, `HighscoreStore.save_path` und
+  `CampaignProgressStore.save_path` bleiben zusätzlich pro Instanz übersteuerbar.
 
 ## Viewport
 

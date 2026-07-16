@@ -4,17 +4,13 @@ const SaveData := preload("res://scripts/SaveData.gd")
 const GreenglenUI := preload("res://scripts/GreenglenUI.gd")
 const AudioControllerScript := preload("res://scripts/AudioController.gd")
 const HighscoreStoreScript := preload("res://scripts/HighscoreStore.gd")
+const CampaignCatalogScript := preload("res://scripts/CampaignCatalog.gd")
+const CampaignProgressStoreScript := preload("res://scripts/CampaignProgressStore.gd")
 
 const MAX_HEALTH := 3
 
-const LEVELS := [
-	"res://scenes/Level1.tscn",
-	"res://scenes/Level2.tscn",
-	"res://scenes/Level3.tscn",
-	"res://scenes/Level4.tscn",
-	"res://scenes/Level5.tscn",
-	"res://scenes/Level6.tscn",
-]
+# Compatibility view for resource checks. CampaignCatalog is the source of truth.
+const LEVELS := CampaignCatalogScript.REGION_1_SCENE_PATHS
 
 # Compatibility aliases for resource validation and the future leaderboard hook.
 const SFX_FILES := AudioControllerScript.SFX_FILES
@@ -25,6 +21,8 @@ const HIGHSCORE_SAVE_VERSION := HighscoreStoreScript.SAVE_VERSION
 enum RunOutcome { NONE, FAILED, COMPLETED }
 
 var current_level := 0
+var current_region_id := CampaignCatalogScript.REGION_1_ID
+var current_level_id := "r01_level_01"
 var health := MAX_HEALTH
 var score := 0
 var coin_count := 0
@@ -37,6 +35,9 @@ var player: CharacterBody2D
 var in_main_menu := true
 var took_damage_this_level := false
 var took_damage_this_run := false
+var level_score_start := 0
+var level_coins_start := 0
+var campaign_catalog: RefCounted
 
 var ui_theme: Theme
 var ui_heading_font: Font
@@ -49,12 +50,15 @@ var ui_body_font: Font
 @onready var quest_menu: Node = $QuestMenuController
 @onready var case_menu: Node = $CaseMenuController
 @onready var skin_menu: Node = $SkinMenuController
+@onready var campaign_progress: Node = $CampaignProgressStore
+@onready var campaign_map: Node = $CampaignMapController
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("game")
 	_configure_highscore_store()
+	_configure_campaign()
 	var theme_bundle := GreenglenUI.build_theme_bundle()
 	ui_theme = theme_bundle.theme
 	ui_heading_font = theme_bundle.heading_font
@@ -64,6 +68,8 @@ func _ready() -> void:
 	quest_menu.initialize(ui_theme, ui_heading_font, audio)
 	case_menu.initialize(ui_theme, ui_heading_font, audio)
 	skin_menu.initialize(ui_theme, ui_heading_font, audio)
+	campaign_map.initialize(
+		ui_theme, ui_heading_font, ui_body_font, campaign_catalog, campaign_progress, audio)
 	_connect_components()
 	_show_main_menu()
 
@@ -75,6 +81,19 @@ func _configure_highscore_store() -> void:
 		save_path = test_dir.path_join("highscore.cfg")
 	highscore_store.configure(save_path)
 	highscore_store.load_data()
+
+
+func _configure_campaign() -> void:
+	campaign_catalog = CampaignCatalogScript.new()
+	var errors: PackedStringArray = campaign_catalog.call("validate")
+	for error: String in errors:
+		push_error("Campaign catalog: %s" % error)
+	var campaign_path: String = CampaignProgressStoreScript.SAVE_PATH
+	var test_dir := SaveData.test_save_dir()
+	if test_dir != "":
+		campaign_path = test_dir.path_join("campaign.cfg")
+	campaign_progress.configure(campaign_catalog, campaign_path)
+	campaign_progress.load_data()
 
 
 func _connect_components() -> void:
@@ -90,6 +109,8 @@ func _connect_components() -> void:
 	quest_menu.keys_changed.connect(_update_hud)
 	case_menu.back_requested.connect(_hide_submenus)
 	skin_menu.back_requested.connect(_hide_submenus)
+	campaign_map.level_requested.connect(_start_campaign_level)
+	campaign_map.back_requested.connect(_show_main_menu)
 
 
 func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
@@ -114,6 +135,7 @@ func _show_main_menu() -> void:
 	get_tree().paused = false
 	menus.set_pause_visible(false)
 	menus.hide_result()
+	campaign_map.hide_map()
 	hud.hide_gameplay()
 	hud.hide_message()
 	if level_root:
@@ -138,6 +160,44 @@ func _start_game() -> void:
 	_set_music_ducked(false)
 	audio.start_music()
 	_load_level(0)
+
+
+func show_campaign_map_preview(region_id := CampaignCatalogScript.REGION_1_ID) -> void:
+	transition_gen += 1
+	transitioning = false
+	invuln_until = 0.0
+	run_outcome = RunOutcome.NONE
+	in_main_menu = true
+	get_tree().paused = false
+	menus.hide_main_menu()
+	menus.set_pause_visible(false)
+	menus.hide_result()
+	hud.hide_gameplay()
+	hud.hide_message()
+	quest_menu.hide_menu()
+	case_menu.hide_menu()
+	skin_menu.hide_menu()
+	if level_root:
+		level_root.queue_free()
+		level_root = null
+	audio.stop_music()
+	_set_music_ducked(false)
+	campaign_map.show_region(region_id)
+
+
+func _start_campaign_level(level_id: String) -> void:
+	if not campaign_progress.can_play_level(level_id):
+		return
+	in_main_menu = false
+	campaign_map.hide_map()
+	menus.hide_main_menu()
+	hud.show_gameplay()
+	score = 0
+	coin_count = 0
+	took_damage_this_run = false
+	_set_music_ducked(false)
+	audio.start_music()
+	_load_level_by_id(level_id)
 
 
 func _quit_game() -> void:
@@ -219,10 +279,30 @@ func coin_collected() -> void:
 
 
 func _load_level(index: int) -> void:
+	var main_level_ids := campaign_catalog.call(
+		"get_main_level_ids", CampaignCatalogScript.REGION_1_ID) as Array
+	if index < 0 or index >= main_level_ids.size():
+		push_warning("Campaign: invalid Region 1 level index %d" % index)
+		return
+	_load_level_by_id(String(main_level_ids[index]))
+
+
+func _load_level_by_id(level_id: String) -> void:
+	var level_definition := campaign_catalog.call("get_level", level_id) as Dictionary
+	if level_definition.is_empty() or not campaign_progress.can_play_level(level_id):
+		push_warning("Campaign: level '%s' is unknown, locked, or unavailable" % level_id)
+		return
+	var scene_path := String(level_definition.get("scene_path", ""))
+	var packed := load(scene_path) as PackedScene
+	if packed == null:
+		push_warning("Campaign: level '%s' has no loadable scene" % level_id)
+		return
 	transition_gen += 1
 	if level_root:
 		level_root.queue_free()
-	current_level = index
+	current_region_id = String(level_definition.get("region_id", ""))
+	current_level_id = level_id
+	current_level = int(campaign_catalog.call("get_main_level_index", level_id))
 	health = MAX_HEALTH
 	transitioning = false
 	took_damage_this_level = false
@@ -232,7 +312,6 @@ func _load_level(index: int) -> void:
 	menus.hide_result()
 	hud.show_gameplay()
 
-	var packed: PackedScene = load(LEVELS[index])
 	level_root = packed.instantiate() as Node2D
 	level_root.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(level_root)
@@ -261,6 +340,8 @@ func _load_level(index: int) -> void:
 	camera.limit_right = level_root.level_width
 	camera.limit_bottom = 540
 	player.add_child(camera)
+	level_score_start = score
+	level_coins_start = coin_count
 	_update_hud()
 
 
@@ -281,7 +362,7 @@ func enemy_killed() -> void:
 
 
 func damage_player() -> void:
-	if run_outcome != RunOutcome.NONE or transitioning:
+	if in_main_menu or run_outcome != RunOutcome.NONE or transitioning:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < invuln_until:
@@ -300,7 +381,7 @@ func damage_player() -> void:
 
 
 func fell_off_world() -> void:
-	if run_outcome != RunOutcome.NONE or transitioning:
+	if in_main_menu or run_outcome != RunOutcome.NONE or transitioning:
 		return
 	health -= 1
 	score -= 1
@@ -319,27 +400,32 @@ func fell_off_world() -> void:
 
 
 func reach_goal() -> void:
-	if transitioning or run_outcome != RunOutcome.NONE:
+	if in_main_menu or transitioning or run_outcome != RunOutcome.NONE:
 		return
 	transitioning = true
+	campaign_progress.record_level_completion(
+		current_level_id,
+		score - level_score_start,
+		coin_count - level_coins_start,
+	)
 	if not took_damage_this_level:
 		Progression.add_quest_progress("no_damage_goal")
 	Progression.add_quest_progress("level_clear")
-	if current_level + 1 < LEVELS.size():
+	var next_level_id := String(campaign_catalog.call("get_next_main_level_id", current_level_id))
+	if next_level_id != "":
 		play_sfx("level_clear")
 		_show_message("Level Cleared!")
-		var next_level := current_level + 1
 		var generation := transition_gen
 		await get_tree().create_timer(1.0, false).timeout
 		if generation != transition_gen or in_main_menu:
 			return
-		_load_level(next_level)
+		_load_level_by_id(next_level_id)
 	else:
 		_finish_run(RunOutcome.COMPLETED)
 
 
 func _finish_run(outcome: RunOutcome) -> void:
-	if outcome == RunOutcome.NONE or run_outcome != RunOutcome.NONE:
+	if in_main_menu or outcome == RunOutcome.NONE or run_outcome != RunOutcome.NONE:
 		return
 	run_outcome = outcome
 	transition_gen += 1
