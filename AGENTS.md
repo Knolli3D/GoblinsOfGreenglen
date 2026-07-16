@@ -13,11 +13,14 @@ alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` 
 Ritter springt durch 6 Level (Level 4+5 mit horizontalem Scrolling, Level 6 mit zufälliger
 Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-Flag.
 - 3 Herzen (Health), Score +1 pro Kill, -1 pro Treffer/Fall
+- Stomp zählt nur beim Abwärtsflug und beim Überqueren der Goblin-Oberkante von oben;
+  Aufwärts- und Seitenkontakt verursachen Schaden
 - 1s Invulnerability nach Treffer/Fall-Respawn (`invuln_until`); wird in `_load_level()` und
   im Hauptmenü auf 0.0 zurückgesetzt — bewusst keine Spawn-Protection beim Levelstart
   (PlayerSpawn liegt überall abseits der Gegner)
 - Coins sammelbar (+1 pro Coin), werden im Win-Screen angezeigt
-- Nach 6 Leveln: Gewinn-Screen mit Final Score + Coin-Count
+- Nach 6 Leveln: eigener Greenglen-Gewinn-Screen mit Score, Coins, Bestwert, optionalem
+  "New Highscore!", "Play Again" und "Main Menu"; `R` startet ebenfalls neu
 - Stirbt der Spieler (0 HP): Freeze + "Ouch! Press R to retry"
 
 ## Steuerung
@@ -34,10 +37,10 @@ Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-
 
 ```
 scripts/
-  Game.gd         # Haupt-Controller: HUD, Menüs, Level laden, POW!-Effekt, Quests/Cases/Skins-UI
+  Game.gd         # Haupt-Controller: HUD, Menüs inkl. Win-Screen, Level laden, POW!, Meta-UI
   Progression.gd  # Autoload-Singleton: Daily Quests, Keys-Währung, Case-Opening, Skin-Inventory
-  Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Stomp, Signals, apply_skin()
-  Enemy.gd        # CharacterBody2D: Patrol (@export patrol_range), Kill-Logik
+  Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Swept-Stomp-Test, Signals, apply_skin()
+  Enemy.gd        # CharacterBody2D: Patrol, vorherige Globalposition, Kill-Logik
   Coin.gd         # Area2D: Coin-Pickup, ruft game.coin_collected()
   Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
   Platform.gd     # StaticBody2D: Sprite-Scale aus CollisionShape-Größe
@@ -87,6 +90,10 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 - **Kommunikation per Signals** (nicht get_parent().get_parent()):
   - `Player` emittiert: `stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`, `jumped`, `double_jumped`
   - `Coin` ruft `game.coin_collected()` via `get_tree().get_first_node_in_group("game")`
+- **Kampf bleibt signalbasiert und ohne Player/Enemy-Physikkollision**: `Player.gd` klassifiziert
+  Kontakte anhand der Rechteck-Collider und emittiert weiterhin nur `stomped_enemy` oder `hit_enemy`.
+  `Game._on_player_stomped_enemy()` prüft vor Kill/Score/SFX/Quest/POW nochmals `is_enemy()`, damit
+  ein veraltetes oder doppeltes Signal niemals mehrfach belohnt wird.
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
 - **Progression.gd** ist der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
   da Meta-Progression session-übergreifend und auch im Hauptmenü ohne geladenes Level lesbar sein muss)
@@ -114,6 +121,26 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 | Jump Velocity | -520 px/s |
 | Double-Jump Velocity | -460 px/s |
 | Enemy Speed | 60 px/s |
+| Stomp Top Tolerance | 2 px |
+| Min. horizontaler Stomp-Overlap | 4 px |
+
+## Stomp-Erkennung (Player.gd / Enemy.gd)
+
+Die Bodies kollidieren weiterhin nicht physisch miteinander; die leichte manuelle Kampflogik ist
+jetzt aber richtungs- und frameratefest:
+
+- `Player._physics_process()` merkt sich direkt vor `move_and_slide()` die vorherige
+  `global_position` und ob `velocity.y > 0.0` war. Nur ein abwärts bewegter Player kann stompen.
+- Player- und Enemy-Ausdehnung kommen aus ihren echten `RectangleShape2D`-Collidern inklusive
+  globaler Skalierung; die alten Magic Numbers `dx < 25` / `dy < 35` sind entfernt.
+- `Enemy.gd` speichert pro Physikframe seine vorherige Globalposition. Dadurch wird der Zeitpunkt,
+  an dem die Player-Füße die bewegte Enemy-Oberkante kreuzen, zwischen vorheriger und aktueller
+  Position interpoliert. An diesem Zeitpunkt müssen mindestens 4 px horizontal überlappen;
+  `STOMP_TOP_TOLERANCE` (2 px) hält den Stomp leicht verzeihend.
+- Jeder andere Swept-AABB-Kontakt — von unten, von der Seite oder mit zu wenig Top-Overlap —
+  emittiert `hit_enemy`. Das Sweeping verhindert Durchtunneln bei groben Physikschritten.
+- Tote Gegner liefern `is_enemy() == false` und werden ignoriert. Nach einem gültigen Stomp bleiben
+  Bounce (`velocity.y = DOUBLE_JUMP_VELOCITY`) und `jumps_remaining = MAX_JUMPS` unverändert.
 
 ## Level editieren
 
@@ -203,7 +230,7 @@ Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` →
 Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFile, Sektion
 `[highscore]` mit `score` + `coins`). Nur lokal — kein Online-Leaderboard (geplant: später via Website).
 - **Game.gd**: `_load_highscore()` in `_ready()`, `_submit_run(score, coins)` beim Win-Screen
-  (speichert nur, wenn besser: höherer Score, bei Gleichstand mehr Coins) → zeigt "★ New Highscore! ★"
+  (speichert nur, wenn besser: höherer Score, bei Gleichstand mehr Coins) → zeigt "New Highscore!"
   bzw. den bestehenden Bestwert an. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
 - Für das spätere Web-Leaderboard ist `_submit_run()` der einzige Hook-Punkt.
 
@@ -321,7 +348,7 @@ Quests verdient (nicht mit Coins kaufbar, damit Cases nicht trivial grindbar sin
 ## UI-Theme (Greenglen-Buttons + Cinzel-Typografie)
 
 Ein einziges `Theme`-Objekt (`ui_theme`, gebaut von `_build_ui_theme()` in `_ready()`) wird auf
-alle Menü-Root-Controls gesetzt (Hauptmenü, Pause, Quests/Cases/Skins) und vererbt sich auf
+alle Menü-Root-Controls gesetzt (Hauptmenü, Pause, Win, Quests/Cases/Skins) und vererbt sich auf
 sämtliche Button-Kinder — kein wiederholtes Stylebox-Bauen pro Button nötig.
 
 - **Button-Texturen**: `assets/ui/buttons/button_greenglen_{normal,hover,pressed,disabled}.png`
@@ -345,6 +372,13 @@ sämtliche Button-Kinder — kein wiederholtes Stylebox-Bauen pro Button nötig.
   Hintergrund darunter. `assets/icon_GoGg.png` (1024×1024) ist via `config/icon` in
   `project.godot` das Fenster-/Dock-Icon und wird im macOS-Export-Preset als App-Icon verwendet
   (`export_presets.cfg` ist gitignored).
+- **Gewinn-Screen**: `_build_win_menu()` erzeugt einen eigenen `CanvasLayer` (layer 8) mit
+  abgedunkeltem, weiterhin sichtbarem Level, zentriertem Container-Layout, Final Score, Coins,
+  Bestwert und stabiler optionaler Highscore-Zeile. "Play Again" nutzt
+  `_restart_level_from_menu()`/`_load_level(0)`, "Main Menu" nutzt `_show_main_menu()`;
+  `_load_level()` blendet den Win-Screen zentral aus und stellt den Gameplay-HUD wieder her.
+  `win_menu.process_mode = PROCESS_MODE_ALWAYS` hält die Buttons bedienbar, obwohl das fertige
+  `level_root` deaktiviert ist. Der alte `win_label` bleibt nur für Level-Clear-/Death-Meldungen.
 
 ## Viewport
 

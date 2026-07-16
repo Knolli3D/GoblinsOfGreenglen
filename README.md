@@ -11,11 +11,11 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 ## Gameplay
 
 - **6 levels** of increasing difficulty — Levels 4–5 scroll horizontally, Level 6 randomizes enemy/coin placement on every playthrough
-- **Stomp enemies** (jump on top of a Goblin) to earn score points
+- **Stomp enemies** by landing clearly on top while descending; upward and side contacts deal damage
 - **Collect coins** scattered across each level
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
-- **Win screen** shows your final score and total coins collected after Level 6
+- **Greenglen win menu** shows score, coins, best run, and new-record status after Level 6, with Play Again and Main Menu buttons
 
 ---
 
@@ -33,7 +33,13 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 
 ## Screenshots
 
-> *(Add screenshots of gameplay here)*
+### Main Menu
+
+![Goblins of Greenglen main menu](assets/screenshots/main-menu.png)
+
+### Gameplay
+
+![Goblins of Greenglen platforming gameplay](assets/screenshots/gameplay.png)
 
 ---
 
@@ -62,10 +68,10 @@ No external plugins or dependencies required.
 ```
 cloude-game/
 ├── scripts/
-│   ├── Game.gd          # Main controller: HUD, menus, level loading, POW! effect, quests/cases/skins UI, UI theme
+│   ├── Game.gd          # Main controller: HUD, menus including results, level loading, POW!, meta UI
 │   ├── Progression.gd   # Autoload singleton: daily/weekly quests, keys, case opening, skin inventory
-│   ├── Player.gd        # CharacterBody2D: movement, double-jump, stomp, signals, apply_skin()
-│   ├── Enemy.gd         # CharacterBody2D: patrol AI, kill logic
+│   ├── Player.gd        # CharacterBody2D: movement, double-jump, swept stomp detection, signals, skins
+│   ├── Enemy.gd         # CharacterBody2D: patrol AI, previous position tracking, kill logic
 │   ├── Coin.gd          # Area2D: coin pickup
 │   ├── Goal.gd          # Area2D: level exit flag
 │   ├── Platform.gd      # StaticBody2D: sprite scaling from collision shape
@@ -86,6 +92,7 @@ cloude-game/
 │   ├── menubackground.png / menu_bg_quests.png / menu_bg_cases.png / menu_bg_skins.png  # Menu backgrounds
 │   ├── LOGO_menu_GoGg.png / icon_GoGg.png  # Main-menu logo and app/window icon
 │   ├── ui/buttons/button_greenglen_*.png   # Nine-patch button art (normal/hover/pressed/disabled)
+│   ├── screenshots/              # Main-menu and gameplay images used in this README
 │   └── audio/                  # Generated chiptune SFX + looping music
 └── Cinzel/              # Cinzel font family (SIL OFL) used for all UI text
 ```
@@ -99,7 +106,7 @@ cloude-game/
 The game uses a **signal-based, scene-driven** architecture, mostly avoiding singletons:
 
 - **`Game.gd`** is the central controller added to the `"game"` group. It loads level scenes dynamically, spawns the player at the `PlayerSpawn` marker, and handles all game state (health, score, coins, transitions).
-- **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly.
+- **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly. Combat remains lightweight and manual: rectangle colliders classify contact without adding physical Player/Enemy collision.
 - **`Coin.gd`** finds the game controller via `get_tree().get_first_node_in_group("game")`.
 - **`Progression.gd`** is the project's one deliberate autoload/singleton — meta-progression (quests, keys, cases, skins) needs to persist across level loads and be readable from the main menu, where the group-lookup pattern doesn't apply.
 - **Levels** are `.tscn` files edited visually in the Godot 2D editor. Enemy patrol range and spawn positions are set as exported properties in the Inspector.
@@ -123,6 +130,12 @@ The game uses a **signal-based, scene-driven** architecture, mostly avoiding sin
 | Jump velocity | −520 px/s |
 | Double-jump velocity | −460 px/s |
 | Enemy patrol speed | 60 px/s |
+| Stomp top tolerance | 2 px |
+| Minimum stomp overlap | 4 px |
+
+### Stomp Classification
+
+Before each `move_and_slide()`, the player records its previous global position and whether it was descending. A stomp requires the player's feet to cross the moving enemy's top surface from above while at least 4 px of the real rectangle colliders overlap horizontally. Enemy previous positions allow the crossing point to be interpolated even while both actors move. Other swept contacts — upward, sideways, or too close to the edge — emit `hit_enemy`; dead enemies are ignored. This also prevents tunneling through combat contacts at coarse physics timesteps while preserving the existing bounce and signal interface.
 
 ---
 
@@ -145,7 +158,7 @@ The game uses a **signal-based, scene-driven** architecture, mostly avoiding sin
 | Invincibility frames | 1 second after taking damage or a non-fatal fall; never carries over into a new level, restart, or run |
 | POW! effect | Animated label that floats and fades on stomp |
 | Pause menu | Resume, Try Again, Exit to Menu |
-| Win & death screens | Inline HUD messages; `R` to restart |
+| Win & death screens | Dedicated themed results menu with Play Again/Main Menu; compact death message; `R` retries |
 | Scrolling levels | Camera clamps to `level_width` per level |
 
 ---
@@ -156,13 +169,13 @@ All music and sound effects are generated chiptune WAVs (`tools/generate_audio.p
 
 ## Highscore
 
-Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win screen shows "★ New Highscore! ★"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
+Your best completed run (score + coins) is saved locally to `user://highscore.cfg` — no online leaderboard yet. Beat your previous best and the win menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
 
 ---
 
 ## Look & Feel
 
-The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image.
+The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. The completed-run screen uses the same theme in a centered full-screen overlay, leaving the finished level visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
 
 ---
 
