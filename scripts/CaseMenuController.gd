@@ -221,7 +221,7 @@ func _spawn_skin_reveal(skin: Dictionary) -> void:
 	layer.layer = 21
 	add_child(layer)
 
-	var tier: String = skin.get("tier", "common")
+	var tier: String = skin.get("tier", "rare")
 	var duplicate: bool = skin.get("duplicate", false)
 	var big_tier: bool = tier == "epic" or tier == "legendary"
 	if tier == "rare" or big_tier:

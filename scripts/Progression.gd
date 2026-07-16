@@ -33,21 +33,17 @@ const WEEKLY_POOL := [
 ]
 
 const SKIN_TIERS := {
-	"common": {"weight": 60, "skins": [
-		{"id": "bronze_knight", "name": "Bronze Knight", "color": Color(0.8, 0.55, 0.3)},
-		{"id": "silver_knight", "name": "Silver Knight", "color": Color(0.78, 0.8, 0.85)},
-	]},
-	"rare": {"weight": 24, "skins": [
+	"rare": {"weight": 60, "skins": [
 		{"id": "gold_knight", "name": "Gold Knight", "color": Color(1.0, 0.85, 0.2), "texture": "res://assets/sprite_knight_gold.png"},
 		{"id": "emerald_knight", "name": "Emerald Knight", "color": Color(0.2, 0.85, 0.45), "texture": "res://assets/sprite_knight_emerald.png"},
 		{"id": "pink_knight", "name": "Pink Knight", "color": Color(0.95, 0.45, 0.7), "texture": "res://assets/sprite_knight_pink.png"},
 	]},
-	"epic": {"weight": 12, "skins": [
+	"epic": {"weight": 30, "skins": [
 		{"id": "blood_knight", "name": "Blood Knight", "color": Color(0.55, 0.05, 0.08), "texture": "res://assets/sprite_knight_blood.png"},
 		{"id": "black_knight", "name": "Black Knight", "color": Color(0.35, 0.3, 0.4), "texture": "res://assets/sprite_knight_black.png"},
 	]},
 	# Prinzessinnen — seltener als alle Ritter-Skins.
-	"legendary": {"weight": 4, "skins": [
+	"legendary": {"weight": 10, "skins": [
 		{"id": "princess_gold", "name": "Golden Princess", "color": Color(1.0, 0.8, 0.2), "texture": "res://assets/sprite_princess_gold.png"},
 		{"id": "princess_green", "name": "Emerald Princess", "color": Color(0.3, 0.8, 0.4), "texture": "res://assets/sprite_princess_green.png"},
 		{"id": "princess_purple", "name": "Amethyst Princess", "color": Color(0.7, 0.4, 0.9), "texture": "res://assets/sprite_princess_purple.png"},
@@ -73,7 +69,7 @@ const WEEKLY_REWARD := 3
 const SHARDS_PER_KEY := 10
 const PREMIUM_CASE_COST := 3
 const PREMIUM_WEIGHTS := {"rare": 55, "epic": 30, "legendary": 15}
-const TIER_RANK := {"": 0, "common": 1, "rare": 2, "epic": 3, "legendary": 4}
+const TIER_RANK := {"": 0, "rare": 1, "epic": 2, "legendary": 3}
 
 # Im Test-Harness überschreibbar (tests/test_save_system.gd), damit Tests nie den
 # echten Save berühren. Produktion nutzt immer den Default SAVE_PATH.

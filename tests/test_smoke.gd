@@ -55,6 +55,7 @@ func _run_all() -> void:
 	game.free()
 	await process_frame
 	await process_frame
+	await create_timer(0.1).timeout  # letzten 50ms-Click im AudioServer vollständig auslaufen lassen
 	print("")
 	if failures == 0:
 		print("ALLE TESTS OK (%d Checks)" % checks)
@@ -131,6 +132,9 @@ func _test_skin_definitions() -> void:
 				printerr("       fehlende Textur: %s (%s)" % [tex, skin.id])
 	check(ids_unique, "alle Skin-IDs eindeutig (%d Skins)" % ids.size())
 	check(textures_ok, "alle Skin-Texturen existieren")
+	check(not ProgressionScript.SKIN_TIERS.has("common"), "Common-Tier ist entfernt")
+	check("bronze_knight" not in ids and "silver_knight" not in ids,
+		"Bronze/Silver sind nicht mehr im Skin-Katalog")
 	check(regular_total == 100, "reguläre Case-Gewichte summieren auf 100 (ist %d)" % regular_total)
 	var premium_total := 0
 	for tier: String in ProgressionScript.PREMIUM_WEIGHTS:

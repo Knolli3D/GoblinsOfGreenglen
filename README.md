@@ -72,7 +72,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (79 checks) and a scene/behavior smoke suite (152 checks: component ownership/wiring, centered menu controls, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **231 checks total.**
+- **Coverage:** two suites run as isolated child processes — save validation/upgrade/recovery (83 checks) and a scene/behavior smoke suite (154 checks: component ownership/wiring, centered menu controls, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **237 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`/`progression.cfg` (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 
@@ -206,7 +206,7 @@ Your best completed run (score + coins) is saved locally to `user://highscore.cf
 
 ## Look & Feel
 
-The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal nine-patch textures with animated hover/pressed/disabled states) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. Both run outcomes share one centered Greenglen result overlay — "Run Complete" in the established gold accent, "Run Over" in a restrained warm accent — leaving the final gameplay frame visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
+The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal state textures rendered at their native 6:1 proportions, with hover/pressed/disabled variants) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. Both run outcomes share one centered Greenglen result overlay — "Run Complete" in the established gold accent, "Run Over" in a restrained warm accent — leaving the final gameplay frame visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
 
 ---
 
@@ -218,12 +218,12 @@ A meta-progression loop layered on top of the core game, all saved locally to `u
 - **Weekly quests** — 2 bigger challenges per week (e.g. finish 10 runs, stomp 50 goblins), worth more.
 - **Keys** — earned only by claiming quests (not buyable with coins, so cases stay meaningful). The first 6 daily claims each day pay a full key; further claims pay key fragments (3 = 1 key).
 - **Cases** — spend keys to open a case and win a cosmetic **skin**, revealed via a CS:GO-style spinning reel that decelerates onto the reward.
-  - **Regular case** (1 key): weighted rarity tiers (Common 60% / Rare 24% / Epic 12% / Legendary 4%).
-  - **Premium case** (3 keys): Rare-or-better only (Rare 55% / Epic 30% / Legendary 15%) — a "skip the Commons" completion accelerator.
+  - **Regular case** (1 key): Rare 60% / Epic 30% / Legendary 10%. These are the old non-Common weights renormalized after removing the tint-only skins.
+  - **Premium case** (3 keys): Rare 55% / Epic 30% / Legendary 15%, trading five Rare percentage points for a higher Legendary chance.
   - **Duplicate shards** — rolling a skin you already own grants 1 shard; 10 shards auto-convert to 1 key (deliberately weaker than quest fragments, so dupes are a consolation, not income).
   - **Reveal flair scales with rarity** — Rare adds a colored flash + fanfare, Epic/Legendary add a bigger flash, screen shake, and the win jingle.
   - The Cases menu shows your keys, shard progress, collection completion (X/Y skins), total cases opened, and best pull.
-- **Skins** — cosmetic character variants across four rarity tiers: **Common** knights (Bronze/Silver, simple color tints), **Rare** and **Epic** knights (Gold, Emerald, Pink, Blood, Black — hand-painted art), and a **Legendary** tier of princesses (Golden, Emerald, Amethyst, Ruby — rarer than any knight). The **Sapphire Princess** is a free starter skin owned from the very beginning, and the **Default Knight** is always available as a selectable entry in the Skins menu — so you can switch back to the base look at any time (it never drops from cases and doesn't count toward collection completion). The Skins menu has a two-column layout: a rarity-colored list on the left and a live preview on the right showing the character art, name, tier, and equipped status. Selecting previews; a separate button equips. The equipped skin is applied on every level load.
+- **Skins** — ten cosmetic variants: **Rare** and **Epic** knights (Gold, Emerald, Pink, Blood, Black — hand-painted art), four **Legendary** princesses (Golden, Emerald, Amethyst, Ruby), and the free **Sapphire Princess** starter skin. Bronze Knight and Silver Knight were removed because they were only hue adjustments of the Default Knight. The **Default Knight** is always available as a selectable entry in the Skins menu, but never drops from cases and doesn't count toward collection completion. The Skins menu has a two-column layout: a rarity-colored list on the left and a live preview on the right showing the character art, name, tier, and equipped status. Selecting previews; a separate button equips. The equipped skin is applied on every level load.
 
 ---
 

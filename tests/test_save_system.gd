@@ -50,6 +50,7 @@ func _run_all() -> void:
 	_test_mismatched_quest_arrays()
 	_test_weekly_normalization()
 	_test_skin_inventory()
+	_test_removed_tint_skins()
 	_test_equipped_not_owned()
 	_test_starter_skin_survives()
 	_test_best_pull_invalid()
@@ -310,6 +311,28 @@ func _test_skin_inventory() -> void:
 	check(p.equipped_skin == "gold_knight", "gültiger equipped_skin bleibt")
 	check(p.get_owned_skins().size() == 2, "Skins-Menü-Daten ohne Crash")
 	check(p.get_equipped_skin().id == "gold_knight", "get_equipped_skin liefert Artwork-Eintrag")
+	p.free()
+
+func _test_removed_tint_skins() -> void:
+	print("Entfernte Tint-Skins:")
+	var path := _path("removed_tints.cfg")
+	var s := _valid_sections(true)
+	s.inventory.owned_skins = ["bronze_knight", "silver_knight", "gold_knight"]
+	s.inventory.equipped_skin = "silver_knight"
+	_write_cfg(path, s)
+	var p := _load_progression(path)
+	check("bronze_knight" not in p.owned_skins and "silver_knight" not in p.owned_skins,
+		"Bronze/Silver aus Alt-Inventar entfernt")
+	check("gold_knight" in p.owned_skins and "princess_blue" in p.owned_skins,
+		"gültige und Starter-Skins bleiben erhalten")
+	check(p.equipped_skin == "" and p.get_equipped_skin().id == "",
+		"entfernter ausgerüsteter Skin fällt auf Default Knight zurück")
+	var saved := ConfigFile.new()
+	saved.load(path)
+	var saved_owned: Array = saved.get_value("inventory", "owned_skins", [])
+	check("bronze_knight" not in saved_owned and "silver_knight" not in saved_owned \
+		and saved.get_value("inventory", "equipped_skin", "invalid") == "",
+		"bereinigtes Inventar wird persistiert")
 	p.free()
 
 func _test_equipped_not_owned() -> void:

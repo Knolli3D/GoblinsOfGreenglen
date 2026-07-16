@@ -92,8 +92,8 @@ tools/
 
 tests/
   run_all.gd          # DER Test-Runner: beide Suiten als isolierte Kind-Prozesse + Canary (siehe Tests-Abschnitt)
-  test_save_system.gd # Save-System-Suite (79 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (152 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
+  test_save_system.gd # Save-System-Suite (83 Checks)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (154 Checks inkl. Komponenten, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -349,7 +349,9 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
   - **Inventar**: unbekannte Skin-IDs raus, Duplikate dedupliziert, Starter-Skins garantiert
     (`_ensure_starter_skins()` läuft innerhalb von `_normalize_inventory()`, speichert nicht
     mehr selbst); ein nicht (mehr) besessener `equipped_skin` fällt auf den Default Knight
-    (`""`) zurück. `best_pull` muss ein Tier aus `TIER_RANK` sein, sonst Reset auf `""`.
+    (`""`) zurück. Das entfernt auch `bronze_knight`/`silver_knight` aus älteren Saves und
+    persistiert die Bereinigung ohne Schema-Bump. `best_pull` muss ein Tier aus `TIER_RANK` sein,
+    sonst Reset auf `""` (der entfernte Tierwert `common` wird dadurch ebenfalls bereinigt).
 - **Backups & Recovery** (`SaveData.save_with_backup`/`load_with_backup`): vor jedem
   Überschreiben wird die bestehende Datei — sofern sie noch als ConfigFile parst — nach
   `<datei>.bak` kopiert. Ist der Haupt-Save beim Laden korrupt, wird das Backup geladen
@@ -363,9 +365,10 @@ inhaltliche Normalisierung bleibt bewusst bei den Besitzern der Definitionen —
   (`HighscoreStore.submit()`, aufgerufen über `Game._submit_run()`). Ein unbrauchbarer
   `score`-Wert gilt als "kein Highscore" (nächster
   beendeter Run überschreibt); ein kaputtes `coins`-Feld allein verwirft den Score nicht.
-- **Tests**: `tests/test_save_system.gd` (79 Checks: frische Installation, gültiger
+- **Tests**: `tests/test_save_system.gd` (83 Checks: frische Installation, gültiger
   v2-Save, v1-Upgrade, fehlende Felder, falsche Typen, negative Werte, unbekannte/doppelte
-  Quest- und Skin-IDs, zu kurze/lange Arrays, equipped nicht besessen, Backup-Recovery,
+  Quest- und Skin-IDs, entfernte Tint-Skins in Alt-Saves, zu kurze/lange Arrays,
+  equipped nicht besessen, Backup-Recovery,
   Schreibfehler, Idempotenz, Highscore-Vergleichssemantik). Ausführung, Isolation und
   Determinismus: siehe Abschnitt "Tests (headless)".
 
@@ -426,8 +429,9 @@ Abschnitt "Save-System".
 - **Claim**: Keys werden nicht automatisch vergeben — im Quests-Menü muss ein fertiger Quest
   per Button bestätigt werden (`Progression.claim_quest(slot)` / `claim_weekly(slot)`).
   Das Quests-Menü hat zwei Sektionen (Daily/Weekly) mit Statuszeile für Bonus-Modus/Fragmente.
-- **Cases**: Regulär 1 Key (Tier-Gewichte 60/24/12/4), Premium 3 Keys (`PREMIUM_WEIGHTS` 55/30/15
-  Rare/Epic/Legendary, keine Commons — "Skip-Commons"-Beschleuniger für Completion). Duplikate geben
+- **Cases**: Regulär 1 Key (Tier-Gewichte 60/30/10 Rare/Epic/Legendary — die ehemaligen
+  Nicht-Common-Gewichte 24/12/4 auf 100 normalisiert), Premium 3 Keys (`PREMIUM_WEIGHTS`
+  55/30/15, fünf Prozentpunkte mehr Legendary auf Kosten von Rare). Duplikate geben
   1 Shard (`dup_shards`, `SHARDS_PER_KEY` 10 = 1 Key, Auto-Konvertierung) — bewusst schwächer
   als Quest-Fragmente (3 = 1), damit Dupes Trostpreis bleiben. Kein Pity-System.
   Stats in Sektion `[stats]` (`cases_opened`, `best_pull` via `TIER_RANK`-Vergleich);
@@ -436,23 +440,23 @@ Abschnitt "Save-System".
   Gewinner fest an `WIN_INDEX` 34, Rest zufällige Füller) scrollt per Tween
   (`TRANS_QUINT`/`EASE_OUT`, 2.8s) unter eine Gold-Markierung; Tick-SFX in `_process`
   bei Kartenwechsel; Buttons (beide Cases + Back) via `is_spinning` gesperrt.
-  Karten-Art nutzt das gleiche Textur/Tint-Muster wie die Skins-Preview.
+  Karten-Art nutzt dieselben Skin-Texturen wie die Skins-Preview.
 - **Reveal-Effekte pro Tier** (`CaseMenuController._spawn_skin_reveal()`, Tween-Muster wie POW):
-  Common = Float-Label; Rare = + Farb-Flash (`TIER_COLORS`) + `level_clear`-SFX;
-  Epic/Legendary = stärkerer Flash + Shake am `reel_frame` + `win`-SFX (Legendary am kräftigsten).
+  Rare = Farb-Flash (`TIER_COLORS`) + `level_clear`-SFX; Epic/Legendary = stärkerer Flash +
+  Shake am `reel_frame` + `win`-SFX (Legendary am kräftigsten).
   Dupe-Label zeigt "+1 Shard" bzw. "+1 Key from Shards!" bei Konvertierung.
-- **Tiers & Skins** (`SKIN_TIERS`, Gewichte regulär 60/24/12/4): **Common** (Bronze/Silber, reine
-  `modulate`-Tints ohne Artwork), **Rare** (Gold/Emerald/Pink Knight), **Epic** (Blood/Black Knight),
-  **Legendary** (4 Prinzessinnen: Golden/Emerald/Amethyst/Ruby — seltener als alle Ritter).
+- **Tiers & Skins** (`SKIN_TIERS`, Gewichte regulär 60/30/10): **Rare** (Gold/Emerald/Pink
+  Knight), **Epic** (Blood/Black Knight), **Legendary** (4 Prinzessinnen: Golden/Emerald/
+  Amethyst/Ruby — seltener als alle Ritter). Bronze/Silver und der Common-Tier wurden entfernt,
+  weil beide nur Hue-Anpassungen des Basis-Ritters waren.
   Zusätzlich ein **`starter`-Tier mit weight 0** (nie aus Cases): die **Sapphire Princess**
   (`princess_blue`) ist über `STARTER_SKINS` von Anfang an besessen (neben dem Default-Ritter ohne
   Skin). `_ensure_starter_skins()` (Teil der Save-Normalisierung, siehe Save-System-Abschnitt)
-  garantiert das auch für Alt-Saves. Premium-Case-
-  Gewichte (`PREMIUM_WEIGHTS`) 55/30/15 Rare/Epic/Legendary (keine Commons/Starter).
-- **Texture- vs. Tint-Skins**: Tint-Skins (Common) nur `Sprite2D.modulate` (funktioniert nur für
-  Helligkeits-/Sättigungs-Verschiebungen der Basis-Palette). Alle anderen nutzen echtes Artwork
-  (`texture`-Feld → `assets/sprite_knight_*.png` / `sprite_princess_*.png`), da Tinting bei neuen
-  Farbtönen falsche Ergebnisse liefert. `Player.apply_skin(skin)` bekommt das komplette Skin-
+  garantiert das auch für Alt-Saves. Insgesamt enthält die Collection 10 Skins (9 Case-Rewards +
+  Starter). Premium-Case-Gewichte (`PREMIUM_WEIGHTS`) sind 55/30/15 Rare/Epic/Legendary.
+- **Skin-Artwork**: Alle katalogisierten Skins nutzen echtes Artwork (`texture`-Feld →
+  `assets/sprite_knight_*.png` / `sprite_princess_*.png`); nur der virtuelle Default Knight nutzt
+  die Basis-Textur mit `Color.WHITE`. `Player.apply_skin(skin)` bekommt das komplette Skin-
   Dictionary, tauscht bei `texture` die Sprite-Textur (inkl. Neu-Skalierung, da die Dateien
   unterschiedliche Pixelmaße haben — Prinzessinnen sind z.B. schmaler/höher als Ritter), sonst nur
   `modulate`. Ausrüsten über `Progression.equip_skin(id)`, angewendet in `Game._load_level()` via
@@ -473,8 +477,8 @@ Abschnitt "Save-System".
   Rarity-Farbe via `TIER_COLORS`, ausgewählter mit `▶`-Präfix), rechts Preview-Panel mit großem
   Sprite, Name, Rarity-Tier und `✓ Equipped`-Indikator. Klick auf einen Listeneintrag setzt nur
   `selected_skin_id` und aktualisiert die Preview (`_update_skin_preview()`); erst der separate
-  Equip-Button ruft `Progression.equip_skin()`. Preview rendert Textur-Skins direkt, Tint-Skins als
-  Basis-Ritter + `modulate` — gleiche Logik wie `Player.apply_skin()`. Default-Auswahl beim Öffnen:
+  Equip-Button ruft `Progression.equip_skin()`. Preview rendert Skin-Artwork direkt und den Default
+  Knight mit der Basis-Textur — gleiche Logik wie `Player.apply_skin()`. Default-Auswahl beim Öffnen:
   ausgerüsteter Skin, unbekannte/leere id fällt auf den Default Knight zurück.
 - **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. Der Hauptmenü-VBox
   spannt die volle Viewport-Breite (`custom_minimum_size.x = VIEW.x`), Buttons zentriert via
@@ -539,8 +543,8 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd` bz
 `test_smoke.gd`) und isolieren sich dann selbst. WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (231 Checks gesamt)**: `test_save_system.gd` (79, Save-System inkl. direktem
-  `HighscoreStore`-Test) und `test_smoke.gd` (152: Main-Komponenten/Interfaces,
+- **Suiten (237 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+  `HighscoreStore`-Test) und `test_smoke.gd` (154: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
   Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
   Player-Szene inkl. Signale, Input-Actions, Audio- und

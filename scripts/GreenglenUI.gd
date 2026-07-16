@@ -15,7 +15,6 @@ const BUTTON_ASPECT_RATIO := 6.0
 const BUTTON_CONTENT_SIDE_MARGIN := 32.0
 
 const TIER_COLORS := {
-	"common": Color(0.55, 0.85, 0.55),
 	"rare": Color(0.4, 0.6, 1.0),
 	"epic": Color(0.8, 0.45, 0.95),
 	"legendary": Color(1.0, 0.65, 0.15),
