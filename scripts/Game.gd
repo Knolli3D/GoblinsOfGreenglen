@@ -9,6 +9,7 @@ const CampaignProgressStoreScript := preload("res://scripts/CampaignProgressStor
 
 const MAX_HEALTH := 3
 const COIN_FINAL_SCORE_VALUE := 10
+const INVULNERABILITY_DURATION := 1.0
 
 # Compatibility view for resource checks. CampaignCatalog is the source of truth.
 const LEVELS := CampaignCatalogScript.REGION_1_SCENE_PATHS
@@ -188,6 +189,7 @@ func _show_main_menu() -> void:
 	campaign_map.hide_map()
 	hud.hide_gameplay()
 	hud.hide_message()
+	_stop_player_damage_blink()
 	if level_root:
 		level_root.queue_free()
 		level_root = null
@@ -249,6 +251,7 @@ func _open_campaign_map(region_id: String) -> void:
 	quest_menu.hide_menu()
 	case_menu.hide_menu()
 	skin_menu.hide_menu()
+	_stop_player_damage_blink()
 	if level_root:
 		level_root.queue_free()
 		level_root = null
@@ -283,6 +286,8 @@ func _toggle_pause() -> void:
 	play_sfx("click")
 	var paused := not get_tree().paused
 	get_tree().paused = paused
+	if paused:
+		_stop_player_damage_blink()
 	menus.set_pause_visible(paused)
 	_set_music_ducked(paused)
 
@@ -367,6 +372,7 @@ func _load_level_by_id(level_id: String) -> void:
 		push_warning("Campaign: level '%s' has no loadable scene" % level_id)
 		return
 	transition_gen += 1
+	_stop_player_damage_blink()
 	if level_root:
 		level_root.queue_free()
 	current_region_id = String(level_definition.get("region_id", ""))
@@ -436,7 +442,7 @@ func damage_player() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < invuln_until:
 		return
-	invuln_until = now + 1.0
+	invuln_until = now + INVULNERABILITY_DURATION
 	health -= 1
 	score -= 1
 	took_damage_this_level = true
@@ -445,6 +451,7 @@ func damage_player() -> void:
 	if health <= 0:
 		_finish_run(RunOutcome.FAILED)
 	else:
+		_start_player_damage_blink()
 		play_sfx("hit")
 		player.velocity.y = 0
 
@@ -465,7 +472,18 @@ func fell_off_world() -> void:
 		if spawn_marker:
 			player.position = spawn_marker.position
 			player.velocity = Vector2.ZERO
-			invuln_until = Time.get_ticks_msec() / 1000.0 + 1.0
+			invuln_until = Time.get_ticks_msec() / 1000.0 + INVULNERABILITY_DURATION
+			_start_player_damage_blink()
+
+
+func _start_player_damage_blink() -> void:
+	if is_instance_valid(player) and player.has_method("start_damage_blink"):
+		player.call("start_damage_blink", INVULNERABILITY_DURATION)
+
+
+func _stop_player_damage_blink() -> void:
+	if is_instance_valid(player) and player.has_method("stop_damage_blink"):
+		player.call("stop_damage_blink")
 
 
 func reach_goal() -> void:
@@ -529,6 +547,7 @@ func _finish_run(outcome: RunOutcome) -> void:
 
 
 func _show_run_result(outcome: RunOutcome, record_result := {}) -> void:
+	_stop_player_damage_blink()
 	hud.hide_message()
 	hud.hide_gameplay()
 	menus.show_result(

@@ -14,10 +14,15 @@ const DOUBLE_JUMP_VELOCITY := -460.0
 const MAX_JUMPS := 2
 const STOMP_TOP_TOLERANCE := 2.0
 const STOMP_MIN_HORIZONTAL_OVERLAP := 4.0
+const DAMAGE_BLINK_INTERVAL := 0.1
+const DAMAGE_BLINK_ALPHA := 0.25
 
 var jumps_remaining := 0
 var jump_animation_enabled := true
 var run_animation_enabled := false
+var damage_blink_time_left := 0.0
+var damage_blink_step_time_left := 0.0
+var damage_blink_dimmed := false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -37,6 +42,50 @@ func _ready() -> void:
 		run_sprite.scale = Vector2.ONE * (52.0 / float(run_texture.get_height()))
 	run_sprite.position = Vector2(0, -2)
 	run_sprite.visible = false
+	set_process(false)
+
+
+func _process(delta: float) -> void:
+	if damage_blink_time_left <= 0.0:
+		return
+	damage_blink_time_left -= maxf(delta, 0.0)
+	if damage_blink_time_left <= 0.0:
+		stop_damage_blink()
+		return
+	damage_blink_step_time_left -= maxf(delta, 0.0)
+	while damage_blink_step_time_left <= 0.0:
+		damage_blink_dimmed = not damage_blink_dimmed
+		damage_blink_step_time_left += DAMAGE_BLINK_INTERVAL
+	_set_damage_blink_alpha(DAMAGE_BLINK_ALPHA if damage_blink_dimmed else 1.0)
+
+
+func start_damage_blink(duration: float) -> void:
+	stop_damage_blink()
+	damage_blink_time_left = maxf(duration, 0.0)
+	if damage_blink_time_left <= 0.0:
+		return
+	damage_blink_step_time_left = DAMAGE_BLINK_INTERVAL
+	damage_blink_dimmed = true
+	_set_damage_blink_alpha(DAMAGE_BLINK_ALPHA)
+	set_process(true)
+
+
+func stop_damage_blink() -> void:
+	damage_blink_time_left = 0.0
+	damage_blink_step_time_left = 0.0
+	damage_blink_dimmed = false
+	_set_damage_blink_alpha(1.0)
+	set_process(false)
+
+
+func is_damage_blinking() -> bool:
+	return damage_blink_time_left > 0.0
+
+
+func _set_damage_blink_alpha(alpha: float) -> void:
+	var player_modulate := modulate
+	player_modulate.a = alpha
+	modulate = player_modulate
 
 func apply_skin(skin: Dictionary) -> void:
 	var sprite := $Sprite2D

@@ -77,8 +77,8 @@ func check(cond: bool, name: String) -> void:
 
 func _test_player_scene() -> void:
 	print("Player-Szene:")
-	var p: Node = (load("res://scenes/Player.tscn") as PackedScene).instantiate()
-	check(p is CharacterBody2D, "Player ist CharacterBody2D")
+	var p := (load("res://scenes/Player.tscn") as PackedScene).instantiate() as CharacterBody2D
+	check(p != null, "Player ist CharacterBody2D")
 	for sig: String in PLAYER_SIGNALS:
 		check(p.has_signal(sig), "Signal '%s' vorhanden" % sig)
 	var jump_sprite := p.get_node_or_null("JumpSprite") as AnimatedSprite2D
@@ -95,7 +95,36 @@ func _test_player_scene() -> void:
 		and is_equal_approx(run_sprite.sprite_frames.get_animation_speed(&"run"), 8.0) \
 		and run_sprite.sprite_frames.get_animation_loop(&"run"),
 		"Princess-Run-Animation hat 8 Frames bei 8 FPS und loopt")
+	_test_player_damage_blink(p)
 	p.free()
+
+func _test_player_damage_blink(p: CharacterBody2D) -> void:
+	var static_sprite := p.get_node("Sprite2D") as Sprite2D
+	var jump_sprite := p.get_node("JumpSprite") as AnimatedSprite2D
+	var run_sprite := p.get_node("RunSprite") as AnimatedSprite2D
+	p.call("start_damage_blink", 1.0)
+	check(bool(p.call("is_damage_blinking")) and p.modulate.a < 1.0,
+		"Schadensfeedback startet sofort auf dem Player-Root")
+	check(is_equal_approx(static_sprite.modulate.a, 1.0) \
+		and is_equal_approx(jump_sprite.modulate.a, 1.0) \
+		and is_equal_approx(run_sprite.modulate.a, 1.0),
+		"Blinken verändert keine einzelnen Skin-/Animations-Sprites")
+	p.call("_process", 0.11)
+	check(is_equal_approx(p.modulate.a, 1.0), "Schadensfeedback blinkt im 0,1s-Takt")
+	p.call("_process", 0.78)
+	check(bool(p.call("is_damage_blinking")), "Schadensfeedback bleibt bis nahe 1,0s aktiv")
+	p.call("_process", 0.12)
+	check(not bool(p.call("is_damage_blinking")) and is_equal_approx(p.modulate.a, 1.0),
+		"Schadensfeedback endet nach 1,0s mit voller Deckkraft")
+
+	p.call("start_damage_blink", 1.0)
+	p.call("_process", 0.8)
+	p.call("start_damage_blink", 1.0)
+	p.call("_process", 0.3)
+	check(bool(p.call("is_damage_blinking")), "erneutes Schadensfeedback startet die Dauer sicher neu")
+	p.call("_process", 0.71)
+	check(not bool(p.call("is_damage_blinking")) and is_equal_approx(p.modulate.a, 1.0),
+		"neu gestartetes Schadensfeedback endet sauber mit voller Deckkraft")
 
 func _test_input_actions() -> void:
 	print("Input-Actions:")
@@ -319,12 +348,16 @@ func _test_run_results() -> void:
 	var player_sprite := game.player.find_child("Sprite2D", true, false) as Sprite2D
 	check(player_sprite != null and player_sprite.texture.resource_path.ends_with("sprite_princess_blue.png"),
 		"ausgerüsteter Skin wird beim Levelstart angewendet")
+	game.player.call("start_damage_blink", 1.0)
 	game.health = 1
 	game.score = 8
 	game.coin_count = 3
 	game.damage_player()
 	check(game.run_outcome == RO.FAILED and game.health == 0 and game.score == 7,
 		"tödlicher Gegnerkontakt endet den Run genau einmal")
+	check(not bool(game.player.call("is_damage_blinking")) \
+		and is_equal_approx(game.player.modulate.a, 1.0),
+		"Run-Result beendet laufendes Blinken mit voller Deckkraft")
 	var failed_time_ms: int = game.run_time_ms
 	game._process(10.0)
 	check(game.run_time_ms == failed_time_ms and not game.run_timer_active,
@@ -505,12 +538,16 @@ func _test_run_results() -> void:
 
 	# Pause-Menü "Try Again" nach echtem Schaden nutzt denselben Clean-Run-Pfad
 	game.damage_player()
-	check(game.health == int(game.MAX_HEALTH) - 1 and game.took_damage_this_run,
-		"nicht-tödlicher Schaden setzt Zustand vor Pause-Try-Again")
+	check(game.health == int(game.MAX_HEALTH) - 1 and game.took_damage_this_run \
+		and bool(game.player.call("is_damage_blinking")) and game.player.modulate.a < 1.0,
+		"nicht-tödlicher Schaden startet das Blinken auf dem Player-Root")
 	game._process(2.0)
 	var pre_pause_time_ms: int = game.run_time_ms
 	game._toggle_pause()
 	check(paused and game.menus.pause_menu.visible, "Pause-Menü öffnet im Lauf")
+	check(not bool(game.player.call("is_damage_blinking")) \
+		and is_equal_approx(game.player.modulate.a, 1.0),
+		"Pause-Menü beendet das Blinken mit voller Deckkraft")
 	game._process(8.0)
 	check(game.run_time_ms == pre_pause_time_ms, "Pausezeit zählt nicht zum Run-Timer")
 	var try_again := _find_button_by_text(game.menus.pause_menu, "Try Again")
@@ -522,6 +559,19 @@ func _test_run_results() -> void:
 		and game.invuln_until == 0.0,
 		"Pause-Try-Again hebt Pause auf und startet Clean-Run")
 	check(game.run_timer_active and game.run_time_ms == 0, "Pause-Try-Again setzt den Timer zurück")
+
+	# Nicht-tödlicher Fall: Respawn und dasselbe 1s-Feedback.
+	var fall_spawn := game.level_root.find_child("PlayerSpawn", true, false) as Marker2D
+	game.player.position = Vector2(500, 800)
+	game.fell_off_world()
+	check(game.health == int(game.MAX_HEALTH) - 1 and fall_spawn != null \
+		and game.player.position == fall_spawn.position \
+		and bool(game.player.call("is_damage_blinking")) and game.player.modulate.a < 1.0,
+		"nicht-tödlicher Fall respawnt und startet das Blinken")
+	game._start_new_run()
+	check(not bool(game.player.call("is_damage_blinking")) \
+		and is_equal_approx(game.player.modulate.a, 1.0),
+		"Fresh-Run stellt nach Fall-Feedback volle Deckkraft her")
 
 	# Main Menu vom Result aus
 	game.current_level = game.LEVELS.size() - 1
