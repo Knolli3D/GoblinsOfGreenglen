@@ -4,7 +4,7 @@
 
 A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 6 increasingly challenging levels — including two horizontally scrolling stages and a final level with randomized enemy/coin placement.
 
-**Status:** Fully playable end to end — all 6 levels, combat, coins, and a shared run-result flow ("Run Complete" / "Run Over") work as intended. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
+**Status:** Fully playable end to end — all 6 levels, combat, coins, and a shared run-result flow ("Run Complete" / "Run Over") work as intended. The campaign world map is now an active main-menu submenu: browse regions, replay unlocked levels individually, and preview upcoming content. The generated chiptune soundtrack and SFX add a fun, goofy charm to the whole thing.
 
 ---
 
@@ -16,6 +16,7 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
 - **Shared Greenglen result menu** for both run outcomes — "Run Complete" after Level 6, "Run Over" on a fatal hit or fall. Both show score, coins, and your best completed run; only a qualifying completed run adds "New Highscore!". Run Again and Main Menu buttons (or `R`) continue from either outcome
+- **World map (Map button)** — a campaign map submenu on the main menu: pick any unlocked level and play it individually, see per-level best records and region progress, and preview locked or upcoming locations (view only). The map reopens on your last selection; Start Game still runs the classic six-level gauntlet
 
 ---
 
@@ -72,7 +73,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (52 checks), and scene/behavior smoke coverage (190 checks: component ownership/wiring, hidden map shell, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **325 checks total.**
+- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (52 checks), and scene/behavior smoke coverage (220 checks: component ownership/wiring, the campaign map submenu (single Greenglen Map button, 960×540 layout fit, real button/intent flow, exclusive visibility, back navigation, selection restore, launch/lock/unreleased guards, repeated open-close stability), menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **355 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 
@@ -86,7 +87,7 @@ cloude-game/
 │   ├── Game.gd          # Run coordinator: gameplay state, level lifecycle, signals, transitions
 │   ├── CampaignCatalog.gd      # Validated stable region, level, trial, and route definitions
 │   ├── CampaignProgressStore.gd # Versioned unlocks, completions, records, and milestones
-│   ├── CampaignMapController.gd # Hidden world-map shell and selection intents
+│   ├── CampaignMapController.gd # Campaign map submenu (Map button) and selection intents
 │   ├── CampaignMapPathLayer.gd # Required/optional route rendering and lock states
 │   ├── AudioController.gd     # Music, SFX voice pool, and pause ducking
 │   ├── HUDController.gd       # HUD snapshots, transient messages, and POW! feedback
@@ -143,7 +144,7 @@ The game uses a **signal-based, scene-driven** architecture, mostly avoiding sin
 - **Controller and service nodes declared in `Main.tscn`** own focused concerns: audio, HUD/feedback, main/pause/result menus, quests, cases, skins, highscores, campaign progress, and the hidden campaign map shell. Menu actions are sent back to `Game.gd` as intent signals; UI controllers do not keep competing copies of run state.
 - **`CampaignCatalog.gd`** is the source of truth for stable region/level IDs, scene paths, prerequisites, route types, and map metadata. Region 1 maps to the current six playable scenes; Region 2 is deliberately unreleased scaffolding for eight main locations and two optional bonus branches.
 - **`CampaignProgressStore.gd`** persists campaign data separately in `user://campaign.cfg` through the shared `SaveData.gd` layer. It records per-level best score/coin results, sequential unlocks, trials, and clear/explore/master milestones without changing the existing six-level Start Game flow.
-- **The campaign map is infrastructure, not a shipped menu yet.** Its Greenglen-styled placeholder shell can render required paths as solid lines and optional bonus branches as dotted lines, but normal players still enter the familiar sequential run from the main menu.
+- **The campaign map is an active main-menu submenu.** The Greenglen-styled Map button emits a narrow `map_requested` intent; `Game.gd` opens the map on the last valid selection (falling back to Region 1), renders required paths as solid lines and optional bonus branches as dotted lines, and only published, unlocked levels can emit a playable `level_requested` intent. Start Game is unchanged and still begins the familiar sequential six-level run.
 - **`GreenglenUI.gd`** builds one shared Theme/font bundle that is injected into every menu controller, preserving the existing visual system across the component split.
 - **`Player.gd`** communicates exclusively via signals (`stomped_enemy`, `hit_enemy`, `fell_off`, `reached_goal`) — never by calling parent nodes directly. Combat remains lightweight and manual: rectangle colliders classify contact without adding physical Player/Enemy collision.
 - **`Coin.gd`** finds the game controller via `get_tree().get_first_node_in_group("game")`.
@@ -198,7 +199,7 @@ Before each `move_and_slide()`, the player records its previous global position 
 | POW! effect | Animated label that floats and fades on stomp |
 | Pause menu | Resume, Try Again, Exit to Menu |
 | Run results | One shared themed result menu for "Run Complete" and "Run Over" with Run Again/Main Menu; `R` starts a clean run |
-| Campaign foundation | Stable region/level IDs, isolated progress saves, unlock rules, and a hidden placeholder world-map shell; the public flow remains the current six-level run |
+| Campaign map | Main-menu Map submenu with stable region/level IDs, isolated progress saves, unlock rules, per-level records, and individual launch of unlocked levels; Start Game keeps the classic six-level run |
 | Scrolling levels | Camera clamps to `level_width` per level |
 
 ---

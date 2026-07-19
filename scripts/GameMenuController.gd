@@ -10,6 +10,7 @@ signal start_requested
 signal resume_requested
 signal restart_requested
 signal main_menu_requested
+signal map_requested
 signal quests_requested
 signal cases_requested
 signal skins_requested
@@ -259,15 +260,17 @@ func _build_main_menu() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main_menu.add_child(dim)
 
+	# Fünf Buttons plus Logo/Bestwert müssen in die 540px-Viewport-Höhe passen —
+	# Abstände und Logo-Band sind darauf abgestimmt (siehe Smoke-Test-Layout-Check).
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 18)
-	box.position = Vector2(0, 40)
+	box.add_theme_constant_override("separation", 12)
+	box.position = Vector2(0, 24)
 	box.custom_minimum_size = Vector2(VIEW.x, 0)
 	main_menu.add_child(box)
 
 	var logo := TextureRect.new()
 	logo.texture = load("res://assets/LOGO_menu_GoGg.png")
-	logo.custom_minimum_size = Vector2(0, 180)
+	logo.custom_minimum_size = Vector2(0, 160)
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -287,6 +290,7 @@ func _build_main_menu() -> void:
 	box.add_child(spacer)
 
 	_add_main_button(box, "Start Game", 48, start_requested.emit)
+	_add_main_button(box, "Map", 40, map_requested.emit)
 	_add_main_button(box, "Quests", 40, quests_requested.emit)
 	_add_main_button(box, "Cases", 40, cases_requested.emit)
 	_add_main_button(box, "Skins", 40, skins_requested.emit)

@@ -452,9 +452,9 @@ func _test_run_results() -> void:
 	await create_timer(0.05).timeout  # queue_free des Levels abwickeln
 
 func _test_campaign_map_shell() -> void:
-	print("Campaign-Map-Shell:")
-	check(not game.campaign_map.menu.visible, "Map-Shell ist im normalen Main-Menü verborgen")
-	check(game.campaign_map.menu.theme == game.ui_theme, "Map-Shell nutzt das gemeinsame Theme")
+	print("Campaign-Map (Hauptmenü-Submenü):")
+	check(not game.campaign_map.menu.visible, "Map ist beim Start verborgen")
+	check(game.campaign_map.menu.theme == game.ui_theme, "Map nutzt das gemeinsame Theme")
 	check(_direct_canvas_layers(game.campaign_map) == 1, "CampaignMapController besitzt genau 1 CanvasLayer")
 	game.campaign_map.initialize(
 		game.ui_theme, game.ui_heading_font, game.ui_body_font,
@@ -465,7 +465,7 @@ func _test_campaign_map_shell() -> void:
 	var map_bg := game.campaign_map.map_background as TextureRect
 	check(map_bg != null and map_bg.texture != null \
 		and map_bg.texture.resource_path == "res://assets/menu_bg_map.png",
-		"Map-Shell nutzt das dedizierte Karten-Artwork")
+		"Map nutzt das dedizierte Karten-Artwork")
 	check(_direct_texture_rects(game.campaign_map.menu) == 1 \
 		and map_bg.get_parent() == game.campaign_map.menu and map_bg.get_index() == 0,
 		"genau EIN Map-Hintergrund, hinter Graph, Details und Buttons")
@@ -473,11 +473,50 @@ func _test_campaign_map_shell() -> void:
 		and map_bg.expand_mode == TextureRect.EXPAND_IGNORE_SIZE,
 		"Map-Hintergrund füllt den Viewport seitenverhältnis-erhaltend ohne Ränder")
 	check(game.campaign_map.menu.process_mode == Node.PROCESS_MODE_ALWAYS,
-		"Map-Shell verarbeitet Input unabhängig vom Gameplay")
-	game.show_campaign_map_preview("region_01")
+		"Map verarbeitet Input unabhängig vom Gameplay")
+
+	# Echter Hauptmenü-Einstieg: Map-Button → map_requested-Intent → Game öffnet die Karte.
+	var map_button := _find_button_by_text(game.menus.main_menu, "Map")
+	check(map_button != null, "Hauptmenü hat einen Greenglen-Map-Button")
+	check(_count_buttons_by_text(game.menus.main_menu, "Map") == 1,
+		"genau EIN sichtbarer Map-Button im Hauptmenü")
+	check(map_button != null and map_button.custom_minimum_size == Vector2(240, 40) \
+		and not map_button.has_theme_stylebox_override("normal"),
+		"Map-Button behält Greenglen-Proportionen (6:1) und die geteilten Styles")
+	await process_frame  # Container-Layout für die Geometrie-Checks abschließen
+	var menu_buttons: Array = []
+	_collect_buttons(game.menus.main_menu, menu_buttons)
+	var viewport_rect := Rect2(Vector2.ZERO, Vector2(960, 540))
+	var quit_button := _find_button_by_text(game.menus.main_menu, "Quit Game")
+	var buttons_sized := true
+	var buttons_inside := true
+	var quit_overlap := false
+	for menu_button: Button in menu_buttons:
+		var rect: Rect2 = menu_button.get_global_rect()
+		if rect.size.y <= 0.0:
+			buttons_sized = false
+		if not viewport_rect.encloses(rect):
+			buttons_inside = false
+		if quit_button != null and menu_button != quit_button \
+				and quit_button.get_global_rect().intersects(rect):
+			quit_overlap = true
+	check(menu_buttons.size() == 6 and buttons_sized,
+		"Hauptmenü rendert sechs gelayoutete Buttons (inkl. Map und Quit)")
+	check(buttons_inside, "alle Hauptmenü-Buttons liegen vollständig im 960×540-Viewport")
+	check(not quit_overlap, "Quit Game überlappt den Button-Stack nicht")
+	check(game.menus.map_requested.get_connections().size() == 1,
+		"map_requested-Intent ist genau einmal verbunden")
+	if map_button != null:
+		map_button.pressed.emit()
 	await process_frame
 	check(game.campaign_map.menu.visible and not game.menus.main_menu.visible,
-		"öffentliche Preview-API zeigt Region 1 ohne Main-Menü-Überlagerung")
+		"Map-Button öffnet die Karte und versteckt das Hauptmenü")
+	check(not game.quest_menu.menu.visible and not game.case_menu.menu.visible \
+		and not game.skin_menu.menu.visible and not game.hud.hud_label.visible \
+		and not game.menus.pause_menu.visible and not game.menus.run_result_menu.visible,
+		"kein anderes Menü/HUD bleibt über der Karte sichtbar")
+	check(game.campaign_map.current_region_id == "region_01",
+		"ohne gespeicherte Auswahl öffnet Region 1")
 	check(game.campaign_map.node_buttons.size() == 6, "Region 1 rendert sechs kataloggetriebene Nodes")
 	check(game.campaign_map.path_layer.segments.size() == 5 \
 		and _count_optional_segments(game.campaign_map.path_layer.segments) == 0,
@@ -492,16 +531,27 @@ func _test_campaign_map_shell() -> void:
 	check(game.campaign_map.selected_level_id == "r01_level_02" \
 		and game.campaign_map.play_button.disabled,
 		"Mauswahl kann Locked-Details ansehen, aber nicht starten")
+	var requested := [0]
+	var request_counter := func(_id: String) -> void: requested[0] += 1
+	game.campaign_map.level_requested.connect(request_counter)
+	game.campaign_map.play_button.pressed.emit()
+	check(requested[0] == 0 and game.level_root == null and game.in_main_menu,
+		"gesperrtes Level kann keinen spielbaren Request emittieren")
 	game.campaign_map.select_level("r01_level_01", false)
 	game.campaign_map.refresh()
 	game.campaign_map.refresh()
 	check(game.campaign_map.node_buttons.size() == 6 and _direct_canvas_layers(game.campaign_map) == 1,
 		"wiederholtes Refresh dupliziert weder Nodes noch CanvasLayer")
 
-	var requested := [0]
-	game.campaign_map.level_requested.connect(func(_id: String) -> void: requested[0] += 1)
-	game.campaign_map.show_region("region_02")
+	check(game.campaign_map.region_selector.item_count == 2 \
+		and game.campaign_map.region_selector.get_item_text(1) == "Region 2 - Coming Soon" \
+		and String(game.campaign_map.region_selector.get_item_metadata(1)) == "region_02",
+		"Region-Selector führt Region 2 metadatengetrieben als Coming Soon")
+	game.campaign_map.region_selector.select(1)
+	game.campaign_map._on_region_selected(1)
 	await process_frame
+	check(game.campaign_map.current_region_id == "region_02",
+		"echte Selector-Auswahl wechselt zur unveröffentlichten Region 2")
 	check(game.campaign_map.node_buttons.size() == 10, "unreleased Region 2 rendert 8 Main- und 2 Bonus-Nodes")
 	check(_count_optional_segments(game.campaign_map.path_layer.segments) == 2,
 		"Region-2-Bonuspfad bleibt semantisch dotted/optional")
@@ -513,12 +563,83 @@ func _test_campaign_map_shell() -> void:
 		"unreleased Region zeigt Coming Soon und deaktiviert Play")
 	game.campaign_map.play_button.pressed.emit()
 	check(requested[0] == 0, "unreleased Node kann keinen Level-Request emittieren")
+	game._start_campaign_level("r02_level_01")
+	check(game.level_root == null and game.in_main_menu and game.campaign_map.menu.visible,
+		"unveröffentlichtes Level lädt nie eine leere Szene")
 	check(game.campaign_map.map_background == map_bg \
 		and _direct_texture_rects(game.campaign_map.menu) == 1,
 		"Initialize/Show/Refresh erstellen den Map-Hintergrund nie neu")
 	game.campaign_map.back_button.pressed.emit()
 	check(not game.campaign_map.menu.visible and game.menus.main_menu.visible,
-		"Back räumt Map-Shell auf und kehrt ins normale Main-Menü zurück")
+		"Back räumt die Karte auf und kehrt ins normale Hauptmenü zurück")
+	var focus_owner: Control = game.campaign_map.menu.get_viewport().gui_get_focus_owner()
+	check(focus_owner == null or not game.campaign_map.menu.is_ancestor_of(focus_owner),
+		"versteckte Karten-Controls behalten keinen Tastatur-Fokus")
+	check(game.menus.map_requested.get_connections().size() == 1 \
+		and _direct_canvas_layers(game.campaign_map) == 1 \
+		and _direct_texture_rects(game.campaign_map.menu) == 1,
+		"Back hinterlässt weder doppeltes Wiring noch doppelte Layer/Hintergründe")
+
+	# Wiederöffnen über den Intent stellt die zuletzt gemerkte Auswahl wieder her.
+	game.menus.map_requested.emit()
+	await process_frame
+	check(game.campaign_map.menu.visible and game.campaign_map.current_region_id == "region_01" \
+		and game.campaign_map.selected_level_id == "r01_level_02",
+		"Wiederöffnen stellt die letzte gültige Auswahl wieder her")
+	var remembered_button := game.campaign_map.node_buttons["r01_level_02"] as Button
+	check(remembered_button.has_focus(), "wiederhergestellte Auswahl erhält den Tastatur-Fokus")
+
+	# Freigeschaltetes Level startet über den echten Play-Pfad.
+	game.campaign_map.select_level("r01_level_01", false)
+	game.campaign_map.play_button.pressed.emit()
+	check(requested[0] == 1, "Play emittiert genau einen level_requested-Intent")
+	check(game.level_root != null and not game.in_main_menu \
+		and game.current_level_id == "r01_level_01" and not game.campaign_map.menu.visible \
+		and game.hud.hud_label.visible,
+		"freigeschaltetes Level startet über _start_campaign_level")
+	game.campaign_map.level_requested.disconnect(request_counter)
+	game._exit_to_main_menu()
+	await create_timer(0.05).timeout
+	check(game.in_main_menu and game.level_root == null and game.menus.main_menu.visible \
+		and game.campaign_map.level_requested.get_connections().size() == 1,
+		"Exit räumt den Kampagnen-Level auf und lässt das Wiring einfach verbunden")
+
+	# Ungültige gespeicherte Auswahl fällt sicher auf Region 1 zurück.
+	game.campaign_progress.last_selected_region_id = "region_99"
+	game.menus.map_requested.emit()
+	await process_frame
+	check(game.campaign_map.current_region_id == "region_01",
+		"ungültige letzte Auswahl fällt sicher auf Region 1 zurück")
+	game.campaign_progress.last_selected_region_id = "region_01"
+	game.campaign_map.back_button.pressed.emit()
+
+	# Kompatibilitäts-Wrapper für Entwicklung/Tests bleibt funktionsfähig.
+	game.show_campaign_map_preview("region_01")
+	await process_frame
+	check(game.campaign_map.menu.visible and game.campaign_map.current_region_id == "region_01",
+		"Preview-Wrapper öffnet weiterhin eine explizite Region")
+	game.campaign_map.back_button.pressed.emit()
+	check(not game.campaign_map.menu.visible and game.menus.main_menu.visible,
+		"Karte endet geschlossen im normalen Hauptmenü")
+
+	# Wiederholte Map→Back→Map-Zyklen bleiben stabil und duplizieren nichts.
+	for cycle: int in 2:
+		game.menus.map_requested.emit()
+		await process_frame
+		game.campaign_map.back_button.pressed.emit()
+	check(game.menus.main_menu.visible and not game.campaign_map.menu.visible \
+		and not paused and game.level_root == null,
+		"wiederholte Map→Back-Zyklen enden unpausiert im normalen Hauptmenü")
+	check(_direct_canvas_layers(game.campaign_map) == 1 \
+		and _direct_texture_rects(game.campaign_map.menu) == 1 \
+		and _count_name_prefix(game.campaign_map.menu, "MapGraph") == 1 \
+		and game.campaign_map.path_layer.get_child_count() == 6 \
+		and game.campaign_map.node_buttons.size() == 6,
+		"Zyklen duplizieren weder Layer, Hintergrund, Graph noch Map-Nodes")
+	check(game.menus.map_requested.get_connections().size() == 1 \
+		and game.campaign_map.level_requested.get_connections().size() == 1 \
+		and game.campaign_map.back_requested.get_connections().size() == 1,
+		"Zyklen duplizieren keine Signalverbindungen")
 
 func _test_meta_menus(prog: Node) -> void:
 	print("Menü-Komponenten:")
@@ -634,6 +755,28 @@ func _all_buttons_centered(node: Node) -> bool:
 		if not _all_buttons_centered(child):
 			return false
 	return true
+
+func _collect_buttons(node: Node, result: Array) -> void:
+	if node is Button:
+		result.append(node)
+	for child: Node in node.get_children():
+		_collect_buttons(child, result)
+
+func _count_buttons_by_text(node: Node, button_text: String) -> int:
+	var buttons: Array = []
+	_collect_buttons(node, buttons)
+	var count := 0
+	for button: Button in buttons:
+		if button.text == button_text and button.visible:
+			count += 1
+	return count
+
+func _count_name_prefix(parent: Node, prefix: String) -> int:
+	var count := 0
+	for child: Node in parent.get_children():
+		if String(child.name).begins_with(prefix):
+			count += 1
+	return count
 
 func _find_button_by_text(node: Node, button_text: String) -> Button:
 	if node is Button and (node as Button).text == button_text:

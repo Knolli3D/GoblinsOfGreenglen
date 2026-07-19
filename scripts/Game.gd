@@ -101,6 +101,7 @@ func _connect_components() -> void:
 	menus.resume_requested.connect(_toggle_pause)
 	menus.restart_requested.connect(_restart_level_from_menu)
 	menus.main_menu_requested.connect(_exit_to_main_menu)
+	menus.map_requested.connect(_show_campaign_map_menu)
 	menus.quests_requested.connect(_show_quests_menu)
 	menus.cases_requested.connect(_show_cases_menu)
 	menus.skins_requested.connect(_show_skins_menu)
@@ -162,7 +163,30 @@ func _start_game() -> void:
 	_load_level(0)
 
 
+func _show_campaign_map_menu() -> void:
+	play_sfx("click")
+	show_campaign_map()
+
+
+# Production entry point: opens the map on the last valid selection, else Region 1.
+func show_campaign_map() -> void:
+	_open_campaign_map(_resolve_map_region_id())
+
+
+# Compatibility wrapper for development/tests that open a specific region directly.
 func show_campaign_map_preview(region_id := CampaignCatalogScript.REGION_1_ID) -> void:
+	_open_campaign_map(region_id)
+
+
+func _resolve_map_region_id() -> String:
+	var last_region := String(campaign_progress.last_selected_region_id)
+	if last_region != "" \
+			and not (campaign_catalog.call("get_region", last_region) as Dictionary).is_empty():
+		return last_region
+	return CampaignCatalogScript.REGION_1_ID
+
+
+func _open_campaign_map(region_id: String) -> void:
 	transition_gen += 1
 	transitioning = false
 	invuln_until = 0.0

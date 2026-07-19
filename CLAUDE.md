@@ -7,9 +7,11 @@ alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` 
 übernommen, siehe Abschnitt "Save-Migration".)
 
 **Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, gemeinsamer Run-Result-Flow
-"Run Complete"/"Run Over"). Die technische Grundlage für eine spätere Region-/Weltkarten-
-Kampagne ist vorhanden, im normalen Menüfluss aber noch bewusst unsichtbar. Der generierte
-Chiptune-Sound ist witzig und rundet das Ganze gut ab.
+"Run Complete"/"Run Over"). Die Region-/Weltkarten-Kampagne ist als eigenes Hauptmenü-Submenü
+("Map"-Button) öffentlich erreichbar: freigeschaltete Level lassen sich dort einzeln starten,
+gesperrte/unveröffentlichte Inhalte sind nur ansehbar. `Start Game` startet unverändert den
+bekannten linearen Sechs-Level-Run. Der generierte Chiptune-Sound ist witzig und rundet das
+Ganze gut ab.
 
 ## Spielprinzip
 
@@ -45,7 +47,7 @@ scripts/
   Game.gd         # Run-Coordinator: Gameplay-State, Level-Lifecycle, Player-Signale, Transitions
   CampaignCatalog.gd # Validierter, unveränderlicher Region-/Level-/Verbindungs-Katalog
   CampaignProgressStore.gd # campaign.cfg: Unlocks, Abschlüsse, Bestwerte und Meilensteine
-  CampaignMapController.gd # Verborgene Weltkarten-Präsentation und Auswahl-Intents
+  CampaignMapController.gd # Weltkarten-Submenü (Map-Button) und Auswahl-Intents
   CampaignMapPathLayer.gd # Zeichnet Required-/Optional-Verbindungen und deren Zustände
   AudioController.gd # Musik/SFX-Player, Voice-Pool und Pause-Ducking
   HUDController.gd   # HUD-Snapshot, transiente Meldung und POW!-Feedback
@@ -102,7 +104,7 @@ tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (52 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (194 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (220 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -123,7 +125,7 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
   Progress-Store und Audio-Service, verbindet Intent-Signale genau einmal und startet danach
   den normalen Menü-Lifecycle. Kein Controller/Store ist ein zusätzlicher Autoload.
 - **Kommunikationsgrenzen**: `GameMenuController` emittiert Start/Resume/Restart/Main-Menu/
-  Submenu/Quit-Intents; die drei Submenüs emittieren `back_requested`, das Quest-Menü
+  Map/Submenu/Quit-Intents; die drei Submenüs emittieren `back_requested`, das Quest-Menü
   zusätzlich `keys_changed`. Nur Game entscheidet über Run-/Level-Lifecycle. Meta-Menüs
   lesen/ändern die Source of Truth `Progression`; Audio wird als explizite Referenz injiziert.
 - **UI-/CanvasLayer-Ownership**: `GameMenuController` besitzt Result (8), Main (9) und Pause
@@ -150,8 +152,9 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 
 ## Kampagnen-/Region-Infrastruktur
 
-Die Weltkarten-Kampagne ist als technische Grundlage implementiert, aber noch **kein öffentlich
-erreichbarer Spielmodus**. `Start Game` startet weiterhin den bekannten linearen Run durch die
+Die Weltkarte ist ein **aktives Hauptmenü-Submenü**: der "Map"-Button öffnet sie, freigeschaltete
+Level lassen sich dort einzeln über den Play-Button starten, gesperrte und unveröffentlichte
+Inhalte bleiben reine Ansicht. `Start Game` startet weiterhin den bekannten linearen Run durch die
 sechs vorhandenen Level; automatische Übergänge, Result-Menü und Highscore-Policy bleiben
 unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
 
@@ -187,8 +190,18 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   noch kein Per-Region-Switching); fehlt die Datei, warnt der Controller nur und der dunkle
   Dimmer bleibt als Fallback-Backdrop. Map-Nodes verwenden kompakte lokale Styles, normale
   Aktionen die original proportionierten Greenglen-Buttons. Unveröffentlichte/gesperrte Level können keinen `level_requested`-Intent
-  auslösen. Die Shell ist nur über `Game.show_campaign_map_preview()` für Entwicklung/Tests
-  erreichbar und wird von `_show_main_menu()` zuverlässig versteckt.
+  auslösen.
+- **Öffentlicher Einstieg**: Der Greenglen-"Map"-Button im Hauptmenü emittiert
+  `GameMenuController.map_requested`; Game verbindet den Intent genau einmal mit
+  `_show_campaign_map_menu()` → `show_campaign_map()`. Diese Produktions-API räumt wie die
+  anderen Submenü-Handler Hauptmenü, Submenüs, HUD, Pause-/Result-UI und ein evtl. noch
+  vorhandenes `level_root` ab und öffnet die zuletzt gültige Kartenauswahl
+  (`last_selected_region_id` + gemerktes Level), sonst sicher `region_01`.
+  `show_campaign_map_preview(region_id)` bleibt als Kompatibilitäts-Wrapper für
+  Entwicklung/Tests bestehen (öffnet eine explizite Region über denselben internen Pfad
+  `_open_campaign_map()`). Back kehrt via `back_requested` → `_show_main_menu()` ohne
+  doppelte Nodes/Layer/Verbindungen ins normale Hauptmenü zurück; `_show_main_menu()`
+  versteckt die Karte weiterhin zuverlässig.
 
 ## Run-Result-System (Game.gd)
 
@@ -549,7 +562,10 @@ Abschnitt "Save-System".
   Equip-Button ruft `Progression.equip_skin()`. Preview rendert Skin-Artwork direkt und den Default
   Knight mit der Basis-Textur — gleiche Logik wie `Player.apply_skin()`. Default-Auswahl beim Öffnen:
   ausgerüsteter Skin, unbekannte/leere id fällt auf den Default Knight zurück.
-- **UI**: 3 neue Hauptmenü-Buttons (Quests/Cases/Skins), Keys-Anzeige im HUD. Der Hauptmenü-VBox
+- **UI**: 4 Hauptmenü-Buttons unter Start Game (Map/Quests/Cases/Skins), Keys-Anzeige im HUD.
+  Logo-Band (160px), Box-Offset (y=24) und Separation (12) sind so abgestimmt, dass der
+  Fünf-Button-Stack vollständig im 540px-Viewport bleibt (per Smoke-Test-Layout-Check
+  abgesichert, inkl. Quit-Game-Überlappungsprüfung). Der Hauptmenü-VBox
   spannt die volle Viewport-Breite (`custom_minimum_size.x = VIEW.x`), Buttons zentriert via
   `SIZE_SHRINK_CENTER` — sonst würde das breite Titel-Label die Box-Breite aufblähen und Titel +
   Buttons aus der Mitte schieben. "Quit Game" ist bewusst nicht Teil der Button-Liste, sondern unten
@@ -613,13 +629,21 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (329 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+- **Suiten (355 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
   `HighscoreStore`-Test), `test_campaign_progress.gd` (52: Catalog-Validierung,
   frischer/kaputter Save, Backup-Recovery, stabile IDs, Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (194: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (220: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
-  verborgene Karten-Shell beider Regionen inkl. einmaligem dedizierten Map-Hintergrund,
+  öffentliches Map-Submenü beider Regionen (genau EIN Greenglen-Map-Button mit
+  6:1-Proportionen, Layout-Fit aller fünf Hauptmenü-Buttons im 960×540-Viewport ohne
+  Quit-Überlappung, echter Hauptmenü-Map-Button/Intent, exklusive
+  Sichtbarkeit, Back-Navigation ohne Duplikate, Last-Selection-Restore mit sicherem
+  Region-1-Fallback, Level-Start über den echten Play-Pfad, metadatengetriebener
+  Region-2-Selector-Eintrag "Coming Soon", Empty-Scene-Guard für unveröffentlichte Level,
+  wiederholte Map→Back→Map-Zyklen ohne doppelte Layer/Nodes/Verbindungen,
+  Preview-Wrapper-Kompatibilität)
+  inkl. einmaligem dedizierten Map-Hintergrund,
   Fokus/Play-Guards, Liniensemantik,
   Quest-/Case-/Skin-Menü-Intents inkl. komplettem Case-Spin und Skin-Equip/-Anwendung,
   Player-Szene inkl. Signale, Input-Actions, Audio- und
