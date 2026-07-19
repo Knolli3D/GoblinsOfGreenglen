@@ -16,6 +16,8 @@ const STOMP_TOP_TOLERANCE := 2.0
 const STOMP_MIN_HORIZONTAL_OVERLAP := 4.0
 
 var jumps_remaining := 0
+var jump_animation_enabled := true
+var run_animation_enabled := false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -23,9 +25,25 @@ func _ready() -> void:
 	if sprite and sprite.texture:
 		sprite.scale = Vector2.ONE * (52.0 / float(sprite.texture.get_height()))
 		sprite.position = Vector2(0, -2)
+	var jump_sprite := $JumpSprite as AnimatedSprite2D
+	var jump_texture := jump_sprite.sprite_frames.get_frame_texture(&"jump", 0)
+	if jump_texture:
+		jump_sprite.scale = Vector2.ONE * (52.0 / float(jump_texture.get_height()))
+	jump_sprite.position = Vector2(0, -2)
+	jump_sprite.visible = false
+	var run_sprite := $RunSprite as AnimatedSprite2D
+	var run_texture := run_sprite.sprite_frames.get_frame_texture(&"run", 0)
+	if run_texture:
+		run_sprite.scale = Vector2.ONE * (52.0 / float(run_texture.get_height()))
+	run_sprite.position = Vector2(0, -2)
+	run_sprite.visible = false
 
 func apply_skin(skin: Dictionary) -> void:
 	var sprite := $Sprite2D
+	var skin_id := String(skin.get("id", ""))
+	jump_animation_enabled = skin_id == ""
+	run_animation_enabled = skin_id == "princess_blue"
+	_show_static_sprite()
 	var texture_path: String = skin.get("texture", "")
 	if texture_path != "" and ResourceLoader.exists(texture_path):
 		sprite.texture = load(texture_path)
@@ -50,6 +68,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.y = DOUBLE_JUMP_VELOCITY
 			double_jumped.emit()
+		_play_jump_animation()
 		jumps_remaining -= 1
 
 	var dir := 0.0
@@ -62,6 +81,9 @@ func _physics_process(delta: float) -> void:
 	var previous_global_position := global_position
 	var was_descending := velocity.y > 0.0
 	move_and_slide()
+	if ($JumpSprite as AnimatedSprite2D).visible and is_on_floor():
+		_show_static_sprite()
+	_update_run_animation(dir)
 
 	if position.y > 700:
 		fell_off.emit()
@@ -85,6 +107,39 @@ func _physics_process(delta: float) -> void:
 		if col and col.is_in_group("goals"):
 			reached_goal.emit()
 			return
+
+func _play_jump_animation() -> void:
+	if not jump_animation_enabled:
+		return
+	var jump_sprite := $JumpSprite as AnimatedSprite2D
+	($Sprite2D as Sprite2D).visible = false
+	($RunSprite as AnimatedSprite2D).visible = false
+	jump_sprite.visible = true
+	jump_sprite.stop()
+	jump_sprite.frame = 0
+	jump_sprite.play(&"jump")
+
+func _show_static_sprite() -> void:
+	var jump_sprite := $JumpSprite as AnimatedSprite2D
+	jump_sprite.stop()
+	jump_sprite.visible = false
+	var run_sprite := $RunSprite as AnimatedSprite2D
+	run_sprite.stop()
+	run_sprite.visible = false
+	($Sprite2D as Sprite2D).visible = true
+
+func _update_run_animation(direction: float) -> void:
+	var run_sprite := $RunSprite as AnimatedSprite2D
+	if not run_animation_enabled or not is_on_floor() or is_zero_approx(direction):
+		if run_sprite.visible:
+			_show_static_sprite()
+		return
+	if ($JumpSprite as AnimatedSprite2D).visible:
+		return
+	($Sprite2D as Sprite2D).visible = false
+	run_sprite.visible = true
+	if not run_sprite.is_playing():
+		run_sprite.play(&"run")
 
 func _handle_enemy_interaction(previous_player_position: Vector2, was_descending: bool) -> bool:
 	var player_collider := $CollisionShape2D as CollisionShape2D

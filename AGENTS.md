@@ -62,7 +62,7 @@ scripts/
   HighscoreStore.gd      # Highscore-V3: unabhängiger Best Score + Best Time via SaveData
   GreenglenUI.gd         # Gemeinsame Theme-/Font-/Submenu-Factory
   Progression.gd  # Autoload-Singleton: Daily Quests, Keys-Währung, Case-Opening, Skin-Inventory
-  Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Swept-Stomp-Test, Signals, apply_skin()
+  Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Jump-/Run-Animation, Swept-Stomp-Test, Signals, apply_skin()
   Enemy.gd        # CharacterBody2D: Patrol, vorherige Globalposition, Kill-Logik
   Coin.gd         # Area2D: Coin-Pickup, ruft game.coin_collected()
   Goal.gd         # Area2D: add_to_group("goals"), _draw() Flag-Visual
@@ -73,7 +73,7 @@ scripts/
 
 scenes/
   Main.tscn         # Einstieg: Game.gd-Root + neun explizite Controller-/Service-Kinder
-  Player.tscn       # CharacterBody2D + CollisionShape2D + Sprite2D
+  Player.tscn       # CharacterBody2D + CollisionShape2D + Sprite2D + Jump-/Run-AnimatedSprite2D
   Enemy.tscn        # CharacterBody2D + CollisionShape2D + Sprite2D
   Coin.tscn         # Area2D + CircleShape2D
   Goal.tscn         # Area2D + RectangleShape2D
@@ -83,6 +83,12 @@ scenes/
 
 assets/
   sprite_knight.png   # Ritter-Sprite (788×1674, transparent)
+  sprite_knight_spritecook.png # Transparent gepaddete SpriteCook-Animationsquelle (1024×1674)
+  animations/sprite_knight_jump_spritesheet.png # 8 Frames (je 392×640)
+  animations/sprite_knight_jump_frames.tres # Godot-SpriteFrames-Ressource, 8 FPS, nicht loopend
+  animations/princess_run_sheet.png # SpriteCook-Rohdownload mit grauem Matte
+  animations/princess_run_sheet_transparent.png # Bereinigtes Sapphire-Princess-Run-Sheet (8×640×640)
+  animations/princess_run_frames.tres # Godot-SpriteFrames-Ressource, 8 FPS, loopend
   sprite_goblin.png   # Goblin-Sprite (923×1318, transparent)
   sprite_platform.png # Plattform-Textur (4128×496)
   sprite_knight_*.png   # Skin-Artwork (gold, emerald, pink, blood, black)
@@ -108,7 +114,7 @@ tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (95 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (68 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (280 Checks inkl. Timer, Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (284 Checks inkl. Timer, Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -400,7 +406,14 @@ Gemeinsamer, code-gebauter Parallax-Hintergrund für **alle** Level (keine Per-L
 ## Sprite-Skalierung
 
 Sprites werden in `_ready()` der jeweiligen Scripts skaliert (kein White-Keying nötig — Sprites sind bereits transparent):
-- Knight: Ziel-Höhe 52px → `scale = 52 / 1674`
+- Knight-Standbild: Ziel-Höhe 52px → `scale = 52 / 1674`
+- Default-Knight-Jump: 8-Frame-`AnimatedSprite2D` mit Zielhöhe 52px → `scale = 52 / 640`;
+  wird bei Jump/Double-Jump neu gestartet und bei der Landung wieder durch das Standbild ersetzt.
+  Ausgerüstete alternative Skins bleiben bewusst beim bisherigen Standbild, da bislang nur der
+  Default-Ritter als SpriteCook-Animationsquelle vorliegt.
+- Sapphire-Princess-Run: 8-Frame-`AnimatedSprite2D` mit Zielhöhe 52px → `scale = 52 / 640`;
+  loopt bei horizontaler Bodenbewegung und fällt bei Stillstand oder in der Luft auf das statische
+  Skin-Artwork zurück. Andere Princess-Farbvarianten bleiben statisch.
 - Goblin: Ziel-Höhe 40px → `scale = 40 / 1318`
 - Platform: Breite/Höhe aus CollisionShape2D-Größe berechnet
 
@@ -696,7 +709,7 @@ WARNING-Zeilen im Output sind erwartet
   frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (280: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (284: Main-Komponenten/Interfaces,
   Region-Status-Banner (Available/Locked/Coming Soon inkl. Vorgänger-Anforderungen,
   Regionen-3-5-Platzhalter-Rendering und Play-Guards, keine Banner-Duplikate),
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,

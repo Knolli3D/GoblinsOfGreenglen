@@ -1,0 +1,67 @@
+[gd_resource type="SpriteFrames" load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/animations/sprite_knight_jump_spritesheet.png" id="1_jump_sheet"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_0"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(1176, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_1"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(784, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_2"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(392, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_3"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(0, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_4"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(2744, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_5"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(2352, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_6"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(1960, 0, 392, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jump_7"]
+atlas = ExtResource("1_jump_sheet")
+region = Rect2(1568, 0, 392, 640)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jump_7")
+}],
+"loop": false,
+"name": &"jump",
+"speed": 8.0
+}]

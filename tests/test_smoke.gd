@@ -81,6 +81,20 @@ func _test_player_scene() -> void:
 	check(p is CharacterBody2D, "Player ist CharacterBody2D")
 	for sig: String in PLAYER_SIGNALS:
 		check(p.has_signal(sig), "Signal '%s' vorhanden" % sig)
+	var jump_sprite := p.get_node_or_null("JumpSprite") as AnimatedSprite2D
+	check(jump_sprite != null and jump_sprite.sprite_frames.has_animation(&"jump"),
+		"Player besitzt die Jump-Animation")
+	check(jump_sprite != null and jump_sprite.sprite_frames.get_frame_count(&"jump") == 8 \
+		and is_equal_approx(jump_sprite.sprite_frames.get_animation_speed(&"jump"), 8.0) \
+		and not jump_sprite.sprite_frames.get_animation_loop(&"jump"),
+		"Jump-Animation hat 8 Frames bei 8 FPS und loopt nicht")
+	var run_sprite := p.get_node_or_null("RunSprite") as AnimatedSprite2D
+	check(run_sprite != null and run_sprite.sprite_frames.has_animation(&"run"),
+		"Player besitzt die Princess-Run-Animation")
+	check(run_sprite != null and run_sprite.sprite_frames.get_frame_count(&"run") == 8 \
+		and is_equal_approx(run_sprite.sprite_frames.get_animation_speed(&"run"), 8.0) \
+		and run_sprite.sprite_frames.get_animation_loop(&"run"),
+		"Princess-Run-Animation hat 8 Frames bei 8 FPS und loopt")
 	p.free()
 
 func _test_input_actions() -> void:

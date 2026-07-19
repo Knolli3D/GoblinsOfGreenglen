@@ -1,0 +1,24 @@
+{
+  "assets": [
+    {
+      "asset_id": "4dd56adb-d222-4f2c-9ec9-3ddf6904a4f4",
+      "sha12": "81a5487fcd32",
+      "label": "Goblins of Greenglen - Knight Source"
+    },
+    {
+      "asset_id": "db7a97c5-86b5-4583-9dbb-9fe9bf5be6a5",
+      "sha12": "db1591fe3982",
+      "label": "Goblins of Greenglen - Knight Animation Source"
+    },
+    {
+      "asset_id": "69e41ef7-96c0-4b75-b935-cef5bdfb2928",
+      "sha12": "2c737832c666",
+      "label": "Goblins of Greenglen - Knight Jump Animation"
+    },
+    {
+      "asset_id": "240c6d8f-d2cc-4c67-84d0-dcd30e0c5e46",
+      "sha12": "8bf9f0aa8fe6",
+      "label": "Goblins of Greenglen - Sapphire Princess Run Animation (transparent cleanup)"
+    }
+  ]
+}

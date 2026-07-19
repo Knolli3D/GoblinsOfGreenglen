@@ -1,7 +1,9 @@
-[gd_scene format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/Player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/sprite_knight.png" id="2_knight"]
+[ext_resource type="SpriteFrames" path="res://assets/animations/sprite_knight_jump_frames.tres" id="3_jump_frames"]
+[ext_resource type="SpriteFrames" path="res://assets/animations/princess_run_frames.tres" id="4_run_frames"]
 
 [sub_resource type="RectangleShape2D" id="shape_player"]
 size = Vector2(28, 44)
@@ -17,4 +19,18 @@ shape = SubResource("shape_player")
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("2_knight")
 scale = Vector2(0.0311, 0.0311)
+position = Vector2(0, -2)
+
+[node name="JumpSprite" type="AnimatedSprite2D" parent="."]
+visible = false
+sprite_frames = ExtResource("3_jump_frames")
+animation = &"jump"
+scale = Vector2(0.08125, 0.08125)
+position = Vector2(0, -2)
+
+[node name="RunSprite" type="AnimatedSprite2D" parent="."]
+visible = false
+sprite_frames = ExtResource("4_run_frames")
+animation = &"run"
+scale = Vector2(0.08125, 0.08125)
 position = Vector2(0, -2)
