@@ -790,6 +790,26 @@ func _test_transition_cancellation() -> void:
 	game._exit_to_main_menu()
 	await create_timer(0.05).timeout  # letzten queue_free-Lifecycle vor Suite-Ende abwickeln
 
+	# e) Karten-Start mittendrin: der Run beginnt am gewählten freigeschalteten Level und
+	# setzt über die Required-Kette fort — kein Ein-Level-Modus, keine Rückkehr zur Karte.
+	game.menus.map_requested.emit()
+	await process_frame
+	check(game.campaign_progress.can_play_level("r01_level_02"),
+		"freigespielter Fortschritt macht Level 2 auf der Karte startbar")
+	game.campaign_map.select_level("r01_level_02", false)
+	check(not game.campaign_map.play_button.disabled, "Play ist für das freigeschaltete Level aktiv")
+	game.campaign_map.play_button.pressed.emit()
+	check(game.current_level_id == "r01_level_02" and not game.in_main_menu \
+		and not game.campaign_map.menu.visible and game.score == 0 and game.coin_count == 0,
+		"Karten-Start beginnt als frischer Run am gewählten Level")
+	game.reach_goal()
+	await create_timer(TRANSITION_WAIT).timeout
+	check(game.current_level_id == "r01_level_03" and game.run_outcome == game.RunOutcome.NONE \
+		and not game.campaign_map.menu.visible and game.level_root != null,
+		"Karten-Run setzt über die Required-Kette fort statt zur Karte zurückzukehren")
+	game._exit_to_main_menu()
+	await create_timer(0.05).timeout
+
 func _direct_canvas_layers(owner: Node) -> int:
 	var count := 0
 	for child: Node in owner.get_children():

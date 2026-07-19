@@ -104,7 +104,7 @@ tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (68 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (243 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (247 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -154,7 +154,10 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 
 Die Weltkarte ist ein **aktives Hauptmenü-Submenü**: der "Map"-Button öffnet sie, freigeschaltete
 Level lassen sich dort einzeln über den Play-Button starten, gesperrte und unveröffentlichte
-Inhalte bleiben reine Ansicht. `Start Game` startet weiterhin den bekannten linearen Run durch die
+Inhalte bleiben reine Ansicht. **Region 1 ist die einzige veröffentlichte, spielbare Region**;
+Regionen 2–5 sind sichtbare Previews — Locked, solange das Vorgänger-Gate nicht verdient ist,
+Coming Soon danach, bis die Region tatsächlich erscheint. `Start Game` startet weiterhin den
+bekannten linearen Run durch die
 sechs vorhandenen Level; automatische Übergänge, Result-Menü und Highscore-Policy bleiben
 unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
 
@@ -659,7 +662,7 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (394 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+- **Suiten (398 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
   `HighscoreStore`-Test), `test_campaign_progress.gd` (68: Catalog-Validierung,
   Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
   Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
@@ -669,7 +672,7 @@ WARNING-Zeilen im Output sind erwartet
   frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (243: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (247: Main-Komponenten/Interfaces,
   Region-Status-Banner (Available/Locked/Coming Soon inkl. Vorgänger-Anforderungen,
   Regionen-3-5-Platzhalter-Rendering und Play-Guards, keine Banner-Duplikate),
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
@@ -677,7 +680,8 @@ WARNING-Zeilen im Output sind erwartet
   6:1-Proportionen, Layout-Fit aller fünf Hauptmenü-Buttons im 960×540-Viewport ohne
   Quit-Überlappung, echter Hauptmenü-Map-Button/Intent, exklusive
   Sichtbarkeit, Back-Navigation ohne Duplikate, Last-Selection-Restore mit sicherem
-  Region-1-Fallback, Level-Start über den echten Play-Pfad, metadatengetriebener
+  Region-1-Fallback, Level-Start über den echten Play-Pfad inkl. Fortsetzung über die
+  Required-Kette (kein Ein-Level-Modus), metadatengetriebener
   Region-2-Selector-Eintrag "Coming Soon", Empty-Scene-Guard für unveröffentlichte Level,
   wiederholte Map→Back→Map-Zyklen ohne doppelte Layer/Nodes/Verbindungen,
   Preview-Wrapper-Kompatibilität)
