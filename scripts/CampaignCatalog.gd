@@ -286,6 +286,13 @@ func get_main_level_index(level_id: String) -> int:
 	return get_main_level_ids(String(level.get("region_id", ""))).find(level_id)
 
 
+func get_previous_region_id(region_id: String) -> String:
+	for region: Dictionary in _regions:
+		if String(region.get("next_region_id", "")) == region_id:
+			return String(region.get("id", ""))
+	return ""
+
+
 func is_region_released(region_id: String) -> bool:
 	return bool((_regions_by_id.get(region_id, {}) as Dictionary).get("released", false))
 

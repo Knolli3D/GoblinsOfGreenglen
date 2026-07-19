@@ -103,8 +103,8 @@ tools/
 tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
-  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (67 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (223 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (68 Checks)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (243 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -211,6 +211,16 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   Dimmer bleibt als Fallback-Backdrop. Map-Nodes verwenden kompakte lokale Styles, normale
   Aktionen die original proportionierten Greenglen-Buttons. Unveröffentlichte/gesperrte Level können keinen `level_requested`-Intent
   auslösen.
+- **Region-Status-Banner**: EIN `RegionStatusBanner`-Label im Karten-Header (unter dem
+  Regionstitel, getrennt von den Location-Details, einmal beim Shell-Aufbau erzeugt, bei jedem
+  `refresh()` aktualisiert) erklärt drei Zustände: **Available** (released + freigeschaltet,
+  grün), **Locked** (Vorgängerregion noch nicht cleared — warmer Ton, nennt via
+  `get_previous_region_id()` die Vorgängerregion samt offener Anforderungen:
+  Main-Level-Fortschritt plus Display-Namen offener Core Trials; Regionen ohne definierte
+  Trials nennen automatisch nur die Main-Level, es wird nie ein fiktiver Trial-Name erfunden)
+  und **Coming Soon** (Vorgänger erfüllt, Region unveröffentlicht — Gold). Kein separater
+  Lockscreen: die gedimmte Platzhalter-Topologie bleibt unter dem Banner sichtbar und
+  anwählbar, Play bleibt für unveröffentlichte Auswahl deaktiviert und stumm.
 - **Öffentlicher Einstieg**: Der Greenglen-"Map"-Button im Hauptmenü emittiert
   `GameMenuController.map_requested`; Game verbindet den Intent genau einmal mit
   `_show_campaign_map_menu()` → `show_campaign_map()`. Diese Produktions-API räumt wie die
@@ -649,8 +659,8 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (373 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
-  `HighscoreStore`-Test), `test_campaign_progress.gd` (67: Catalog-Validierung,
+- **Suiten (394 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+  `HighscoreStore`-Test), `test_campaign_progress.gd` (68: Catalog-Validierung,
   Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
   Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
   leeren Szenenpfaden), Region-1-Core-Trial "Flawless Finale" (Katalog-Definition, dangling
@@ -659,7 +669,9 @@ WARNING-Zeilen im Output sind erwartet
   frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (223: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (243: Main-Komponenten/Interfaces,
+  Region-Status-Banner (Available/Locked/Coming Soon inkl. Vorgänger-Anforderungen,
+  Regionen-3-5-Platzhalter-Rendering und Play-Guards, keine Banner-Duplikate),
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
   öffentliches Map-Submenü beider Regionen (genau EIN Greenglen-Map-Button mit
   6:1-Proportionen, Layout-Fit aller fünf Hauptmenü-Buttons im 960×540-Viewport ohne

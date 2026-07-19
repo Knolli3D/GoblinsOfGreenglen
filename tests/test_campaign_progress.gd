@@ -78,6 +78,10 @@ func _test_catalog() -> void:
 		if String(linked_region.get("next_region_id", "?")) != String(expected_next[link_region_id]):
 			links_ok = false
 	check(links_ok, "Regionen sind sequenziell verkettet, Region 5 ohne Nachfolger")
+	check(String(catalog.call("get_previous_region_id", "region_01")) == "" \
+		and String(catalog.call("get_previous_region_id", "region_02")) == "region_01" \
+		and String(catalog.call("get_previous_region_id", "region_05")) == "region_04",
+		"Vorgänger-Lookup folgt der sequenziellen Verkettung")
 	check(not (catalog.call("get_level", "r03_level_01") as Dictionary).is_empty() \
 		and not (catalog.call("get_level", "r04_level_12") as Dictionary).is_empty() \
 		and not (catalog.call("get_level", "r05_level_14") as Dictionary).is_empty(),

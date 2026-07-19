@@ -16,7 +16,7 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
 - **Shared Greenglen result menu** for both run outcomes — "Run Complete" after Level 6, "Run Over" on a fatal hit or fall. Both show score, coins, and your best completed run; only a qualifying completed run adds "New Highscore!". Run Again and Main Menu buttons (or `R`) continue from either outcome
-- **World map (Map button)** — a campaign map submenu on the main menu: pick any unlocked level and play it individually, see per-level best records and region progress, and preview locked or upcoming locations (view only). The map reopens on your last selection; Start Game still runs the classic six-level gauntlet
+- **World map (Map button)** — a campaign map submenu on the main menu: pick any unlocked level and play it individually, see per-level best records and region progress, and preview locked or upcoming locations (view only). A region status banner explains each region's availability — Available, Locked (naming the previous region's outstanding main levels and core trials), or Coming Soon once its prerequisites are met. The map reopens on your last selection; Start Game still runs the classic six-level gauntlet
 
 ---
 
@@ -73,7 +73,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (67 checks), and scene/behavior smoke coverage (223 checks: component ownership/wiring, the campaign map submenu (single Greenglen Map button, 960×540 layout fit, real button/intent flow, exclusive visibility, back navigation, selection restore, launch/lock/unreleased guards, repeated open-close stability), menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **373 checks total.**
+- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (243 checks: component ownership/wiring, the campaign map submenu (single Greenglen Map button, 960×540 layout fit, real button/intent flow, exclusive visibility, back navigation, selection restore, launch/lock/unreleased guards, repeated open-close stability), menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **394 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 

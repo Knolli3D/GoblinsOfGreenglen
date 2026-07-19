@@ -10,6 +10,11 @@ const MAP_SIZE := Vector2(650, 370)
 const NODE_SIZE := Vector2(94, 42)
 const MAP_LAYER := 14
 
+# Regionsweiter Verfügbarkeits-Banner im Karten-Header (getrennt von den Location-Details).
+const BANNER_AVAILABLE_COLOR := Color("#A8D87E")
+const BANNER_LOCKED_COLOR := Color("#E0A87C")
+const BANNER_COMING_SOON_COLOR := Color("#E5B94F")
+
 signal level_requested(level_id: String)
 signal region_requested(region_id: String)
 signal back_requested
@@ -27,6 +32,7 @@ var map_background: TextureRect
 var path_layer: Control
 var region_selector: OptionButton
 var region_title: Label
+var region_status_banner: Label
 var location_title: Label
 var location_status: Label
 var record_label: Label
@@ -85,6 +91,7 @@ func refresh() -> void:
 	node_buttons.clear()
 	var region := catalog.call("get_region", current_region_id) as Dictionary
 	region_title.text = String(region.get("display_name", "Region"))
+	_update_region_banner()
 	_build_connections(region)
 	_build_nodes(region)
 	_apply_focus_neighbors(region)
@@ -143,6 +150,13 @@ func _build_map_shell() -> void:
 	GreenglenUI.apply_heading_style(region_title, heading_font, 34)
 	region_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	menu.add_child(region_title)
+
+	region_status_banner = _detail_label(14, BANNER_AVAILABLE_COLOR)
+	region_status_banner.name = "RegionStatusBanner"
+	region_status_banner.position = Vector2(24, 58)
+	region_status_banner.size = Vector2(620, 40)
+	region_status_banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	menu.add_child(region_status_banner)
 
 	region_selector = OptionButton.new()
 	# The themed OptionButton is wider than its content minimum because of the
@@ -203,6 +217,43 @@ func _build_map_shell() -> void:
 	GreenglenUI.configure_button(back_button, 36)
 	back_button.pressed.connect(_on_back_pressed)
 	side.add_child(back_button)
+
+
+# Drei getrennte Regions-Zustände: Available (released + freigeschaltet), Locked
+# (Vorgängerregion noch nicht cleared — mit deren offenen Anforderungen) und Coming Soon
+# (Vorgänger erfüllt, Region aber unveröffentlicht). Vollständig katalog-/store-getrieben.
+func _update_region_banner() -> void:
+	if progress_store.is_region_unlocked(current_region_id):
+		region_status_banner.text = "Available"
+		region_status_banner.add_theme_color_override("font_color", BANNER_AVAILABLE_COLOR)
+		return
+	var previous_id := String(catalog.call("get_previous_region_id", current_region_id))
+	if previous_id != "" and not progress_store.is_region_cleared(previous_id):
+		region_status_banner.text = _locked_requirement_text(previous_id)
+		region_status_banner.add_theme_color_override("font_color", BANNER_LOCKED_COLOR)
+		return
+	region_status_banner.text = "Coming Soon"
+	region_status_banner.add_theme_color_override("font_color", BANNER_COMING_SOON_COLOR)
+
+
+# Offene Anforderungen der Vorgängerregion: Main-Level-Fortschritt plus die Display-Namen
+# noch offener Core Trials. Regionen ohne definierte Trials nennen automatisch nur die
+# Main-Level — es wird nie ein fiktiver Trial-Name erfunden.
+func _locked_requirement_text(previous_region_id: String) -> String:
+	var previous := catalog.call("get_region", previous_region_id) as Dictionary
+	var summary: Dictionary = progress_store.get_region_summary(previous_region_id)
+	var requirements := PackedStringArray()
+	if int(summary.get("main_completed", 0)) < int(summary.get("main_total", 0)):
+		requirements.append("main levels %d/%d" % [
+			int(summary.get("main_completed", 0)), int(summary.get("main_total", 0))])
+	for trial_id: String in catalog.call("get_required_trial_ids", previous_region_id):
+		if not progress_store.is_trial_completed(trial_id):
+			var trial := catalog.call("get_trial", trial_id) as Dictionary
+			requirements.append(String(trial.get("display_name", trial_id)))
+	if requirements.is_empty():
+		requirements.append("remaining requirements")
+	return "Locked - Clear %s first: %s" % [
+		String(previous.get("display_name", "the previous region")), ", ".join(requirements)]
 
 
 func _build_connections(region: Dictionary) -> void:

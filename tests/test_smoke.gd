@@ -525,6 +525,8 @@ func _test_campaign_map_shell() -> void:
 		"kein anderes Menü/HUD bleibt über der Karte sichtbar")
 	check(game.campaign_map.current_region_id == "region_01",
 		"ohne gespeicherte Auswahl öffnet Region 1")
+	check(game.campaign_map.region_status_banner.text == "Available",
+		"Region-1-Banner zeigt Available für die freigeschaltete Region")
 	check(game.campaign_map.node_buttons.size() == 6, "Region 1 rendert sechs kataloggetriebene Nodes")
 	check(game.campaign_map.path_layer.segments.size() == 5 \
 		and _count_optional_segments(game.campaign_map.path_layer.segments) == 0,
@@ -560,6 +562,11 @@ func _test_campaign_map_shell() -> void:
 	await process_frame
 	check(game.campaign_map.current_region_id == "region_02",
 		"echte Selector-Auswahl wechselt zur unveröffentlichten Region 2")
+	check(game.campaign_map.region_status_banner.text.begins_with("Locked") \
+		and game.campaign_map.region_status_banner.text.contains("Region 1") \
+		and game.campaign_map.region_status_banner.text.contains("main levels 0/6") \
+		and game.campaign_map.region_status_banner.text.contains("Flawless Finale"),
+		"Region-2-Banner erklärt das Region-1-Gate (sechs Main-Level + Flawless Finale)")
 	check(game.campaign_map.node_buttons.size() == 10, "unreleased Region 2 rendert 8 Main- und 2 Bonus-Nodes")
 	check(_count_optional_segments(game.campaign_map.path_layer.segments) == 2,
 		"Region-2-Bonuspfad bleibt semantisch dotted/optional")
@@ -574,6 +581,46 @@ func _test_campaign_map_shell() -> void:
 	game._start_campaign_level("r02_level_01")
 	check(game.level_root == null and game.in_main_menu and game.campaign_map.menu.visible,
 		"unveröffentlichtes Level lädt nie eine leere Szene")
+
+	# Erfüllte Region-1-Anforderungen (nur in-memory simuliert, kein Save/Event) wechseln
+	# das Region-2-Banner von Locked auf Coming Soon — spielbar wird sie dadurch nie.
+	for i: int in 6:
+		game.campaign_progress.completed_level_ids.append("r01_level_%02d" % (i + 1))
+	game.campaign_progress.trial_progress["r01_core_flawless_finale"] = 1
+	game.campaign_map.refresh()
+	check(game.campaign_map.region_status_banner.text == "Coming Soon" \
+		and game.campaign_map.play_button.disabled \
+		and game.campaign_map.node_buttons.size() == 10,
+		"erfüllte Vorgänger-Anforderungen zeigen Coming Soon, Region 2 bleibt unspielbar")
+	game.campaign_map.play_button.pressed.emit()
+	check(requested[0] == 0, "auch mit Coming-Soon-Banner emittiert Play keinen Request")
+	game.campaign_progress.completed_level_ids = []
+	game.campaign_progress.trial_progress = {}
+	game.campaign_map.refresh()
+	check(game.campaign_map.region_status_banner.text.begins_with("Locked"),
+		"zurückgesetzter Fortschritt stellt den Locked-Zustand wieder her")
+
+	# Regionen 3-5: Platzhalter-Topologie sichtbar, Banner erklärt die Vorgänger-Sperre,
+	# Play bleibt für jede unveröffentlichte Auswahl stumm.
+	for future_case: Array in [
+		["region_03", 10, "Region 2"], ["region_04", 12, "Region 3"], ["region_05", 14, "Region 4"],
+	]:
+		var future_id: String = future_case[0]
+		game.campaign_map.show_region(future_id)
+		await process_frame
+		check(game.campaign_map.node_buttons.size() == int(future_case[1]),
+			"%s rendert %d Required-Nodes" % [future_id, int(future_case[1])])
+		check(_count_optional_segments(game.campaign_map.path_layer.segments) == 0 \
+			and _count_locked_segments(game.campaign_map.path_layer.segments) \
+				== game.campaign_map.path_layer.segments.size(),
+			"%s zeigt nur gedimmte Required-Pfade" % future_id)
+		check(game.campaign_map.region_status_banner.text.begins_with("Locked") \
+			and game.campaign_map.region_status_banner.text.contains(String(future_case[2])),
+			"%s-Banner nennt die offene Vorgängerregion %s" % [future_id, String(future_case[2])])
+		check(game.campaign_map.play_button.disabled, "%s: Play bleibt deaktiviert" % future_id)
+		game.campaign_map.play_button.pressed.emit()
+		check(requested[0] == 0, "%s kann keinen Level-Request emittieren" % future_id)
+
 	check(game.campaign_map.map_background == map_bg \
 		and _direct_texture_rects(game.campaign_map.menu) == 1,
 		"Initialize/Show/Refresh erstellen den Map-Hintergrund nie neu")
@@ -641,9 +688,10 @@ func _test_campaign_map_shell() -> void:
 	check(_direct_canvas_layers(game.campaign_map) == 1 \
 		and _direct_texture_rects(game.campaign_map.menu) == 1 \
 		and _count_name_prefix(game.campaign_map.menu, "MapGraph") == 1 \
+		and _count_name_prefix(game.campaign_map.menu, "RegionStatusBanner") == 1 \
 		and game.campaign_map.path_layer.get_child_count() == 6 \
 		and game.campaign_map.node_buttons.size() == 6,
-		"Zyklen duplizieren weder Layer, Hintergrund, Graph noch Map-Nodes")
+		"Zyklen duplizieren weder Layer, Hintergrund, Graph, Banner noch Map-Nodes")
 	check(game.menus.map_requested.get_connections().size() == 1 \
 		and game.campaign_map.level_requested.get_connections().size() == 1 \
 		and game.campaign_map.back_requested.get_connections().size() == 1,
