@@ -543,10 +543,10 @@ func _test_campaign_map_shell() -> void:
 	check(game.campaign_map.node_buttons.size() == 6 and _direct_canvas_layers(game.campaign_map) == 1,
 		"wiederholtes Refresh dupliziert weder Nodes noch CanvasLayer")
 
-	check(game.campaign_map.region_selector.item_count == 2 \
+	check(game.campaign_map.region_selector.item_count == 5 \
 		and game.campaign_map.region_selector.get_item_text(1) == "Region 2 - Coming Soon" \
 		and String(game.campaign_map.region_selector.get_item_metadata(1)) == "region_02",
-		"Region-Selector führt Region 2 metadatengetrieben als Coming Soon")
+		"Region-Selector führt alle fünf Regionen, Region 2 metadatengetrieben als Coming Soon")
 	game.campaign_map.region_selector.select(1)
 	game.campaign_map._on_region_selected(1)
 	await process_frame

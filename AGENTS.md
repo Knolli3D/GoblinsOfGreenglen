@@ -103,7 +103,7 @@ tools/
 tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
-  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (52 Checks)
+  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (58 Checks)
   test_smoke.gd       # Smoke-/Verhaltens-Suite (220 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
@@ -162,7 +162,12 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   Szenenpfade, Voraussetzungen, Kartenpositionen, Fokus-Nachbarn, Core Trials und Verbindungen.
   Region 1 (`region_01`) enthält `r01_level_01` bis `r01_level_06` mit den sechs realen Szenen.
   Region 2 (`region_02`) enthält acht Main- und zwei Bonus-Level als unveröffentlichte Platzhalter
-  mit leeren Szenenpfaden. Der Validator lehnt u.a. doppelte IDs, dangling references,
+  mit leeren Szenenpfaden. Regionen 3–5 (`region_03`–`region_05`) sind weitere unveröffentlichte
+  Platzhalter (exakt 10/12/14 Main-Level, generische Namen, leere Szenenpfade, keine
+  Bonus-Abzweige), die `_placeholder_region()` als serpentinenförmigen Required-Pfad im
+  5-Spalten-Raster innerhalb `MAP_BOUNDS` generiert (inkl. Raster-Fokus-Nachbarn). Die fünf
+  Regionen sind sequenziell verkettet (`region_01` → `region_02` → `region_03` → `region_04`
+  → `region_05`, Region 5 ohne Nachfolger). Der Validator lehnt u.a. doppelte IDs, dangling references,
   unerreichbare Required-Nodes, Zyklen und veröffentlichte Level ohne Szene ab.
 - **Verbindungssemantik**: `required` ist ein durchgezogener Progressionspfad; `optional` ist eine
   gestrichelte Bonus-Abzweigung und nie Voraussetzung für `cleared`. Locked/undiscovered ist ein
@@ -629,9 +634,12 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (355 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
-  `HighscoreStore`-Test), `test_campaign_progress.gd` (52: Catalog-Validierung,
-  frischer/kaputter Save, Backup-Recovery, stabile IDs, Required-/Optional-Unlocks,
+- **Suiten (361 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+  `HighscoreStore`-Test), `test_campaign_progress.gd` (58: Catalog-Validierung,
+  Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
+  Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
+  leeren Szenenpfaden), frischer/kaputter Save, Backup-Recovery, stabile IDs,
+  Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
   und `test_smoke.gd` (220: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,

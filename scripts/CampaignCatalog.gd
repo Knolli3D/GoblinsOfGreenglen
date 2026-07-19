@@ -2,6 +2,9 @@ extends RefCounted
 
 const REGION_1_ID := "region_01"
 const REGION_2_ID := "region_02"
+const REGION_3_ID := "region_03"
+const REGION_4_ID := "region_04"
+const REGION_5_ID := "region_05"
 const REQUIRED_CONNECTION := "required"
 const OPTIONAL_CONNECTION := "optional"
 const VALID_CONNECTION_KINDS := [REQUIRED_CONNECTION, OPTIONAL_CONNECTION]
@@ -47,7 +50,7 @@ static func default_regions() -> Array:
 		"display_name": "Region 2",
 		"released": false,
 		"entry_level_id": "r02_level_01",
-		"next_region_id": "",
+		"next_region_id": REGION_3_ID,
 		"fallback_color": Color("#35465C"),
 		"trials": [],
 		"levels": [
@@ -74,6 +77,9 @@ static func default_regions() -> Array:
 			_connection("r02_bonus_01", "r02_bonus_02", OPTIONAL_CONNECTION),
 		],
 	},
+	_placeholder_region(3, 10, REGION_4_ID, Color("#5C4A35")),
+	_placeholder_region(4, 12, REGION_5_ID, Color("#4A3555")),
+	_placeholder_region(5, 14, "", Color("#5C3542")),
 	]
 
 var _regions: Array = []
@@ -111,6 +117,73 @@ static func _level(
 
 static func _connection(from_id: String, to_id: String, kind: String) -> Dictionary:
 	return {"from": from_id, "to": to_id, "kind": kind}
+
+
+# Serpentinen-Raster für unveröffentlichte Platzhalter-Regionen: 5 Spalten pro Zeile,
+# Zeilen wachsen von unten nach oben, alle Positionen bleiben in MAP_BOUNDS.
+const PLACEHOLDER_COLUMNS := 5
+const PLACEHOLDER_ORIGIN := Vector2(40, 300)
+const PLACEHOLDER_COLUMN_STEP := 120.0
+const PLACEHOLDER_ROW_STEP := 115.0
+
+
+# Erzeugt eine unveröffentlichte Platzhalter-Region: generische Namen, leere Szenenpfade,
+# ein serpentinenförmiger Required-Pfad ohne Bonus-Abzweige, Fokus-Nachbarn aus dem Raster.
+static func _placeholder_region(
+	region_number: int,
+	main_count: int,
+	next_region_id: String,
+	fallback_color: Color,
+) -> Dictionary:
+	var region_id := "region_%02d" % region_number
+	var cells: Array = []
+	var grid: Dictionary = {}
+	for i: int in main_count:
+		@warning_ignore("integer_division")
+		var row := i / PLACEHOLDER_COLUMNS
+		var offset := i % PLACEHOLDER_COLUMNS
+		var col := offset if row % 2 == 0 else PLACEHOLDER_COLUMNS - 1 - offset
+		cells.append(Vector2i(col, row))
+		grid[Vector2i(col, row)] = "r%02d_level_%02d" % [region_number, i + 1]
+	var directions := {
+		"left": Vector2i(-1, 0), "right": Vector2i(1, 0),
+		"up": Vector2i(0, 1), "down": Vector2i(0, -1),
+	}
+	var levels: Array = []
+	var connections: Array = []
+	for i: int in main_count:
+		var cell: Vector2i = cells[i]
+		var level_id := String(grid[cell])
+		var neighbors: Dictionary = {}
+		for direction: String in directions:
+			var neighbor_id: Variant = grid.get(cell + directions[direction])
+			if neighbor_id != null:
+				neighbors[direction] = String(neighbor_id)
+		var previous_id := "r%02d_level_%02d" % [region_number, i]
+		var prerequisites: Array = [] if i == 0 else [previous_id]
+		levels.append(_level(
+			level_id,
+			region_id,
+			"Region %d - Location %d" % [region_number, i + 1],
+			"",
+			PLACEHOLDER_ORIGIN + Vector2(cell.x * PLACEHOLDER_COLUMN_STEP, -cell.y * PLACEHOLDER_ROW_STEP),
+			false,
+			prerequisites,
+			neighbors,
+		))
+		if i > 0:
+			connections.append(_connection(previous_id, level_id, REQUIRED_CONNECTION))
+	return {
+		"id": region_id,
+		"display_name": "Region %d" % region_number,
+		"released": false,
+		"entry_level_id": "r%02d_level_01" % region_number,
+		"next_region_id": next_region_id,
+		"fallback_color": fallback_color,
+		"trials": [],
+		"levels": levels,
+		"connections": connections,
+	}
 
 
 func get_regions() -> Array:

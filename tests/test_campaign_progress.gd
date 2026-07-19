@@ -52,12 +52,59 @@ func _test_catalog() -> void:
 	var catalog: RefCounted = CampaignCatalogScript.new()
 	check((catalog.call("validate") as PackedStringArray).is_empty(), "Standard-Katalog ist valide")
 	var region_ids := catalog.call("get_region_ids") as Array
-	check(region_ids == ["region_01", "region_02"], "Region-IDs sind stabil und geordnet")
+	check(region_ids == ["region_01", "region_02", "region_03", "region_04", "region_05"],
+		"fünf Region-IDs sind stabil und geordnet")
 	var r1_main := catalog.call("get_main_level_ids", "region_01") as Array
 	var r2_main := catalog.call("get_main_level_ids", "region_02") as Array
 	var r2_bonus := catalog.call("get_bonus_level_ids", "region_02") as Array
 	check(r1_main.size() == 6, "Region 1 enthält sechs Main-Level")
 	check(r2_main.size() == 8 and r2_bonus.size() == 2, "Region 2 enthält 8 Main- und 2 Bonus-Platzhalter")
+	var expected_main_counts := {
+		"region_01": 6, "region_02": 8, "region_03": 10, "region_04": 12, "region_05": 14,
+	}
+	var counts_ok := true
+	for count_region_id: String in expected_main_counts:
+		var main_ids := catalog.call("get_main_level_ids", count_region_id) as Array
+		if main_ids.size() != int(expected_main_counts[count_region_id]):
+			counts_ok = false
+	check(counts_ok, "Main-Level-Zählungen sind exakt 6/8/10/12/14")
+	var expected_next := {
+		"region_01": "region_02", "region_02": "region_03", "region_03": "region_04",
+		"region_04": "region_05", "region_05": "",
+	}
+	var links_ok := true
+	for link_region_id: String in expected_next:
+		var linked_region := catalog.call("get_region", link_region_id) as Dictionary
+		if String(linked_region.get("next_region_id", "?")) != String(expected_next[link_region_id]):
+			links_ok = false
+	check(links_ok, "Regionen sind sequenziell verkettet, Region 5 ohne Nachfolger")
+	check(not (catalog.call("get_level", "r03_level_01") as Dictionary).is_empty() \
+		and not (catalog.call("get_level", "r04_level_12") as Dictionary).is_empty() \
+		and not (catalog.call("get_level", "r05_level_14") as Dictionary).is_empty(),
+		"Platzhalter-IDs r03_level_01 bis r05_level_14 sind stabil adressierbar")
+	var future_locked := true
+	for future_number: int in [2, 3, 4, 5]:
+		var future_id := "region_%02d" % future_number
+		var future_entry := String((catalog.call("get_region", future_id) as Dictionary).get("entry_level_id", ""))
+		if bool(catalog.call("is_region_released", future_id)) \
+				or bool(catalog.call("is_level_playable", future_entry)):
+			future_locked = false
+	check(future_locked, "Regionen 2-5 bleiben unreleased und nicht startbar")
+	var future_required_only := true
+	var future_scenes_empty := true
+	for future_number: int in [3, 4, 5]:
+		var future_id := "region_%02d" % future_number
+		for connection: Dictionary in catalog.call("get_region_connections", future_id):
+			if String(connection.kind) != CampaignCatalogScript.REQUIRED_CONNECTION:
+				future_required_only = false
+		if not (catalog.call("get_bonus_level_ids", future_id) as Array).is_empty():
+			future_required_only = false
+		for future_level_id: Variant in catalog.call("get_level_ids", future_id, true):
+			var future_level := catalog.call("get_level", String(future_level_id)) as Dictionary
+			if String(future_level.get("scene_path", "x")) != "":
+				future_scenes_empty = false
+	check(future_required_only, "Regionen 3-5 nutzen ausschließlich Required-Pfade ohne Bonus-Abzweige")
+	check(future_scenes_empty, "Regionen 3-5 haben durchgehend leere Szenenpfade")
 	var all_r1_scenes_exist := true
 	for level_id: String in r1_main:
 		var level := catalog.call("get_level", level_id) as Dictionary
