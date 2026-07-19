@@ -1,7 +1,7 @@
 # Goblins of Greenglen
 
 Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
-(Repo/Ordner heißt weiterhin `cloude-game`; "Goblins of Greenglen" ist nur der In-Game-Anzeigename
+(GitHub-Repo: `GoblinsOfGreenglen`; der lokale Ordnername ist frei wählbar. "Goblins of Greenglen" ist der In-Game-Anzeigename
 via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `user://`-Save-Pfad —
 alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` automatisch
 übernommen, siehe Abschnitt "Save-Migration".)

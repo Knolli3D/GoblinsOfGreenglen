@@ -1,6 +1,6 @@
 # Goblins of Greenglen
 
-> Repo/folder name remains `cloude-game`; "Goblins of Greenglen" is the in-game display name.
+> GitHub repository: `GoblinsOfGreenglen`. The local checkout folder may use any name; "Goblins of Greenglen" is the in-game display name.
 
 A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. Play as a knight, stomp goblins, collect coins, and reach the red flag across 6 increasingly challenging levels — including two horizontally scrolling stages and a final level with randomized enemy/coin placement.
 
@@ -54,7 +54,7 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/Knolli3D/cloude-game.git
+   git clone https://github.com/Knolli3D/GoblinsOfGreenglen.git
    ```
 2. Open Godot 4.6 and choose **Import Project**
 3. Select the `project.godot` file in the cloned folder
@@ -82,7 +82,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ## Project Structure
 
 ```
-cloude-game/
+GoblinsOfGreenglen/
 ├── scripts/
 │   ├── Game.gd          # Run coordinator: gameplay state, level lifecycle, signals, transitions
 │   ├── CampaignCatalog.gd      # Validated stable region, level, trial, and route definitions
