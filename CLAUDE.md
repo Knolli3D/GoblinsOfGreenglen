@@ -6,7 +6,8 @@ via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `
 alte Saves aus `app_userdata/Cloude Game` werden von `scripts/SaveMigration.gd` automatisch
 übernommen, siehe Abschnitt "Save-Migration".)
 
-**Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, gemeinsamer Run-Result-Flow
+**Status:** Spiel läuft einwandfrei durch (alle Level, Combat, Coins, aktiver Run-Timer,
+gemeinsamer Run-Result-Flow
 "Run Complete"/"Run Over"). Die Region-/Weltkarten-Kampagne ist als eigenes Hauptmenü-Submenü
 ("Map"-Button) öffentlich erreichbar: freigeschaltete Level lassen sich dort einzeln starten,
 gesperrte/unveröffentlichte Inhalte sind nur ansehbar. `Start Game` startet unverändert den
@@ -23,11 +24,14 @@ Gegner-/Coin-Platzierung), besiegt Goblins per Stomp und erreicht das rote Ziel-
 - 1s Invulnerability nach Treffer/Fall-Respawn (`invuln_until`); wird in `_load_level()` und
   im Hauptmenü auf 0.0 zurückgesetzt — bewusst keine Spawn-Protection beim Levelstart
   (PlayerSpawn liegt überall abseits der Gegner)
-- Coins sammelbar (+1 pro Coin), werden im Result-Menü angezeigt
+- Coins sammelbar (+1 pro Coin); der separate Coin-Zähler bleibt während des Gameplays sichtbar
+- Final Score belohnt sowohl den Combat-Score als auch gesammelte Coins; die unabhängige Run Time
+  misst ausschließlich aktive Gameplay-Zeit
 - Beide Run-Ausgänge teilen sich EIN Result-Menü (siehe "Run-Result-System"): Level 6
   geschafft = "Run Complete" (Gold-Akzent), Tod durch tödlichen Treffer/Fall = "Run Over"
-  (warmer Akzent) — beide mit Score, Coins, Bestwert, stabiler optionaler
-  "New Highscore!"-Zeile (nur bei COMPLETED möglich), "Run Again" und "Main Menu";
+  (warmer Akzent) — beide mit Final Score und Run Time; abgeschlossene Runs können unabhängig
+  "New Highscore!" und/oder "New Best Time!" anzeigen. Fehlversuche bleiben nicht-kompetitiv;
+  beide Ergebnisse bieten "Run Again" und "Main Menu";
   `R` startet ebenfalls einen frischen Run
 
 ## Steuerung
@@ -55,7 +59,7 @@ scripts/
   QuestMenuController.gd # Daily-/Weekly-Quest-Darstellung und Claims
   CaseMenuController.gd  # Case-Reel, Spin-State und Rarity-Reveal
   SkinMenuController.gd  # Skin-Liste, Preview und Equip-Aktion
-  HighscoreStore.gd      # Highscore-V2 laden/vergleichen/speichern via SaveData
+  HighscoreStore.gd      # Highscore-V3: unabhängiger Best Score + Best Time via SaveData
   GreenglenUI.gd         # Gemeinsame Theme-/Font-/Submenu-Factory
   Progression.gd  # Autoload-Singleton: Daily Quests, Keys-Währung, Case-Opening, Skin-Inventory
   Player.gd       # CharacterBody2D: Bewegung, Double-Jump, Swept-Stomp-Test, Signals, apply_skin()
@@ -102,9 +106,9 @@ tools/
 
 tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
-  test_save_system.gd # Save-System-Suite (83 Checks)
+  test_save_system.gd # Save-System-Suite (95 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (68 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (247 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (280 Checks inkl. Timer, Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -114,8 +118,9 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 
 - **Level als .tscn-Dateien** → im Godot 2D-Editor visuell editierbar
 - **Game.gd** ist der schlanke Run-Coordinator und alleinige Besitzer von aktiver Region-/Level-ID,
-  numerischem Kompatibilitätsindex, Health, Score, Coins, Damage-Flags, Invulnerability,
-  `RunOutcome` und `transition_gen`. Er löst Szenen über `CampaignCatalog` auf; `LEVELS` bleibt
+  numerischem Kompatibilitätsindex, Health, Combat-Score, Coins, Run-Timer, Final-Score-Berechnung,
+  Damage-Flags, Invulnerability, `RunOutcome` und `transition_gen`. Er löst Szenen über
+  `CampaignCatalog` auf; `LEVELS` bleibt
   nur als Kompatibilitätsansicht auf die sechs Region-1-Pfade bestehen. Zustands-Snapshots/Intents
   laufen über kleine Controller-APIs; UI-Komponenten besitzen keine Kopie des Gameplay-Zustands.
 - **Main.tscn komponiert die Controller sichtbar im Scene-Tree**: `AudioController`,
@@ -143,8 +148,8 @@ default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 - **Game.gd** ist in Gruppe `"game"`, Player in `"player"`, Enemies in `"enemies"`, Goals in `"goals"`
 - **Progression.gd** bleibt der einzige Autoload/Singleton im Projekt (Ausnahme vom Group-Lookup-Pattern,
   da Meta-Progression session-übergreifend und auch im Hauptmenü ohne geladenes Level lesbar sein muss)
-- **Level-Übergänge (Race-Schutz)**: `reach_goal()` wartet 1s ("Level Cleared!", Timer pausiert
-  mit dem Spiel) und validiert danach gegen das Generation-Token `transition_gen`, das von
+- **Level-Übergänge (Race-Schutz)**: `reach_goal()` wartet 1s ("Level Cleared!"; diese künstliche
+  Verzögerung zählt nicht zur Run Time) und validiert danach gegen das Generation-Token `transition_gen`, das von
   `_load_level()`, `_show_main_menu()` und `_finish_run()` erhöht wird — veraltete
   Übergangs-Coroutinen nach Restart/Menü/Run-Ende laden nichts mehr. Neue Code-Pfade, die
   Level wechseln, ins Menü führen oder den Run beenden, müssen durch eine dieser
@@ -245,7 +250,8 @@ Weltkarten-Kampagne oder eines getrennten Endless-Challenge-Modus.
 
 - **Zustand**: `enum RunOutcome { NONE, FAILED, COMPLETED }` + `run_outcome`. NONE = Run
   läuft; FAILED (tödlicher Treffer/Fall) und COMPLETED (Level 6 geschafft) sind final —
-  nur `_load_level()` und `_show_main_menu()` setzen auf NONE zurück.
+  nur `_load_level()` und `_show_main_menu()` setzen auf NONE zurück. Game besitzt außerdem
+  den ganzzahligen Millisekunden-Timer und dessen Running-/Freeze-Zustand.
 - **Genau-einmal-Garantie**: `_finish_run(outcome)` ist der EINZIGE Lifecycle-Eintritts-
   punkt für das Run-Ende. Guard: bei `run_outcome != NONE` ist jeder weitere Aufruf
   (doppelte Fatal-/Goal-Signale, nachlaufende Callbacks) ein No-Op — Highscore-Submit und
@@ -253,21 +259,21 @@ Weltkarten-Kampagne oder eines getrennten Endless-Challenge-Modus.
   `fell_off_world()` und `reach_goal()` ignorieren außerdem Aufrufe im Hauptmenü; dadurch können
   Signale eines per `queue_free()` abgeräumten Levels kein Result erneut öffnen. Die Gameplay-
   Handler sind zusätzlich über `run_outcome`/`transitioning` geguardet.
-- **Completed-only-Policy**: `_submit_run()` (Highscore) und der `finish_run`-/
+- **Completed-only-Policy**: `_submit_run(final_score, elapsed_time_ms)` (Best Score + Best Time) und der `finish_run`-/
   `no_damage_run`-Quest-Progress laufen ausschließlich im COMPLETED-Zweig von
   `_finish_run()`. FAILED spielt den Death-SFX, stoppt die Musik und zeigt nur das
   Ergebnis — Fehlversuche ändern `highscore.cfg` nie.
 - **Transition-Invalidierung**: `_finish_run()` erhöht `transition_gen` — eine noch
   wartende `reach_goal()`-Coroutine (1s-"Level Cleared!"-Fenster) lädt danach nichts mehr.
-- **Präsentation**: `Game._show_run_result()` übergibt nur Outcome, Run-Werte und
+- **Präsentation**: `Game._show_run_result()` übergibt nur Outcome, Final Score, formatierte Run Time und
   `HighscoreStore.result_text()` an `GameMenuController.show_result()`. Der Menü-Controller
   besitzt EINE geteilte Control-Hierarchie (`run_result_menu`, CanvasLayer 8,
   `PROCESS_MODE_ALWAYS`, gemeinsames Theme, Cinzel-Bold-Titel): Titel wechselt Text + Akzentfarbe
   (`RESULT_COMPLETED_ACCENT` = Gold wie Legendary-/Highscore-Akzente,
   `RESULT_FAILED_ACCENT` = zurückhaltendes warmes Rot-Orange); darunter Final Score,
-  Coins, Best-Run-Zeile (bzw. "No completed run yet") und die stabile optionale
-  "New Highscore!"-Zeile. `show_result()` koppelt diese Zeile defensiv an `completed`, sodass
-  selbst ein fehlerhaftes `is_new_highscore=true` bei FAILED keinen Record-Text zeigt.
+  Run Time, Best-Score-/Best-Time-Zeile (bzw. "No completed run yet") und stabile optionale
+  "New Highscore!"-/"New Best Time!"-Zeilen. `show_result()` koppelt beide defensiv an
+  `completed`, sodass FAILED selbst bei fehlerhaften Record-Flags keinen Record-Text zeigt.
   "Run Again" erhält initialen Tastatur-Fokus. Das letzte
   Gameplay-Bild bleibt hinter dem dunklen Dimmer sichtbar (`level_root` =
   `PROCESS_MODE_DISABLED`), HUD ist ausgeblendet.
@@ -277,7 +283,7 @@ Weltkarten-Kampagne oder eines getrennten Endless-Challenge-Modus.
 - **Clean-Run-Pfad**: `_start_new_run()` ist DER zentrale Neustart — R,
   Result-"Run Again" und Pause-"Try Again" laufen alle über
   `_restart_level_from_menu()`/`_start_new_run()`: Pause + Musik-Ducking zurücksetzen,
-  Score/Coins/Run-Schaden nullen, Musik starten, `_load_level(0)`. `_load_level()` ist
+  Score/Coins/Run-Schaden und Run-Timer nullen, Musik starten, `_load_level(0)`. `_load_level()` ist
   die Lifecycle-Grenze und setzt zentral Health, `transitioning`, `run_outcome`,
   `transition_gen`, `invuln_until` zurück und blendet Result-UI/HUD über die Controller-APIs um.
   "Main Menu" nutzt `_show_main_menu()` (räumt Musik, Pause, HUD, Transitions,
@@ -285,6 +291,19 @@ Weltkarten-Kampagne oder eines getrennten Endless-Challenge-Modus.
 - **Unverändert**: 1s-Schutz nach nicht-tödlichem Treffer/Fall-Respawn, bewusst keine
   Spawn-Protection beim Levelstart, signalbasiertes Player/Game-Interface sowie
   Damage-/Score-/Coin-/Quest-/Stomp-Systeme.
+
+### Final Score und Run Time
+
+- **Final Score**: Game berechnet ihn zentral aus dem nichtnegativen Combat-Anteil und den
+  gesammelten Coins. Die Rohwerte `score` und `coin_count` bleiben im HUD und für Campaign-
+  Levelrecords unverändert; insbesondere speichern Campaign-Records weiterhin lokale Score-/Coin-Deltas.
+- **Run Time**: `_process(delta)` akkumuliert monoton aktive Gameplay-Zeit in Millisekunden.
+  Pausen, Haupt-/Map-/Result-Menüs und die "Level Cleared!"-Verzögerung zählen nicht. Normale
+  Levelwechsel behalten den Wert; `_finish_run()` friert ihn für COMPLETED und FAILED endgültig ein.
+- **Fresh-Run-Grenze**: Start Game, Karten-Levelstart, Run Again, Pause-Try-Again und `R` laufen
+  über die vorhandenen Fresh-Run-Pfade und setzen Timer, Combat-Score, Coins und Run-Schaden gemeinsam zurück.
+- **Unabhängige Leistung**: Run Time fließt weder in Final Score noch in dessen Vergleich ein.
+  Ein Run kann deshalb nur Best Score, nur Best Time, beide oder keinen Rekord setzen.
 
 ## Kollisionslayer
 
@@ -410,18 +429,22 @@ Alle Sounds sind generierte Chiptune-WAVs (`python3 tools/generate_audio.py` →
   "Exit to Menu" während der Pause den gedämpften Pegel in den nächsten Run durchreicht
   (ehemaliger Bug: `_show_main_menu()` stoppte die Musik, setzte aber nie den Pegel zurück).
 
-## Highscore (lokal)
+## Best Score und Best Time (lokal)
 
-Bester abgeschlossener Run wird in `user://highscore.cfg` gespeichert (ConfigFile, Sektionen
-`[meta]` (Schema-Version) + `[highscore]` mit `score` + `coins` — Validierung/Versionierung/Backup
-siehe Abschnitt "Save-System"). Nur lokal — kein Online-Leaderboard (geplant: später via Website).
+Die zwei unabhängigen Rekorde abgeschlossener Runs werden in `user://highscore.cfg` gespeichert
+(ConfigFile, Sektionen `[meta]` + `[highscore]` mit `best_final_score`, `best_time_ms` und
+dediziertem `has_best_time`; Validierung/Versionierung/Backup siehe "Save-System"). Nur lokal —
+kein Online-Leaderboard (geplant: später via Website).
 - **HighscoreStore.gd** besitzt Pfad, Schema-Version, Laden, Backup-kompatibles Speichern und
-  Vergleich. `Game._submit_run(score, coins)` bleibt der eine künftige Web-Leaderboard-Hook
-  und delegiert an `HighscoreStore.submit()` ausschließlich im COMPLETED-Zweig von
-  `_finish_run()` — nur abgeschlossene Runs werden submittet,
-  Fehlversuche ("Run Over") ändern den Bestwert nie. Gespeichert wird nur, wenn besser:
-  höherer Score, bei Gleichstand mehr Coins → Result-Menü zeigt "New Highscore!" bzw. den
-  bestehenden Bestwert. Hauptmenü zeigt "Best: Score X 🪙 Y" unter dem Titel.
+  beide Vergleiche. `Game._submit_run(final_score, elapsed_time_ms)` bleibt der eine künftige
+  Web-Leaderboard-Hook und delegiert ausschließlich im COMPLETED-Zweig von `_finish_run()`;
+  Fehlversuche ("Run Over") ändern keinen Rekord.
+- **Vergleich**: Ein höherer Final Score gewinnt; Gleichstand überschreibt den Score-Rekord nicht.
+  Eine niedrigere positive Run Time gewinnt unabhängig davon. Deshalb kann derselbe Abschluss
+  nur einen, beide oder keinen Rekord setzen.
+- **Anzeige**: Hauptmenü und Result zeigen "Best Score" und "Best Time" getrennt. Ein Legacy-
+  Rekord ohne Timed Completion zeigt seinen Score plus "No best time yet". Ergebnis-Meldungen
+  erscheinen als "New Highscore!" und/oder "New Best Time!" ausschließlich bei COMPLETED.
 - Für das spätere Web-Leaderboard ist `_submit_run()` der einzige Hook-Punkt.
 
 ## Save-System (SaveData.gd — Versionierung, Validierung & Backups)
@@ -432,19 +455,19 @@ Backup/Recovery). Die inhaltliche Normalisierung bleibt bewusst bei den Besitzer
 Definitionen — `Progression.gd` mit `QUEST_POOL`/`WEEKLY_POOL`/`SKIN_TIERS` und
 `CampaignCatalog.gd` mit Region-/Level-/Trial-Definitionen als jeweilige Source of Truth.
 
-- **Schema-Versionen** (`[meta] version`): Progression und Highscore aktuell **v2**
+- **Schema-Versionen** (`[meta] version`): Progression aktuell **v2**, Highscore **v3**
   (`Progression.SAVE_VERSION`, `HighscoreStore.SAVE_VERSION`; Game exportiert nur einen
-  Kompatibilitäts-Alias), Campaign aktuell **v1** (`CampaignProgressStore.SAVE_VERSION`).
-  Fehlt bei den beiden älteren Save-Formaten die `[meta]`-Sektion,
-  gilt die Datei als **v1** = unversioniertes Original-Schema und bleibt dauerhaft ladbar
-  (v1 und v2 haben identisches Feld-Layout, v2 ergänzt nur `[meta]` + Validierung beim Laden).
-  Das v1→v2-Upgrade passiert beim ersten Laden (Normalisieren + Neuschreiben) und ist
-  idempotent — wiederholte Load/Save-Zyklen ändern eine gültige Datei byte-genau nicht.
+  Kompatibilitäts-Alias), Campaign **v1** (`CampaignProgressStore.SAVE_VERSION`).
+  Beim Progression-Save gilt eine fehlende `[meta]`-Sektion als **v1**; v1 und v2 haben dort
+  identisches Feld-Layout. Highscore v1/v2 enthält die alten `score`-/`coins`-Felder. Beim
+  ersten v3-Laden werden beide getypt gelesen, in den ersten Best Score umgewandelt und
+  gespeichert; Best Time bleibt explizit unbekannt, bis ein positiver Timed Completion vorliegt.
+  Upgrades sind idempotent — wiederholte Load/Save-Zyklen ändern eine gültige Datei byte-genau nicht.
   Neuere Versionen als die unterstützte werden gewarnt und best-effort geladen.
 - **Getypte Reads** (`SaveData.read_int/read_string/read_array`, `int_at`/`bool_at` für
   Array-Elemente): jedes Feld fällt bei falschem Typ einzeln auf seinen Default zurück
   (mit `push_warning`) — ein einzelnes kaputtes Feld resettet nie den restlichen Save.
-  Numerische Progression-/Highscore-Felder (Keys, Fragmente, Shards, Zähler, Score, Coins)
+  Numerische Progression-/Highscore-Felder (Keys, Fragmente, Shards, Zähler, Final Score, Zeit)
   werden auf ≥ 0 geklemmt. Campaign-Levelscore darf negativ sein, da Treffer/Fälle den
   tatsächlichen Levelwert senken; Coins und Trial-Zähler bleiben nichtnegativ.
 - **Normalisierung** (`Progression._normalize_state()`, Teil von `load_and_validate()`,
@@ -474,15 +497,16 @@ Definitionen — `Progression.gd` mit `QUEST_POOL`/`WEEKLY_POOL`/`SKIN_TIERS` un
   (`_save()`/`save_with_backup()` → `false`) nur als `push_warning` — der Zustand im
   Speicher bleibt gültig, der nächste erfolgreiche Save holt alles nach. Der Spielstart
   wird nie blockiert (gleiche Philosophie wie SaveMigration.gd).
-- **Highscore-Semantik unverändert**: höherer Score gewinnt, bei Gleichstand mehr Coins
-  (`HighscoreStore.submit()`, aufgerufen über `Game._submit_run()`). Ein unbrauchbarer
-  `score`-Wert gilt als "kein Highscore" (nächster
-  beendeter Run überschreibt); ein kaputtes `coins`-Feld allein verwirft den Score nicht.
-- **Tests**: `tests/test_save_system.gd` (83 Checks: frische Installation, gültiger
+- **Highscore-Semantik**: `HighscoreStore.submit()` vergleicht Best Score und Best Time unabhängig.
+  Höherer Final Score und niedrigere positive Zeit gewinnen; Score-Gleichstand überschreibt nie.
+  Ein unbrauchbarer Legacy-`score` gilt als "kein Highscore"; ein kaputtes Legacy-`coins`-Feld
+  allein verwirft den Score nicht. Failed Runs rufen die Submission-API nie auf.
+- **Tests**: `tests/test_save_system.gd` (95 Checks: frische Installation, gültiger
   v2-Save, v1-Upgrade, fehlende Felder, falsche Typen, negative Werte, unbekannte/doppelte
   Quest- und Skin-IDs, entfernte Tint-Skins in Alt-Saves, zu kurze/lange Arrays,
   equipped nicht besessen, Backup-Recovery,
-  Schreibfehler, Idempotenz, Highscore-Vergleichssemantik). Ausführung, Isolation und
+  Schreibfehler, Idempotenz, Legacy-Highscore-Migration sowie unabhängige Score-/Zeit-Vergleiche).
+  Ausführung, Isolation und
   Determinismus: siehe Abschnitt "Tests (headless)".
 
 ## Save-Migration (SaveMigration.gd)
@@ -639,8 +663,8 @@ und kein zweites visuelles System pro Komponente.
   (`export_presets.cfg` ist gitignored).
 - **Result-Menü**: `GameMenuController` erzeugt einen eigenen `CanvasLayer` (layer 8) mit
   abgedunkeltem, weiterhin sichtbarem Level, zentriertem Container-Layout, outcome-abhängigem
-  Titel ("Run Complete" Gold / "Run Over" warmer Akzent), Final Score, Coins, Bestwert und
-  stabiler optionaler Highscore-Zeile — Details siehe Abschnitt "Run-Result-System".
+  Titel ("Run Complete" Gold / "Run Over" warmer Akzent), Final Score, Run Time, getrennten
+  Bestwerten und stabilen optionalen Score-/Zeit-Rekordzeilen — Details siehe "Run-Result-System".
   Seine Buttons emittieren nur `restart_requested`/`main_menu_requested`; Game routet diese
   in `_start_new_run()` bzw. `_show_main_menu()`. `_load_level()` blendet Result über
   `menus.hide_result()` aus und den HUD über `hud.show_gameplay()` ein.
@@ -662,7 +686,7 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (398 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+- **Suiten (443 Checks gesamt)**: `test_save_system.gd` (95, Save-System inkl. direktem
   `HighscoreStore`-Test), `test_campaign_progress.gd` (68: Catalog-Validierung,
   Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
   Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
@@ -672,7 +696,7 @@ WARNING-Zeilen im Output sind erwartet
   frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (247: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (280: Main-Komponenten/Interfaces,
   Region-Status-Banner (Available/Locked/Coming Soon inkl. Vorgänger-Anforderungen,
   Regionen-3-5-Platzhalter-Rendering und Play-Guards, keine Banner-Duplikate),
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
@@ -692,9 +716,11 @@ WARNING-Zeilen im Output sind erwartet
   Skin-Ressourcen, Case-Gewichtssummen, Quest-/Skin-ID-Eindeutigkeit, alle 6 Level
   (PlayerSpawn/Platforms/level_width/Goal), Level-6-Randomisierung (Anzahlen, Platzierung
   nur auf `spawn_platforms`, Start-/Ziel-Plattform unmarkiert), Run-Result-Lifecycle
-  (tödlicher Gegnerkontakt/Fall, beide Ausgänge, echte Result-/Pause-Button-Pfade,
-  Genau-einmal-Garantie, defensive Highscore-Policy, Escape-/R-Verhalten,
-  Hauptmenü-Callback-Guards, Clean-Run-Resets) und Transition-Cancellation
+  (tödlicher Gegnerkontakt/Fall, beide Ausgänge, Final Score/Run Time ohne Coins-Resultstat,
+  alle Fresh-Run-Timer-Resets, Pause-/Menü-/Transition-Ausschluss, Freeze beider Outcomes,
+  unabhängige Record-Meldungen, echte Result-/Pause-Button-Pfade, Genau-einmal-Garantie,
+  defensive Completed-only-Policy, Escape-/R-Verhalten, Hauptmenü-Callback-Guards,
+  Clean-Run-Resets) und Transition-Cancellation
   (normal, Restart, Menü-Exit, Run-Ende)).
 - **Isolation (verifiziert)**: Jede Suite setzt in `_init()` — also VOR der Autoload-
   Registrierung (Autoloads starten im `-s`-Modus nach `_init`, vor dem ersten Frame) —

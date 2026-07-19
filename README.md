@@ -15,7 +15,9 @@ A 2D side-scrolling platformer built with **Godot 4.6** and pure **GDScript**. P
 - **Collect coins** scattered across each level
 - **Reach the red flag** to advance to the next level
 - **3 hearts** of health — taking damage or falling off the world costs a heart and reduces your score
-- **Shared Greenglen result menu** for both run outcomes — "Run Complete" after Level 6, "Run Over" on a fatal hit or fall. Both show score, coins, and your best completed run; only a qualifying completed run adds "New Highscore!". Run Again and Main Menu buttons (or `R`) continue from either outcome
+- **Final Score** rewards both combat performance and coin collection while keeping the immediate Score and Coins feedback visible during play
+- **Active Run Time** tracks gameplay in `M:SS`; pauses, menus, results, and level-clear delays do not count
+- **Shared Greenglen result menu** for both run outcomes — "Run Complete" after Level 6, "Run Over" on a fatal hit or fall. Both show Final Score and Run Time. Completed runs can earn "New Highscore!", "New Best Time!", or both; failed runs never update records. Run Again and Main Menu buttons (or `R`) continue from either outcome
 - **World map (Map button)** — a campaign map submenu on the main menu: pick any unlocked level and play it individually, see per-level best records and region progress, and preview locked or upcoming locations (view only). A region status banner explains each region's availability — Available, Locked (naming the previous region's outstanding main levels and core trials), or Coming Soon once its prerequisites are met. The map reopens on your last selection; Start Game still runs the classic six-level gauntlet
 
 ---
@@ -73,7 +75,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (83 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (247 checks: component ownership/wiring, the campaign map submenu (single Greenglen Map button, 960×540 layout fit, real button/intent flow, exclusive visibility, back navigation, selection restore, launch/lock/unreleased guards, repeated open-close stability), menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, transition cancellation). **398 checks total.**
+- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (95 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (280 checks: component ownership/wiring, active run timing and reset/freeze rules, Final Score and independent records, the campaign map submenu, 960×540 layout fit, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, and transition cancellation). **443 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 
@@ -140,7 +142,7 @@ GoblinsOfGreenglen/
 
 The game uses a **signal-based, scene-driven** architecture, mostly avoiding singletons:
 
-- **`Game.gd`** is the run coordinator added to the `"game"` group. It remains the sole owner of gameplay state and lifecycle decisions: active stable level ID, level loading, player signal wiring, health, score, coins, invulnerability, transitions, and run outcomes.
+- **`Game.gd`** is the run coordinator added to the `"game"` group. It remains the sole owner of gameplay state and lifecycle decisions: active stable level ID, level loading, player signal wiring, health, combat score, coins, Final Score calculation, active run timing, invulnerability, transitions, and run outcomes.
 - **Controller and service nodes declared in `Main.tscn`** own focused concerns: audio, HUD/feedback, main/pause/result menus, quests, cases, skins, highscores, campaign progress, and the hidden campaign map shell. Menu actions are sent back to `Game.gd` as intent signals; UI controllers do not keep competing copies of run state.
 - **`CampaignCatalog.gd`** is the source of truth for stable region/level IDs, scene paths, prerequisites, route types, and map metadata. Region 1 maps to the current six playable scenes and defines one core trial — a no-damage clear of its finale — that gates Region 2 eligibility alongside the six main completions; Region 2 is deliberately unreleased scaffolding for eight main locations and two optional bonus branches; Regions 3–5 extend the roadmap as unreleased serpentine placeholders (10/12/14 main locations, empty scene paths) chained sequentially behind it. Region 1 is the only released, playable region — Regions 2–5 are visible previews only, and their core trials and extra bonus branches are intentionally deferred until their real content exists.
 - **`CampaignProgressStore.gd`** persists campaign data separately in `user://campaign.cfg` through the shared `SaveData.gd` layer. It records per-level best score/coin results, sequential unlocks, trials, and clear/explore/master milestones without changing the existing six-level Start Game flow.
@@ -192,8 +194,10 @@ Before each `move_and_slide()`, the player records its previous global position 
 | Feature | Details |
 |---|---|
 | Health system | 3 hearts; damage from enemies and falls |
-| Score | +1 per goblin stomped, −1 per hit or fall |
-| Coins | Persistent across levels, shown on win screen |
+| Score | +1 per goblin stomped, −1 per hit or fall; stays visible during gameplay |
+| Coins | Persistent across levels with a separate gameplay counter |
+| Final Score | Rewards combat score and collected coins; shown in both result outcomes |
+| Run Time | Active gameplay time only, shown in the HUD and results |
 | Double jump | Full second jump with slightly lower velocity |
 | Invincibility frames | 1 second after taking damage or a non-fatal fall; never carries over into a new level, restart, or run |
 | POW! effect | Animated label that floats and fades on stomp |
@@ -208,15 +212,17 @@ Before each `move_and_slide()`, the player records its previous global position 
 
 All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). `AudioController.gd` owns the looping music player, round-robin SFX voices, pitch jitter, and pause ducking; the run coordinator invokes its small playback API. Music consistently restores to normal volume on resume, restart, or exiting to the main menu.
 
-## Highscore
+## Best Score and Best Time
 
-Your best completed run (score + coins) is saved locally to `user://highscore.cfg` by `HighscoreStore.gd` through the shared versioned `SaveData.gd` layer — no online leaderboard yet. **Only completed runs are submitted**: a run that ends in "Run Over" never updates your saved best. Higher score wins; on a tie, more coins break it. Beat your previous best and the result menu shows "New Highscore!"; the main menu displays your current best under the title. If you have a save from before the game was renamed from "Cloude Game," it's picked up automatically the first time you launch — nothing to do on your end.
+Completed runs maintain two independent local records in `user://highscore.cfg`: **Best Score** and **Best Time**. A higher Final Score can win without being the fastest run, and a faster run can win without setting the highest score. Equal Final Scores do not replace the existing score record. **Only completed runs are submitted**; "Run Over" never updates either record.
+
+Existing score-and-coin saves are upgraded automatically and preserve their performance as the first Best Score. Because those older runs were not timed, they show "No best time yet" until the first completed timed run. The result menu announces "New Highscore!" and "New Best Time!" independently, and the main menu displays both values separately. Saves from before the "Cloude Game" rename are still picked up automatically on first launch.
 
 ---
 
 ## Look & Feel
 
-The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal state textures rendered at their native 6:1 proportions, with hover/pressed/disabled variants) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. Both run outcomes share one centered Greenglen result overlay — "Run Complete" in the established gold accent, "Run Over" in a restrained warm accent — leaving the final gameplay frame visible beneath a restrained dark dimmer while presenting final score, coins, best values, and replay/menu actions.
+The UI uses hand-painted **Greenglen** button art (ornate wood-and-metal state textures rendered at their native 6:1 proportions, with hover/pressed/disabled variants) and the **Cinzel** font family throughout — Cinzel Bold for menu headings, Cinzel SemiBold for buttons, both in a pale cream with a dark brown outline for readability against any background. The main menu displays a painted logo and castle backdrop instead of a plain text title, and each submenu (Quests/Cases/Skins) has its own themed background image. Both run outcomes share one centered Greenglen result overlay — "Run Complete" in the established gold accent, "Run Over" in a restrained warm accent — leaving the final gameplay frame visible beneath a restrained dark dimmer while presenting Final Score, Run Time, independent best values, and replay/menu actions.
 
 ---
 

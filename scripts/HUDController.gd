@@ -3,6 +3,7 @@ extends Node
 const VIEW := Vector2(960, 540)
 
 var hud_label: Label
+var timer_label: Label
 var coin_label: Label
 var keys_label: Label
 var message_label: Label
@@ -25,6 +26,18 @@ func initialize() -> void:
 	hud_label.add_theme_constant_override("outline_size", 4)
 	hud_label.visible = false
 	canvas_layer.add_child(hud_label)
+
+	timer_label = Label.new()
+	timer_label.name = "RunTimer"
+	timer_label.position = Vector2(VIEW.x * 0.5 - 55, 12)
+	timer_label.custom_minimum_size = Vector2(110, 0)
+	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer_label.add_theme_font_size_override("font_size", 22)
+	timer_label.add_theme_color_override("font_color", Color(0.86, 0.94, 1.0))
+	timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	timer_label.add_theme_constant_override("outline_size", 4)
+	timer_label.visible = false
+	canvas_layer.add_child(timer_label)
 
 	coin_label = Label.new()
 	coin_label.name = "Coins"
@@ -57,23 +70,38 @@ func initialize() -> void:
 	canvas_layer.add_child(message_label)
 
 
-func update_status(level_number: int, health: int, max_health: int, score: int, coins: int, keys: int) -> void:
+func update_status(
+	level_number: int,
+	health: int,
+	max_health: int,
+	score: int,
+	coins: int,
+	keys: int,
+	run_time_text: String,
+) -> void:
 	var hearts := ""
 	for i in range(max_health):
 		hearts += "♥ " if i < health else "♡ "
 	hud_label.text = "Level %d   %s   Score: %d" % [level_number, hearts, score]
 	coin_label.text = "🪙 %d" % coins
 	keys_label.text = "🔑 %d" % keys
+	timer_label.text = run_time_text
+
+
+func update_run_time(run_time_text: String) -> void:
+	timer_label.text = run_time_text
 
 
 func show_gameplay() -> void:
 	hud_label.visible = true
+	timer_label.visible = true
 	coin_label.visible = true
 	keys_label.visible = true
 
 
 func hide_gameplay() -> void:
 	hud_label.visible = false
+	timer_label.visible = false
 	coin_label.visible = false
 	keys_label.visible = false
 

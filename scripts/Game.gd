@@ -8,6 +8,7 @@ const CampaignCatalogScript := preload("res://scripts/CampaignCatalog.gd")
 const CampaignProgressStoreScript := preload("res://scripts/CampaignProgressStore.gd")
 
 const MAX_HEALTH := 3
+const COIN_FINAL_SCORE_VALUE := 10
 
 # Compatibility view for resource checks. CampaignCatalog is the source of truth.
 const LEVELS := CampaignCatalogScript.REGION_1_SCENE_PATHS
@@ -26,6 +27,9 @@ var current_level_id := "r01_level_01"
 var health := MAX_HEALTH
 var score := 0
 var coin_count := 0
+var run_time_ms := 0
+var run_time_remainder_usec := 0
+var run_timer_active := false
 var transitioning := false
 var transition_gen := 0
 var invuln_until := 0.0
@@ -74,13 +78,19 @@ func _ready() -> void:
 	_show_main_menu()
 
 
+func _process(delta: float) -> void:
+	if not _is_run_timer_counting():
+		return
+	_accumulate_run_time(delta)
+
+
 func _configure_highscore_store() -> void:
 	var save_path: String = HighscoreStoreScript.SAVE_PATH
 	var test_dir := SaveData.test_save_dir()
 	if test_dir != "":
 		save_path = test_dir.path_join("highscore.cfg")
 	highscore_store.configure(save_path)
-	highscore_store.load_data()
+	highscore_store.load_data(COIN_FINAL_SCORE_VALUE)
 
 
 func _configure_campaign() -> void:
@@ -123,8 +133,46 @@ func _set_music_ducked(ducked: bool) -> void:
 
 
 # Kept as the single future online-leaderboard hook. Persistence lives in HighscoreStore.
-func _submit_run(run_score: int, run_coins: int) -> bool:
-	return highscore_store.submit(run_score, run_coins)
+func _submit_run(final_score: int, elapsed_time_ms: int) -> Dictionary:
+	return highscore_store.submit(final_score, elapsed_time_ms)
+
+
+func calculate_final_score(combat_score: int, coins: int) -> int:
+	return maxi(0, combat_score) + coins * COIN_FINAL_SCORE_VALUE
+
+
+func format_run_time(time_ms: int) -> String:
+	var total_seconds := int(maxi(0, time_ms) / 1000)
+	return "%d:%02d" % [int(total_seconds / 60), total_seconds % 60]
+
+
+func _begin_fresh_run() -> void:
+	score = 0
+	coin_count = 0
+	took_damage_this_run = false
+	run_time_ms = 0
+	run_time_remainder_usec = 0
+	run_timer_active = true
+
+
+func _is_run_timer_counting() -> bool:
+	return run_timer_active \
+		and not in_main_menu \
+		and run_outcome == RunOutcome.NONE \
+		and not transitioning \
+		and not get_tree().paused \
+		and level_root != null \
+		and level_root.process_mode != Node.PROCESS_MODE_DISABLED
+
+
+func _accumulate_run_time(delta: float) -> void:
+	var delta_usec := maxi(0, roundi(delta * 1000000.0))
+	var accumulated_usec := run_time_remainder_usec + delta_usec
+	var previous_seconds := int(run_time_ms / 1000)
+	run_time_ms += int(accumulated_usec / 1000)
+	run_time_remainder_usec = accumulated_usec % 1000
+	if int(run_time_ms / 1000) != previous_seconds:
+		hud.update_run_time(format_run_time(run_time_ms))
 
 
 func _show_main_menu() -> void:
@@ -132,6 +180,7 @@ func _show_main_menu() -> void:
 	transitioning = false
 	invuln_until = 0.0
 	run_outcome = RunOutcome.NONE
+	run_timer_active = false
 	in_main_menu = true
 	get_tree().paused = false
 	menus.set_pause_visible(false)
@@ -155,9 +204,7 @@ func _start_game() -> void:
 	in_main_menu = false
 	menus.hide_main_menu()
 	hud.show_gameplay()
-	score = 0
-	coin_count = 0
-	took_damage_this_run = false
+	_begin_fresh_run()
 	_set_music_ducked(false)
 	audio.start_music()
 	_load_level(0)
@@ -191,6 +238,7 @@ func _open_campaign_map(region_id: String) -> void:
 	transitioning = false
 	invuln_until = 0.0
 	run_outcome = RunOutcome.NONE
+	run_timer_active = false
 	in_main_menu = true
 	get_tree().paused = false
 	menus.hide_main_menu()
@@ -216,9 +264,7 @@ func _start_campaign_level(level_id: String) -> void:
 	campaign_map.hide_map()
 	menus.hide_main_menu()
 	hud.show_gameplay()
-	score = 0
-	coin_count = 0
-	took_damage_this_run = false
+	_begin_fresh_run()
 	_set_music_ducked(false)
 	audio.start_music()
 	_load_level_by_id(level_id)
@@ -250,9 +296,7 @@ func _start_new_run() -> void:
 	get_tree().paused = false
 	menus.set_pause_visible(false)
 	_set_music_ducked(false)
-	score = 0
-	coin_count = 0
-	took_damage_this_run = false
+	_begin_fresh_run()
 	if not audio.is_music_playing():
 		audio.start_music()
 	_load_level(0)
@@ -292,6 +336,7 @@ func _update_hud() -> void:
 		score,
 		coin_count,
 		Progression.get_keys(),
+		format_run_time(run_time_ms),
 	)
 
 
@@ -464,30 +509,35 @@ func _finish_run(outcome: RunOutcome) -> void:
 	if in_main_menu or outcome == RunOutcome.NONE or run_outcome != RunOutcome.NONE:
 		return
 	run_outcome = outcome
+	run_timer_active = false
 	transition_gen += 1
 	transitioning = false
 	audio.stop_music()
-	var is_new_highscore := false
+	var record_result := {
+		"new_highscore": false,
+		"new_best_time": false,
+	}
 	if outcome == RunOutcome.COMPLETED:
 		Progression.add_quest_progress("finish_run")
 		if not took_damage_this_run:
 			Progression.add_quest_progress("no_damage_run")
 		play_sfx("win")
-		is_new_highscore = _submit_run(score, coin_count)
+		record_result = _submit_run(calculate_final_score(score, coin_count), run_time_ms)
 	else:
 		play_sfx("death")
-	_show_run_result(outcome, is_new_highscore)
+	_show_run_result(outcome, record_result)
 
 
-func _show_run_result(outcome: RunOutcome, is_new_highscore := false) -> void:
+func _show_run_result(outcome: RunOutcome, record_result := {}) -> void:
 	hud.hide_message()
 	hud.hide_gameplay()
 	menus.show_result(
 		outcome == RunOutcome.COMPLETED,
-		score,
-		coin_count,
+		calculate_final_score(score, coin_count),
+		format_run_time(run_time_ms),
 		highscore_store.result_text(),
-		is_new_highscore,
+		bool(record_result.get("new_highscore", false)),
+		bool(record_result.get("new_best_time", false)),
 	)
 	if level_root:
 		level_root.process_mode = Node.PROCESS_MODE_DISABLED

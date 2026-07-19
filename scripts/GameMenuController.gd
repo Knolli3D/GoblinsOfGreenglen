@@ -22,7 +22,7 @@ var pause_menu: Control
 var run_result_menu: Control
 var result_title_label: Label
 var result_score_value: Label
-var result_coins_value: Label
+var result_time_value: Label
 var result_best_label: Label
 var result_record_label: Label
 var result_run_again_btn: Button
@@ -63,18 +63,24 @@ func hide_result() -> void:
 
 func show_result(
 	completed: bool,
-	run_score: int,
-	run_coins: int,
+	final_score: int,
+	run_time_text: String,
 	best_text: String,
 	is_new_highscore: bool,
+	is_new_best_time: bool,
 ) -> void:
 	result_title_label.text = "Run Complete" if completed else "Run Over"
 	result_title_label.add_theme_color_override(
 		"font_color", RESULT_COMPLETED_ACCENT if completed else RESULT_FAILED_ACCENT)
-	result_score_value.text = str(run_score)
-	result_coins_value.text = str(run_coins)
+	result_score_value.text = str(final_score)
+	result_time_value.text = run_time_text
 	result_best_label.text = best_text
-	result_record_label.text = "New Highscore!" if completed and is_new_highscore else ""
+	var record_messages: Array[String] = []
+	if completed and is_new_highscore:
+		record_messages.append("New Highscore!")
+	if completed and is_new_best_time:
+		record_messages.append("New Best Time!")
+	result_record_label.text = "\n".join(record_messages)
 	pause_menu.visible = false
 	run_result_menu.visible = true
 	result_run_again_btn.grab_focus()
@@ -170,7 +176,7 @@ func _build_run_result_menu() -> void:
 	stats.add_theme_constant_override("separation", 36)
 	box.add_child(stats)
 	result_score_value = _add_result_stat(stats, "FINAL SCORE", GreenglenUI.UI_CREAM)
-	result_coins_value = _add_result_stat(stats, "COINS", Color("#F4D35E"))
+	result_time_value = _add_result_stat(stats, "RUN TIME", Color("#B9D9F4"))
 
 	result_best_label = Label.new()
 	result_best_label.add_theme_font_override("font", body_font)
@@ -183,7 +189,7 @@ func _build_run_result_menu() -> void:
 	box.add_child(result_best_label)
 
 	result_record_label = Label.new()
-	result_record_label.custom_minimum_size.y = 28
+	result_record_label.custom_minimum_size.y = 52
 	result_record_label.add_theme_font_override("font", heading_font)
 	result_record_label.add_theme_font_size_override("font_size", 21)
 	result_record_label.add_theme_color_override("font_color", GreenglenUI.TIER_COLORS.legendary)

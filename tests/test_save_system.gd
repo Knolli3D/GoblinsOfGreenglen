@@ -19,6 +19,7 @@ const ProgressionScript := preload("res://scripts/Progression.gd")
 const SaveData := preload("res://scripts/SaveData.gd")
 const HighscoreStoreScript := preload("res://scripts/HighscoreStore.gd")
 const TestEnv := preload("res://tests/test_env.gd")
+const LEGACY_COIN_FINAL_SCORE_VALUE := 10
 
 var checks := 0
 var failures := 0
@@ -421,62 +422,105 @@ func _test_idempotent_cycles() -> void:
 func _make_highscore_store(path: String) -> Node:
 	var store: Node = HighscoreStoreScript.new()
 	store.configure(path)
-	store.load_data()
+	store.load_data(LEGACY_COIN_FINAL_SCORE_VALUE)
 	return store
 
 func _test_highscore() -> void:
-	print("Highscore:")
-	# frisch — keine Datei
+	print("Highscore und Bestzeit:")
 	var store := _make_highscore_store(_path("hs_fresh.cfg"))
-	check(not store.has_highscore, "frisch: kein Highscore")
+	check(not store.has_highscore and not store.has_best_time, "frisch: keine Rekorde")
 	store.free()
-	# unversionierter v1-Save → laden + Upgrade
+	# Legacy-Save: Final Score migrieren, Zeit bewusst unbekannt lassen.
 	var v1_path := _path("hs_v1.cfg")
 	_write_cfg(v1_path, {"highscore": {"score": 12, "coins": 30}})
 	store = _make_highscore_store(v1_path)
-	check(store.has_highscore and store.best_score == 12 and store.best_coins == 30, "v1 geladen")
+	check(store.has_highscore and store.best_final_score == 312, "v1 Score + Coins zu Final Score migriert")
+	check(not store.has_best_time and store.best_time_ms == 0, "v1 erfindet keine Bestzeit")
 	var cfg := ConfigFile.new()
 	var hs_version: int = HighscoreStoreScript.SAVE_VERSION
-	check(cfg.load(v1_path) == OK and cfg.get_value("meta", "version", -1) == hs_version, "v1 → v2 gehoben")
+	check(cfg.load(v1_path) == OK and cfg.get_value("meta", "version", -1) == hs_version, "v1 auf aktuelles Schema gehoben")
+	check(cfg.get_value("highscore", "best_final_score", -1) == 312 \
+		and cfg.get_value("highscore", "has_best_time", true) == false,
+		"Migration persistiert Final Score und unbekannte Zeit")
 	var bak := ConfigFile.new()
 	check(bak.load(v1_path + ".bak") == OK and not bak.has_section("meta"), "v1-Stand als .bak gesichert")
-	# Vergleichs-Semantik unverändert: höherer Score gewinnt, Gleichstand → mehr Coins
-	check(store.submit(12, 30) == false, "gleicher Run ist kein neuer Rekord")
-	check(store.submit(11, 99) == false, "weniger Score verliert trotz mehr Coins")
-	check(store.submit(12, 31) == true, "Gleichstand + mehr Coins gewinnt")
-	check(store.submit(13, 0) == true, "höherer Score gewinnt immer")
+	var migrated_before := FileAccess.get_file_as_string(v1_path)
 	store.free()
-	# negative Werte werden geklemmt
+	store = _make_highscore_store(v1_path)
+	check(FileAccess.get_file_as_string(v1_path) == migrated_before, "Highscore-Migration ist idempotent")
+	var result: Dictionary = store.submit(300, 65000)
+	check(not result.new_highscore and result.new_best_time, "erste Timed Completion setzt nur Bestzeit")
+	check(store.best_final_score == 312 and store.best_time_ms == 65000, "migrierter Score und neue Zeit bleiben unabhängig")
+	store.free()
+	# Das bisher aktuelle v2-Format nutzt dieselben Legacy-Felder und wird ebenso migriert.
+	var v2_path := _path("hs_v2.cfg")
+	_write_cfg(v2_path, {"meta": {"version": 2}, "highscore": {"score": 4, "coins": 6}})
+	store = _make_highscore_store(v2_path)
+	check(store.best_final_score == 64 and not store.has_best_time, "v2 wird mit unbekannter Bestzeit migriert")
+	var v2_cfg := ConfigFile.new()
+	check(v2_cfg.load(v2_path) == OK and v2_cfg.get_value("meta", "version", -1) == hs_version,
+		"v2 wird auf das aktuelle Schema gehoben")
+	check(store.main_menu_text() == "Best Score: 64\nNo best time yet",
+		"Legacy-Migration zeigt Score plus klare leere Bestzeit")
+	store.free()
+
+	# Aktuelle Submit-Semantik: nur Score, nur Zeit, beide oder keiner.
+	var submit_path := _path("hs_submit.cfg")
+	store = _make_highscore_store(submit_path)
+	result = store.submit(100, 60000)
+	check(result.new_highscore and result.new_best_time, "erste Completion setzt beide Rekorde")
+	result = store.submit(110, 70000)
+	check(result.new_highscore and not result.new_best_time, "höherer Final Score setzt nur Best Score")
+	result = store.submit(90, 50000)
+	check(not result.new_highscore and result.new_best_time, "schnellerer Run setzt nur Best Time")
+	result = store.submit(110, 50000)
+	check(not result.new_highscore and not result.new_best_time, "gleicher Score und gleiche Zeit setzen keinen Rekord")
+	result = store.submit(120, 40000)
+	check(result.new_highscore and result.new_best_time, "ein Run kann beide Rekorde setzen")
+	check(store.best_final_score == 120 and store.best_time_ms == 40000, "unabhängige Bestwerte korrekt gespeichert")
+	result = store.submit(120, 39000)
+	check(not result.new_highscore and result.new_best_time, "gleicher Final Score bleibt, schnellere Zeit gewinnt")
+	store.free()
+
+	# Negative aktuelle Werte werden geklemmt; nichtpositive Zeit bleibt unbekannt.
 	var neg_path := _path("hs_neg.cfg")
-	_write_cfg(neg_path, {"highscore": {"score": -7, "coins": -1}})
+	_write_cfg(neg_path, {
+		"meta": {"version": hs_version},
+		"highscore": {"best_final_score": -7, "best_time_ms": -1, "has_best_time": true},
+	})
 	store = _make_highscore_store(neg_path)
-	check(store.has_highscore and store.best_score == 0 and store.best_coins == 0, "negative Werte → 0")
+	check(store.has_highscore and store.best_final_score == 0, "negativer Final Score wird auf 0 geklemmt")
+	check(not store.has_best_time and store.best_time_ms == 0, "nichtpositive Bestzeit wird verworfen")
 	store.free()
-	# falscher score-Typ → kein Highscore, aber kein Crash
+	# Falscher Legacy-score-Typ: kein Highscore, aber kein Crash.
 	var bad_path := _path("hs_bad.cfg")
 	_write_cfg(bad_path, {"highscore": {"score": "viele", "coins": 5}})
 	store = _make_highscore_store(bad_path)
 	check(not store.has_highscore, "unbrauchbarer score → als 'kein Highscore' behandelt")
 	store.free()
-	# kaputtes coins-Feld verwirft den gültigen Score nicht
+	# Kaputtes Legacy-coins-Feld verwirft den gültigen Score nicht.
 	var coin_path := _path("hs_coins.cfg")
 	_write_cfg(coin_path, {"highscore": {"score": 8, "coins": "viele"}})
 	store = _make_highscore_store(coin_path)
-	check(store.has_highscore and store.best_score == 8 and store.best_coins == 0, "score bleibt trotz kaputtem coins-Feld")
+	check(store.has_highscore and store.best_final_score == 8, "Legacy-score bleibt trotz kaputtem coins-Feld")
 	store.free()
 	# korrupter Haupt-Save + gültiges Backup
 	var rec_path := _path("hs_recover.cfg")
-	_write_cfg(rec_path + ".bak", {"meta": {"version": 2}, "highscore": {"score": 21, "coins": 9}})
+	_write_cfg(rec_path + ".bak", {
+		"meta": {"version": hs_version},
+		"highscore": {"best_final_score": 210, "best_time_ms": 42000, "has_best_time": true},
+	})
 	_write_raw(rec_path, "[kaputt")
 	store = _make_highscore_store(rec_path)
-	check(store.has_highscore and store.best_score == 21 and store.best_coins == 9, "aus Backup wiederhergestellt")
+	check(store.has_highscore and store.best_final_score == 210 \
+		and store.has_best_time and store.best_time_ms == 42000, "beide Rekorde aus Backup wiederhergestellt")
 	check(cfg.load(rec_path) == OK, "Haupt-Save repariert")
 	store.free()
 	# Schreibfehler
 	store = HighscoreStoreScript.new()
 	store.configure(_path("gibt_es_nicht/hs.cfg"))
-	store.best_score = 3
+	store.best_final_score = 3
 	store.has_highscore = true
 	store.save_data()
-	check(store.best_score == 3, "Schreibfehler crasht nicht, Zustand bleibt")
+	check(store.best_final_score == 3, "Schreibfehler crasht nicht, Zustand bleibt")
 	store.free()

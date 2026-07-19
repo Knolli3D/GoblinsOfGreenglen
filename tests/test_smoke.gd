@@ -263,8 +263,13 @@ func _platform_below(level: Node2D, pos: Vector2) -> StaticBody2D:
 func _test_run_results() -> void:
 	print("Run-Results (FAILED/COMPLETED):")
 	root.add_child(game)  # _ready: Menüs, Audio, isolierter Highscore
+	game.set_process(false)  # Timer-Fortschritt wird unten deterministisch per _process(delta) injiziert.
 	var RO: Dictionary = game.RunOutcome
 	var prog: Node = root.get_node("/root/Progression")
+	check(int(game.COIN_FINAL_SCORE_VALUE) == 10, "zentraler Coin-Final-Score-Wert ist konfiguriert")
+	check(game.calculate_final_score(3, 2) == 23, "Final Score addiert Combat Score und Coin-Wert")
+	check(game.calculate_final_score(-5, 2) == 20, "negativer Combat-Beitrag wird im Final Score geklemmt")
+	check(game.format_run_time(65432) == "1:05", "Run Time formatiert kompakt als M:SS")
 	check(game.menus.main_menu.theme == game.ui_theme, "Main-Menü nutzt das gemeinsame Theme")
 	check(game.quest_menu.menu.theme == game.ui_theme and game.case_menu.menu.theme == game.ui_theme \
 		and game.skin_menu.menu.theme == game.ui_theme, "Submenüs teilen dieselbe Theme-Instanz")
@@ -287,6 +292,16 @@ func _test_run_results() -> void:
 	check(game.level_root != null and game.current_level == 0 \
 		and game.current_region_id == "region_01" and game.current_level_id == "r01_level_01",
 		"Run startet mit stabilen IDs in Region 1 Level 1")
+	check(game.run_timer_active and game.run_time_ms == 0 \
+		and game.hud.timer_label.visible and game.hud.timer_label.text == "0:00",
+		"Start Game startet einen frischen HUD-Timer")
+	game._process(12.345)
+	check(game.run_time_ms == 12345 and game.hud.timer_label.text == "0:12",
+		"Timer zählt aktives Gameplay deterministisch in Millisekunden")
+	var score_before_time: int = game.calculate_final_score(8, 3)
+	game._process(1.0)
+	check(game.calculate_final_score(8, 3) == score_before_time,
+		"Timer-Fortschritt beeinflusst den Final Score nicht")
 	var player_sprite := game.player.find_child("Sprite2D", true, false) as Sprite2D
 	check(player_sprite != null and player_sprite.texture.resource_path.ends_with("sprite_princess_blue.png"),
 		"ausgerüsteter Skin wird beim Levelstart angewendet")
@@ -296,14 +311,32 @@ func _test_run_results() -> void:
 	game.damage_player()
 	check(game.run_outcome == RO.FAILED and game.health == 0 and game.score == 7,
 		"tödlicher Gegnerkontakt endet den Run genau einmal")
+	var failed_time_ms: int = game.run_time_ms
+	game._process(10.0)
+	check(game.run_time_ms == failed_time_ms and not game.run_timer_active,
+		"FAILED friert den Run-Timer permanent ein")
 	check(game.menus.run_result_menu.visible, "Result-Menü sichtbar")
 	check(game.menus.result_title_label.text == "Run Over", "Titel 'Run Over'")
-	check(game.menus.result_score_value.text == "7" and game.menus.result_coins_value.text == "3", "Score/Coins angezeigt")
+	check(game.menus.result_score_value.text == "37" \
+		and game.menus.result_time_value.text == game.format_run_time(failed_time_ms),
+		"FAILED zeigt Final Score und Run Time")
+	check(_count_labels_with_text(game.menus.run_result_menu, "COINS") == 0,
+		"Result zeigt keinen separaten Coins-Stat")
 	check(game.menus.result_record_label.text == "", "keine Record-Zeile bei FAILED")
-	game.menus.show_result(false, 7, 3, "No completed run yet", true)
+	game.menus.show_result(false, 37, "0:13", "No completed run yet", true, true)
 	check(game.menus.result_record_label.text == "",
-		"FAILED unterdrückt Record-Text auch bei fehlerhaftem true-Flag")
-	check(not game.highscore_store.has_highscore, "FAILED submittet keinen Highscore")
+		"FAILED unterdrückt beide Record-Texte auch bei fehlerhaften true-Flags")
+	game.menus.show_result(true, 37, "0:13", "Best Score: 37", true, false)
+	check(game.menus.result_record_label.text == "New Highscore!", "Result kann nur neuen Best Score melden")
+	game.menus.show_result(true, 37, "0:13", "Best Time: 0:13", false, true)
+	check(game.menus.result_record_label.text == "New Best Time!", "Result kann nur neue Best Time melden")
+	game.menus.show_result(true, 37, "0:13", "Best values", true, true)
+	check(game.menus.result_record_label.text == "New Highscore!\nNew Best Time!", "Result kann beide Rekorde melden")
+	game.menus.show_result(true, 37, "0:13", "Best values", false, false)
+	check(game.menus.result_record_label.text == "", "Result bleibt ohne Rekordverbesserung stabil leer")
+	game.menus.show_result(false, 37, "0:13", "No completed run yet", false, false)
+	check(not game.highscore_store.has_highscore and not game.highscore_store.has_best_time,
+		"FAILED submittet weder Highscore noch Bestzeit")
 	check(not FileAccess.file_exists(save_dir.path_join("highscore.cfg")), "highscore.cfg wurde nicht geschrieben")
 	check(game.campaign_progress.get_completed_level_ids().is_empty(),
 		"FAILED erzeugt keinen Campaign-Completion-Record")
@@ -337,6 +370,7 @@ func _test_run_results() -> void:
 	game._unhandled_input(restart_ev)
 	check(game.run_outcome == RO.NONE and not game.menus.run_result_menu.visible, "R räumt das Result auf")
 	check(game.score == 0 and game.coin_count == 0 and game.health == int(game.MAX_HEALTH), "Clean-Run: Score/Coins/Health zurückgesetzt")
+	check(game.run_timer_active and game.run_time_ms == 0, "R setzt und startet den Run-Timer neu")
 	check(game.current_level == 0 and not game.transitioning and game.invuln_until == 0.0, "Clean-Run: Level 1, keine Transition, keine Invulnerability")
 	check(not game.took_damage_this_run and not game.took_damage_this_level, "Clean-Run: Schadens-Tracking zurückgesetzt")
 	check(game.hud.hud_label.visible, "HUD wieder sichtbar")
@@ -352,6 +386,7 @@ func _test_run_results() -> void:
 	check(game.run_outcome == RO.NONE and game.current_level == 0 and game.health == int(game.MAX_HEALTH) \
 		and game.score == 0 and game.coin_count == 0 and game.invuln_until == 0.0,
 		"FAILED Run-Again-Button startet einen Clean-Run")
+	check(game.run_timer_active and game.run_time_ms == 0, "Run Again setzt den Timer zurück")
 
 	# FAILED → Main Menu über den echten Button; nachlaufende Gameplay-Callbacks bleiben No-Ops
 	game.health = 1
@@ -362,6 +397,10 @@ func _test_run_results() -> void:
 		result_main_menu.pressed.emit()
 	check(game.in_main_menu and game.level_root == null and not game.menus.run_result_menu.visible,
 		"FAILED Main Menu räumt Result und Gameplay auf")
+	var menu_time_ms: int = game.run_time_ms
+	game._process(9.0)
+	check(not game.run_timer_active and game.run_time_ms == menu_time_ms,
+		"Hauptmenüzeit zählt nicht zum Run")
 	var menu_health: int = game.health
 	var menu_score: int = game.score
 	var menu_generation: int = game.transition_gen
@@ -384,6 +423,7 @@ func _test_run_results() -> void:
 	game.current_level_id = "r01_level_06"
 	game.score = 10
 	game.coin_count = 5
+	game._process(65.432)
 	game.took_damage_this_run = false
 	game.took_damage_this_level = true  # Level-6-Versuch MIT Schaden: Flawless-Trial darf nicht zählen
 	game.reach_goal()  # letztes Level → synchroner _finish_run(COMPLETED)
@@ -391,9 +431,24 @@ func _test_run_results() -> void:
 	check(not game.campaign_progress.is_trial_completed("r01_core_flawless_finale"),
 		"Level-6-Abschluss mit Schaden erfüllt den Flawless-Trial nicht")
 	check(game.menus.result_title_label.text == "Run Complete", "Titel 'Run Complete'")
-	check(game.menus.result_record_label.text == "New Highscore!", "erster Abschluss zeigt 'New Highscore!'")
-	check(game.highscore_store.has_highscore and game.highscore_store.best_score == 10 \
-		and game.highscore_store.best_coins == 5, "_submit_run() gespeichert (10/5)")
+	check(game.menus.result_score_value.text == "60" and game.menus.result_time_value.text == "1:05",
+		"COMPLETED zeigt Final Score und Run Time ohne Rohwerte")
+	check(game.menus.result_record_label.text == "New Highscore!\nNew Best Time!",
+		"erster Abschluss zeigt beide Record-Meldungen stabil")
+	await process_frame
+	var result_view := Rect2(Vector2.ZERO, Vector2(960, 540))
+	check(not game.menus.result_score_value.get_global_rect().intersects(
+		game.menus.result_time_value.get_global_rect()) \
+		and result_view.encloses(game.menus.result_record_label.get_global_rect()) \
+		and result_view.encloses(game.menus.result_run_again_btn.get_global_rect()),
+		"zweizeilige Record-Meldungen und beide Result-Stats passen in 960×540")
+	check(game.highscore_store.has_highscore and game.highscore_store.best_final_score == 60 \
+		and game.highscore_store.has_best_time and game.highscore_store.best_time_ms == 65432,
+		"_submit_run() speichert Final Score und Zeit genau einmal")
+	var completed_time_ms: int = game.run_time_ms
+	game._process(20.0)
+	check(game.run_time_ms == completed_time_ms and not game.run_timer_active,
+		"COMPLETED friert den Run-Timer permanent ein")
 	check(FileAccess.file_exists(save_dir.path_join("highscore.cfg")), "highscore.cfg geschrieben")
 	check(int(prog.weekly_progress[0]) == 1, "finish_run-Progress genau 1x")
 	check(int(prog.weekly_progress[1]) == 1, "no_damage_run-Progress vergeben (schadensfrei)")
@@ -403,29 +458,32 @@ func _test_run_results() -> void:
 	game._finish_run(RO.COMPLETED)
 	game._finish_run(RO.FAILED)
 	check(int(prog.weekly_progress[0]) == 1 and int(prog.weekly_progress[1]) == 1, "Quest-Progress bleibt bei 1 (keine Doppelvergabe)")
-	check(game.highscore_store.best_score == 10 and game.highscore_store.best_coins == 5,
-		"kein doppelter Highscore-Submit")
+	check(game.highscore_store.best_final_score == 60 and game.highscore_store.best_time_ms == 65432,
+		"kein doppelter Score-/Zeit-Submit")
 	check(game.run_outcome == RO.COMPLETED, "Outcome bleibt COMPLETED")
 
 	# Run Again vom COMPLETED-Result über den echten Button
 	game.menus.result_run_again_btn.pressed.emit()
 	check(game.run_outcome == RO.NONE and game.current_level == 0, "'Run Again' startet Clean-Run")
+	check(game.run_timer_active and game.run_time_ms == 0, "COMPLETED Run Again setzt den Timer zurück")
 
-	# Vergleichssemantik: schlechterer abgeschlossener Run ändert den Bestwert nicht
+	# Vergleichssemantik: schlechterer und langsamerer Abschluss ändert keinen Bestwert.
 	game.current_level = game.LEVELS.size() - 1
 	game.current_level_id = "r01_level_06"
 	game.score = 9
-	game.coin_count = 99
+	game.coin_count = 0
+	game._process(70.0)
 	game.reach_goal()
 	check(game.campaign_progress.is_trial_completed("r01_core_flawless_finale"),
 		"schadenfreier Level-6-Abschluss erfüllt den Flawless-Trial")
 	game.reach_goal()  # nachlaufendes Goal-Signal nach Run-Ende
 	check(int(game.campaign_progress.trial_progress.get("r01_core_flawless_finale", 0)) == 1,
 		"nachlaufende Goal-Signale duplizieren den Trial-Fortschritt nicht")
-	check(game.highscore_store.best_score == 10 and game.highscore_store.best_coins == 5,
-		"niedrigerer Score schlägt Best nicht (trotz mehr Coins)")
+	check(game.highscore_store.best_final_score == 60 and game.highscore_store.best_time_ms == 65432,
+		"niedrigerer Final Score und langsamere Zeit schlagen keinen Bestwert")
 	check(game.menus.result_record_label.text == "", "keine Record-Zeile ohne neuen Rekord")
-	check(game.menus.result_best_label.text.begins_with("Best Run"), "stabile Best-Run-Zeile")
+	check(game.menus.result_best_label.text.begins_with("Best Score:") \
+		and game.menus.result_best_label.text.contains("Best Time:"), "stabile getrennte Bestwert-Zeile")
 	game._unhandled_input(restart_ev)
 	check(game.run_outcome == RO.NONE and game.current_level == 0 and game.score == 0 \
 		and game.coin_count == 0 and game.health == int(game.MAX_HEALTH),
@@ -435,8 +493,12 @@ func _test_run_results() -> void:
 	game.damage_player()
 	check(game.health == int(game.MAX_HEALTH) - 1 and game.took_damage_this_run,
 		"nicht-tödlicher Schaden setzt Zustand vor Pause-Try-Again")
+	game._process(2.0)
+	var pre_pause_time_ms: int = game.run_time_ms
 	game._toggle_pause()
 	check(paused and game.menus.pause_menu.visible, "Pause-Menü öffnet im Lauf")
+	game._process(8.0)
+	check(game.run_time_ms == pre_pause_time_ms, "Pausezeit zählt nicht zum Run-Timer")
 	var try_again := _find_button_by_text(game.menus.pause_menu, "Try Again")
 	check(try_again != null, "Pause-Try-Again-Button vorhanden")
 	if try_again != null:
@@ -445,6 +507,7 @@ func _test_run_results() -> void:
 		and game.health == int(game.MAX_HEALTH) and not game.took_damage_this_run \
 		and game.invuln_until == 0.0,
 		"Pause-Try-Again hebt Pause auf und startet Clean-Run")
+	check(game.run_timer_active and game.run_time_ms == 0, "Pause-Try-Again setzt den Timer zurück")
 
 	# Main Menu vom Result aus
 	game.current_level = game.LEVELS.size() - 1
@@ -456,7 +519,17 @@ func _test_run_results() -> void:
 	check(game.in_main_menu and game.level_root == null, "'Main Menu' räumt Gameplay auf")
 	check(not game.menus.run_result_menu.visible and game.run_outcome == RO.NONE,
 		"Result-Zustand im Menü zurückgesetzt")
-	check(game.menus.highscore_label.text.begins_with("Best:"), "Hauptmenü zeigt aktualisierten Bestwert")
+	check(game.menus.highscore_label.text.begins_with("Best Score:") \
+		and game.menus.highscore_label.text.contains("Best Time:"),
+		"Hauptmenü zeigt Best Score und Best Time getrennt")
+	await process_frame
+	var record_menu_buttons: Array = []
+	_collect_buttons(game.menus.main_menu, record_menu_buttons)
+	var record_menu_fits := true
+	for button: Button in record_menu_buttons:
+		if not Rect2(Vector2.ZERO, Vector2(960, 540)).encloses(button.get_global_rect()):
+			record_menu_fits = false
+	check(record_menu_fits, "zweizeilige Bestwerte halten alle Hauptmenü-Buttons im Viewport")
 	await create_timer(0.05).timeout  # queue_free des Levels abwickeln
 
 func _test_campaign_map_shell() -> void:
@@ -525,6 +598,10 @@ func _test_campaign_map_shell() -> void:
 		"kein anderes Menü/HUD bleibt über der Karte sichtbar")
 	check(game.campaign_map.current_region_id == "region_01",
 		"ohne gespeicherte Auswahl öffnet Region 1")
+	var map_time_ms: int = game.run_time_ms
+	game._process(12.0)
+	check(not game.run_timer_active and game.run_time_ms == map_time_ms,
+		"Map-Menüzeit zählt nicht zum Run-Timer")
 	check(game.campaign_map.region_status_banner.text == "Available",
 		"Region-1-Banner zeigt Available für die freigeschaltete Region")
 	check(game.campaign_map.node_buttons.size() == 6, "Region 1 rendert sechs kataloggetriebene Nodes")
@@ -652,6 +729,16 @@ func _test_campaign_map_shell() -> void:
 		and game.current_level_id == "r01_level_01" and not game.campaign_map.menu.visible \
 		and game.hud.hud_label.visible,
 		"freigeschaltetes Level startet über _start_campaign_level")
+	check(game.run_timer_active and game.run_time_ms == 0,
+		"Karten-Start setzt und startet einen frischen Run-Timer")
+	await process_frame
+	var hud_rects_separate: bool = not game.hud.timer_label.get_global_rect().intersects(
+		game.hud.hud_label.get_global_rect()) \
+		and not game.hud.timer_label.get_global_rect().intersects(game.hud.coin_label.get_global_rect()) \
+		and not game.hud.timer_label.get_global_rect().intersects(game.hud.keys_label.get_global_rect())
+	check(hud_rects_separate and Rect2(Vector2.ZERO, Vector2(960, 540)).encloses(
+		game.hud.timer_label.get_global_rect()),
+		"HUD-Timer passt bei 960×540 ohne Status-, Coin- oder Key-Überlappung")
 	game.campaign_map.level_requested.disconnect(request_counter)
 	game._exit_to_main_menu()
 	await create_timer(0.05).timeout
@@ -746,12 +833,20 @@ func _test_transition_cancellation() -> void:
 	game._start_game()
 	game.score = 3
 	game.coin_count = 2
+	game._process(2.5)
+	var level_1_time_ms: int = game.run_time_ms
 	game.reach_goal()
 	check(game.transitioning and game.hud.message_label.visible and game.hud.message_label.text == "Level Cleared!",
 		"Level-Clear-Meldung während der Transition")
+	game._process(10.0)
+	check(game.run_time_ms == level_1_time_ms, "Level-Cleared-Transition-Delay zählt nicht")
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level == 1 and game.current_level_id == "r01_level_02",
 		"normaler Übergang lädt Level 2 über stabile ID")
+	check(game.run_timer_active and game.run_time_ms == level_1_time_ms,
+		"Run-Timer bleibt über normale Level-Übergänge erhalten")
+	game._process(1.25)
+	check(game.run_time_ms == level_1_time_ms + 1250, "Timer zählt im Folgelvel weiter")
 	var level_1_record: Dictionary = game.campaign_progress.get_level_record("r01_level_01")
 	check(level_1_record.has_record and level_1_record.score == 3 and level_1_record.coins == 2,
 		"Goal speichert Region-1-Level-1 genau mit lokalen Werten")
@@ -761,8 +856,9 @@ func _test_transition_cancellation() -> void:
 	game.coin_count = 3
 	game.reach_goal()
 	game._start_new_run()
+	check(game.run_timer_active and game.run_time_ms == 0, "Restart während Transition setzt Timer zurück")
 	await create_timer(TRANSITION_WAIT).timeout
-	check(game.current_level == 0, "Restart macht wartenden Übergang ungültig")
+	check(game.current_level == 0 and game.run_time_ms == 0, "Restart macht wartenden Übergang ungültig")
 	var level_2_record: Dictionary = game.campaign_progress.get_level_record("r01_level_02")
 	check(level_2_record.has_record and level_2_record.score == 2 and level_2_record.coins == 1,
 		"per-Level-Record verwendet Deltas statt kumulativer Run-Werte")
@@ -770,17 +866,25 @@ func _test_transition_cancellation() -> void:
 	# c) Exit zum Hauptmenü während Transition pending
 	game.reach_goal()
 	game._exit_to_main_menu()
+	var exit_time_ms: int = game.run_time_ms
+	game._process(5.0)
 	await create_timer(TRANSITION_WAIT).timeout
-	check(game.in_main_menu and game.level_root == null, "Menü-Exit macht wartenden Übergang ungültig")
+	check(game.in_main_menu and game.level_root == null and game.run_time_ms == exit_time_ms,
+		"Menü-Exit macht Übergang ungültig und zählt keine Menüzeit")
 
 	# d) Run-Ende (FAILED) während Transition pending
 	game._start_game()
+	game._process(3.0)
 	game.reach_goal()
 	game._finish_run(game.RunOutcome.FAILED)
+	var transition_failed_time_ms: int = game.run_time_ms
+	game._process(9.0)
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level == 0, "kein veralteter Übergang nach Run-Ende")
 	check(game.menus.run_result_menu.visible and game.run_outcome == game.RunOutcome.FAILED,
 		"Result bleibt nach abgelaufenem Timer bestehen")
+	check(game.run_time_ms == transition_failed_time_ms,
+		"Result-Zeit und abgelaufene Level-Transition verändern den gefrorenen Timer nicht")
 	check(game.menus.start_requested.get_connections().size() == 1 \
 		and game.menus.restart_requested.get_connections().size() == 1 \
 		and game.menus.main_menu_requested.get_connections().size() == 1,
@@ -802,11 +906,17 @@ func _test_transition_cancellation() -> void:
 	check(game.current_level_id == "r01_level_02" and not game.in_main_menu \
 		and not game.campaign_map.menu.visible and game.score == 0 and game.coin_count == 0,
 		"Karten-Start beginnt als frischer Run am gewählten Level")
+	check(game.run_timer_active and game.run_time_ms == 0, "Karten-Level setzt Timer erneut auf null")
+	game._process(4.0)
+	var map_level_time_ms: int = game.run_time_ms
 	game.reach_goal()
+	game._process(7.0)
 	await create_timer(TRANSITION_WAIT).timeout
 	check(game.current_level_id == "r01_level_03" and game.run_outcome == game.RunOutcome.NONE \
 		and not game.campaign_map.menu.visible and game.level_root != null,
 		"Karten-Run setzt über die Required-Kette fort statt zur Karte zurückzukehren")
+	check(game.run_time_ms == map_level_time_ms,
+		"Karten-Run behält Timer und schließt Transition-Delay aus")
 	game._exit_to_main_menu()
 	await create_timer(0.05).timeout
 
@@ -845,6 +955,14 @@ func _count_buttons_by_text(node: Node, button_text: String) -> int:
 	for button: Button in buttons:
 		if button.text == button_text and button.visible:
 			count += 1
+	return count
+
+func _count_labels_with_text(node: Node, label_text: String) -> int:
+	var count := 0
+	if node is Label and (node as Label).text == label_text:
+		count += 1
+	for child: Node in node.get_children():
+		count += _count_labels_with_text(child, label_text)
 	return count
 
 func _count_name_prefix(parent: Node, prefix: String) -> int:

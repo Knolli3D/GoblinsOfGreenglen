@@ -1,6 +1,6 @@
 extends RefCounted
 
-# Gemeinsame Save-Helfer für highscore.cfg und progression.cfg:
+# Gemeinsame Save-Helfer für highscore.cfg, progression.cfg und campaign.cfg:
 # - getypte Reads mit Feld-Defaults — ein einzelnes kaputtes Feld resettet nie den
 #   restlichen Save, es fällt nur selbst auf seinen Default zurück (mit push_warning).
 # - Schema-Versionierung über [meta] version; fehlt die Sektion, gilt die Datei als
@@ -11,7 +11,7 @@ extends RefCounted
 # - ConfigFile.save()-Rückgabewerte werden geprüft; Fehler nur als push_warning
 #   (gleiche Philosophie wie SaveMigration.gd: der Spielstart wird nie blockiert).
 #
-# Verwendet von Game.gd (_load_highscore/_save_highscore) und Progression.gd (_load/_save).
+# Verwendet von HighscoreStore.gd, Progression.gd und CampaignProgressStore.gd.
 # Die inhaltliche Normalisierung (Quest-Arrays, Skin-Inventar) bleibt bewusst bei den
 # Besitzern der Definitionen (QUEST_POOL/WEEKLY_POOL/SKIN_TIERS in Progression.gd).
 
