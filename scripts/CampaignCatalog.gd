@@ -28,7 +28,18 @@ static func default_regions() -> Array:
 		"entry_level_id": "r01_level_01",
 		"next_region_id": REGION_2_ID,
 		"fallback_color": Color("#315845"),
-		"trials": [],
+		# "kind"/"level_id" machen den Trial katalog-getrieben: Game.gd zählt
+		# "no_damage_level"-Trials generisch, ohne Region/Level hartzukodieren.
+		"trials": [{
+			"id": "r01_core_flawless_finale",
+			"region_id": REGION_1_ID,
+			"display_name": "Flawless Finale: clear Location 6 without taking damage",
+			"target": 1,
+			"required_for_clear": true,
+			"required_for_mastery": false,
+			"kind": "no_damage_level",
+			"level_id": "r01_level_06",
+		}],
 		"levels": [
 			_level("r01_level_01", REGION_1_ID, "Region 1 - Location 1", REGION_1_SCENE_PATHS[0], Vector2(55, 275), false, [], {"right": "r01_level_02"}),
 			_level("r01_level_02", REGION_1_ID, "Region 1 - Location 2", REGION_1_SCENE_PATHS[1], Vector2(155, 205), false, ["r01_level_01"], {"left": "r01_level_01", "right": "r01_level_03"}),
@@ -391,6 +402,10 @@ func validate() -> PackedStringArray:
 				errors.append("Trial %s has a non-positive target" % trial_id)
 			if String(trial.get("region_id", "")) != region_id:
 				errors.append("Trial %s references the wrong region" % trial_id)
+			var trial_level_id := String(trial.get("level_id", ""))
+			if trial_level_id != "" \
+					and (not level_ids.has(trial_level_id) or level_ids[trial_level_id] != region_id):
+				errors.append("Trial %s references unknown level %s" % [trial_id, trial_level_id])
 		_validate_reachability(region, errors)
 		_validate_prerequisite_cycles(region, errors)
 	return errors

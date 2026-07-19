@@ -385,8 +385,11 @@ func _test_run_results() -> void:
 	game.score = 10
 	game.coin_count = 5
 	game.took_damage_this_run = false
+	game.took_damage_this_level = true  # Level-6-Versuch MIT Schaden: Flawless-Trial darf nicht zählen
 	game.reach_goal()  # letztes Level → synchroner _finish_run(COMPLETED)
 	check(game.run_outcome == RO.COMPLETED, "Outcome = COMPLETED")
+	check(not game.campaign_progress.is_trial_completed("r01_core_flawless_finale"),
+		"Level-6-Abschluss mit Schaden erfüllt den Flawless-Trial nicht")
 	check(game.menus.result_title_label.text == "Run Complete", "Titel 'Run Complete'")
 	check(game.menus.result_record_label.text == "New Highscore!", "erster Abschluss zeigt 'New Highscore!'")
 	check(game.highscore_store.has_highscore and game.highscore_store.best_score == 10 \
@@ -414,6 +417,11 @@ func _test_run_results() -> void:
 	game.score = 9
 	game.coin_count = 99
 	game.reach_goal()
+	check(game.campaign_progress.is_trial_completed("r01_core_flawless_finale"),
+		"schadenfreier Level-6-Abschluss erfüllt den Flawless-Trial")
+	game.reach_goal()  # nachlaufendes Goal-Signal nach Run-Ende
+	check(int(game.campaign_progress.trial_progress.get("r01_core_flawless_finale", 0)) == 1,
+		"nachlaufende Goal-Signale duplizieren den Trial-Fortschritt nicht")
 	check(game.highscore_store.best_score == 10 and game.highscore_store.best_coins == 5,
 		"niedrigerer Score schlägt Best nicht (trotz mehr Coins)")
 	check(game.menus.result_record_label.text == "", "keine Record-Zeile ohne neuen Rekord")

@@ -103,8 +103,8 @@ tools/
 tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (83 Checks)
-  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (58 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (220 Checks inkl. Map, Meta-Menüs, Run-Results)
+  test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (67 Checks)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (223 Checks inkl. Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
@@ -167,7 +167,12 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   Bonus-Abzweige), die `_placeholder_region()` als serpentinenförmigen Required-Pfad im
   5-Spalten-Raster innerhalb `MAP_BOUNDS` generiert (inkl. Raster-Fokus-Nachbarn). Die fünf
   Regionen sind sequenziell verkettet (`region_01` → `region_02` → `region_03` → `region_04`
-  → `region_05`, Region 5 ohne Nachfolger). Der Validator lehnt u.a. doppelte IDs, dangling references,
+  → `region_05`, Region 5 ohne Nachfolger). Region 1 definiert EINEN Core Trial
+  (`r01_core_flawless_finale`, Target 1, `required_for_clear`): die optionalen Trial-Felder
+  `kind: "no_damage_level"` + `level_id` machen ihn katalog-getrieben — `Game.gd` zählt solche
+  Trials generisch, ohne Region oder Level hartzukodieren. Regionen 2–5 definieren bewusst noch
+  keine Trials (deren Anforderungen entstehen mit dem echten Content). Der Validator lehnt u.a.
+  doppelte IDs, dangling references (inkl. Trial-`level_id`),
   unerreichbare Required-Nodes, Zyklen und veröffentlichte Level ohne Szene ab.
 - **Verbindungssemantik**: `required` ist ein durchgezogener Progressionspfad; `optional` ist eine
   gestrichelte Bonus-Abzweigung und nie Voraussetzung für `cleared`. Locked/undiscovered ist ein
@@ -181,13 +186,23 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
 - **Freischaltung und Status**: Neu startet nur Region 1 / Level 1 offen. Ein abgeschlossenes
   Main-Level schaltet seinen Required-Nachfolger frei. `cleared` verlangt alle Main-Level plus
   alle Core Trials; `explored` ergänzt alle Bonus-Level; `mastered` verlangt alle Main-/Bonus-Level
-  plus Mastery Trials. Region 1 hat derzeit weder Bonus-Level noch Core/Mastery Trials und wird
-  daher nach allen sechs Main-Leveln zugleich cleared, explored und mastered. Bereits erreichte
-  Meilensteine werden beim späteren Veröffentlichen einer Folgeregion idempotent abgeglichen.
+  plus Mastery Trials. Region 1 hat keine Bonus-Level, aber den Core Trial "Flawless Finale":
+  `cleared` (und damit die spätere Region-2-Berechtigung) verlangt alle sechs Main-Level PLUS
+  einen schadenfreien Abschluss von Level 6 (`took_damage_this_level`-basiert, nur dieser eine
+  Levelversuch — kein schadenfreier Gesamt-Run). Da Region 1 weder Bonus-Level noch
+  Mastery-Trials hat, folgen `explored` und `mastered` mit dem Clear. Ein erfülltes
+  Region-1-Paket wird persistiert, macht die unveröffentlichte Region 2 aber nicht spielbar;
+  bereits erreichte Meilensteine werden beim späteren Veröffentlichen einer Folgeregion vom
+  normalen Load-/Normalisierungsfluss idempotent abgeglichen (Region 2 + Entry-Level werden
+  dann automatisch freigeschaltet).
 - **Level-Ergebnisse**: `_load_level_by_id()` setzt `current_region_id`, `current_level_id` und
   lokale Score-/Coin-Baselines. `reach_goal()` schreibt den stabilen Levelabschluss synchron und
   genau einmal, bevor die 1s-Transition wartet; gespeichert wird das Delta dieses Levels statt
   des kumulierten Run-Werts. Bestwertvergleich: höherer Score, bei Gleichstand mehr Coins.
+  Im schadenfreien Fall vergibt `_award_no_damage_level_trials()` zusätzlich passende
+  `no_damage_level`-Trials über `CampaignProgressStore.add_region_trial_progress()` — der Store
+  klemmt den Fortschritt aufs Target, wodurch Replays und doppelte Goal-Signale idempotent
+  bleiben und keine doppelten Unlock-Events erzeugen können.
 - **Karten-Shell**: `CampaignMapController` besitzt einen `PROCESS_MODE_ALWAYS`-Layer 14, nutzt
   das gemeinsame Greenglen-Theme und rendert Region 1 sowie die unveröffentlichte Region 2.
   Vollbild-Hintergrund ist das dedizierte `assets/menu_bg_map.png` (TextureRect `MapBackground`,
@@ -634,14 +649,17 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (361 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
-  `HighscoreStore`-Test), `test_campaign_progress.gd` (58: Catalog-Validierung,
+- **Suiten (373 Checks gesamt)**: `test_save_system.gd` (83, Save-System inkl. direktem
+  `HighscoreStore`-Test), `test_campaign_progress.gd` (67: Catalog-Validierung,
   Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
   Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
-  leeren Szenenpfaden), frischer/kaputter Save, Backup-Recovery, stabile IDs,
+  leeren Szenenpfaden), Region-1-Core-Trial "Flawless Finale" (Katalog-Definition, dangling
+  Trial-Level-Validator, sechs Mains ohne Trial clearen nicht, Trial + Mains clearen genau
+  einmal, geklemmte Doppel-Awards, persistiertes Paket ohne Region-2-Freischaltung),
+  frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (220: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (223: Main-Komponenten/Interfaces,
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,
   öffentliches Map-Submenü beider Regionen (genau EIN Greenglen-Map-Button mit
   6:1-Proportionen, Layout-Fit aller fünf Hauptmenü-Buttons im 960×540-Viewport ohne

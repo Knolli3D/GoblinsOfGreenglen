@@ -433,6 +433,7 @@ func reach_goal() -> void:
 		coin_count - level_coins_start,
 	)
 	if not took_damage_this_level:
+		_award_no_damage_level_trials(current_level_id)
 		Progression.add_quest_progress("no_damage_goal")
 	Progression.add_quest_progress("level_clear")
 	var next_level_id := String(campaign_catalog.call("get_next_main_level_id", current_level_id))
@@ -446,6 +447,17 @@ func reach_goal() -> void:
 		_load_level_by_id(next_level_id)
 	else:
 		_finish_run(RunOutcome.COMPLETED)
+
+
+# Katalog-getriebene Trials: "no_damage_level"-Trials zählen genau dann, wenn ihr
+# referenziertes Level ohne Schaden abgeschlossen wurde. Idempotent — der Store klemmt
+# den Fortschritt auf das Trial-Target und emittiert nur echte Zustandsübergänge.
+func _award_no_damage_level_trials(level_id: String) -> void:
+	var region := campaign_catalog.call("get_region", current_region_id) as Dictionary
+	for trial: Dictionary in region.get("trials", []):
+		if String(trial.get("kind", "")) == "no_damage_level" \
+				and String(trial.get("level_id", "")) == level_id:
+			campaign_progress.add_region_trial_progress(String(trial.get("id", "")))
 
 
 func _finish_run(outcome: RunOutcome) -> void:

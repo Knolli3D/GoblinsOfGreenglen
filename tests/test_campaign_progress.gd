@@ -120,6 +120,21 @@ func _test_catalog() -> void:
 	check(optional_count == 2, "Bonus-Route besitzt explizit optionale Verbindungen")
 	check("r02_bonus_01" not in r2_main and "r02_bonus_01" in r2_bonus,
 		"Bonus-Level zählen nie als Main-Level")
+	check(catalog.call("get_required_trial_ids", "region_01") as Array == ["r01_core_flawless_finale"],
+		"Region 1 definiert genau einen Core Trial")
+	var flawless := catalog.call("get_trial", "r01_core_flawless_finale") as Dictionary
+	check(String(flawless.get("kind", "")) == "no_damage_level" \
+		and String(flawless.get("level_id", "")) == "r01_level_06" \
+		and int(flawless.get("target", 0)) == 1 \
+		and bool(flawless.get("required_for_clear", false)) \
+		and not bool(flawless.get("required_for_mastery", true)),
+		"Flawless-Finale-Trial ist katalog-getrieben auf Level 6 (Target 1, clear-pflichtig)")
+	var future_trials_empty := true
+	for trial_region_number: int in [2, 3, 4, 5]:
+		var trial_region := catalog.call("get_region", "region_%02d" % trial_region_number) as Dictionary
+		if not (trial_region.get("trials", []) as Array).is_empty():
+			future_trials_empty = false
+	check(future_trials_empty, "Regionen 2-5 definieren noch keine Trials")
 
 	var malformed := CampaignCatalogScript.default_regions()
 	malformed[1].levels[0].id = "r01_level_01"
@@ -134,6 +149,13 @@ func _test_catalog() -> void:
 	var cyclic_catalog: RefCounted = CampaignCatalogScript.new(malformed)
 	errors = cyclic_catalog.call("validate") as PackedStringArray
 	check(_contains_text(errors, "cyclic"), "Validator erkennt zyklische Prerequisites")
+
+	malformed = CampaignCatalogScript.default_regions()
+	malformed[0].trials[0].level_id = "missing_level"
+	var dangling_trial_catalog: RefCounted = CampaignCatalogScript.new(malformed)
+	errors = dangling_trial_catalog.call("validate") as PackedStringArray
+	check(_contains_text(errors, "references unknown level"),
+		"Validator erkennt dangling Trial-Level-Referenzen")
 
 
 func _test_fresh_progression_and_records() -> void:
@@ -174,18 +196,33 @@ func _test_fresh_progression_and_records() -> void:
 
 	for i: int in range(1, 6):
 		store.record_level_completion("r01_level_%02d" % (i + 1), i, i * 2)
-	check(store.is_region_cleared("region_01"), "alle sechs Main-Level clearen Region 1")
+	check(not store.is_region_cleared("region_01"),
+		"sechs Main-Level ohne Core Trial clearen Region 1 nicht")
+	check(not store.is_region_mastered("region_01"),
+		"ohne Core Trial gibt es auch keine Mastery")
+	var cleared_signals := [0]
+	store.region_cleared.connect(func(_id: String) -> void: cleared_signals[0] += 1)
+	var trial_update: Dictionary = store.add_region_trial_progress("r01_core_flawless_finale")
+	check(trial_update.trial_completed and store.is_region_cleared("region_01"),
+		"Core Trial plus sechs Main-Level clearen Region 1")
+	check(cleared_signals[0] == 1, "Region-Clear-Event feuert genau einmal")
 	check(store.is_region_explored("region_01"), "Region ohne Bonus-Level gilt als explored")
-	check(store.is_region_mastered("region_01"), "Region ohne zusätzliche Mastery-Anforderungen wird beim Clear gemastert")
+	check(store.is_region_mastered("region_01"),
+		"Region ohne Mastery-Trials wird mit dem Clear gemastert")
 	check(not store.is_region_unlocked("region_02"), "Clear lädt keine unreleased Region")
+	store.add_region_trial_progress("r01_core_flawless_finale")
+	check(cleared_signals[0] == 1 \
+		and int(store.trial_progress.get("r01_core_flawless_finale", 0)) == 1,
+		"doppelte Trial-Awards bleiben geklemmt und emittieren Clear nicht erneut")
 	var summary: Dictionary = store.get_region_summary("region_01")
-	check(summary.main_completed == 6 and summary.main_total == 6 and summary.cleared,
-		"Region-Summary leitet Main-Completion korrekt ab")
+	check(summary.main_completed == 6 and summary.main_total == 6 and summary.cleared \
+		and summary.core_trials_completed == 1 and summary.core_trials_total == 1,
+		"Region-Summary leitet Main- und Trial-Completion korrekt ab")
 	store.free()
 
 	store = _load_store(catalog, path)
 	check(store.is_region_cleared("region_01") and store.get_level_record("r01_level_01").score == 1,
-		"Completion und Records überleben einen Reload")
+		"Completion, Trial und Records überleben einen Reload")
 	var before_hash := FileAccess.get_md5(path)
 	store.free()
 	store = _load_store(catalog, path)
@@ -272,7 +309,11 @@ func _test_trial_gate_and_future_release() -> void:
 	store = _load_store(old_catalog, path)
 	for i: int in range(6):
 		store.record_level_completion("r01_level_%02d" % (i + 1), i, i)
-	check(not store.is_region_unlocked("region_02"), "unreleased Region bleibt vor Update gesperrt")
+	check(not store.is_region_cleared("region_01") and not store.is_region_unlocked("region_02"),
+		"sechs Main-Level allein erfüllen Region 1 vor dem Update nicht")
+	store.add_region_trial_progress("r01_core_flawless_finale")
+	check(store.is_region_cleared("region_01") and not store.is_region_unlocked("region_02"),
+		"erfülltes Region-1-Paket wird persistiert, macht Region 2 aber nicht spielbar")
 	store.free()
 	regions = CampaignCatalogScript.default_regions()
 	_make_region_playable(regions[1])
@@ -299,6 +340,7 @@ func _test_bonus_mastery() -> void:
 	var store: Node = _load_store(catalog, _path("mastery.cfg"))
 	for i: int in range(6):
 		store.record_level_completion("r01_level_%02d" % (i + 1), i, i)
+	store.add_region_trial_progress("r01_core_flawless_finale")
 	for i: int in range(8):
 		store.record_level_completion("r02_level_%02d" % (i + 1), i, i)
 	check(store.is_region_cleared("region_02"), "alle Region-2-Main-Level reichen für Region Clear")
