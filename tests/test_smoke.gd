@@ -876,7 +876,20 @@ func _test_meta_menus(prog: Node) -> void:
 
 	game.menus.skins_requested.emit()
 	check(game.skin_menu.menu.visible and game.skin_menu.skins_list.get_child_count() >= 2,
-		"Skin-Intent öffnet Liste mit Default und Starter")
+		"Skin-Intent öffnet Liste mit beiden Starter-Skins")
+	var selectable_skins: Array = game.skin_menu.selectable_skins()
+	check(selectable_skins.size() >= 2 \
+		and String(selectable_skins[0].id) == "" \
+		and String(selectable_skins[0].name) == "Iron Knight" \
+		and String(selectable_skins[0].tier) == "starter" \
+		and String(selectable_skins[1].id) == "princess_blue" \
+		and String(selectable_skins[1].tier) == "starter",
+		"Iron Knight und Sapphire Princess stehen gemeinsam am Listenanfang")
+	var unlockables_follow_starters := true
+	for i in range(2, selectable_skins.size()):
+		if String((selectable_skins[i] as Dictionary).get("tier", "")) == "starter":
+			unlockables_follow_starters = false
+	check(unlockables_follow_starters, "freigeschaltete Case-Skins stehen unter beiden Startern")
 	check(_all_buttons_centered(game), "alle Button-Texte sind horizontal zentriert")
 	var button_style := game.ui_theme.get_stylebox("normal", "Button") as StyleBoxTexture
 	check(is_equal_approx(button_style.content_margin_top, button_style.content_margin_bottom),

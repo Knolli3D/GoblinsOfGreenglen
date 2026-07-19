@@ -359,14 +359,14 @@ func get_owned_skins() -> Array:
 				result.append(entry)
 	return result
 
-# Virtueller Default-Skin (Basis-Ritter ohne Tint). Bewusst NICHT in SKIN_TIERS:
+# Virtueller Starter-Skin (Basis-Ritter ohne Tint). Bewusst NICHT in SKIN_TIERS:
 # nie aus Cases ziehbar, zählt nicht zur Collection, id "" bleibt der kanonische
 # "kein Skin"-Wert in progression.cfg (alte Saves bleiben kompatibel).
 func get_default_skin() -> Dictionary:
-	return {"id": "", "name": "Default Knight", "color": Color.WHITE, "tier": "default"}
+	return {"id": "", "name": "Iron Knight", "color": Color.WHITE, "tier": "starter"}
 
 func equip_skin(id: String) -> void:
-	# "" = Default Knight ausrüsten (immer erlaubt, steht nicht in owned_skins)
+	# "" = Iron Knight ausrüsten (immer erlaubt, steht nicht in owned_skins)
 	if id != "" and id not in owned_skins:
 		return
 	equipped_skin = id
@@ -478,7 +478,7 @@ func _normalize_quest_block(pool: Array, ids: Array, prog: Array, comp: Array, c
 	return out
 
 # Inventar: unbekannte/falsch getypte Skin-IDs raus, Duplikate dedupliziert, Starter-Skins
-# garantiert, und ein nicht (mehr) besessener equipped_skin fällt auf den Default Knight
+# garantiert, und ein nicht (mehr) besessener equipped_skin fällt auf den Iron Knight
 # ("") zurück. Reihenfolge wichtig: Starter zuerst sichern, damit ein equippter
 # Starter-Skin einen korrupten owned_skins-Eintrag überlebt.
 func _normalize_inventory() -> bool:
@@ -495,7 +495,7 @@ func _normalize_inventory() -> bool:
 	owned_skins = deduped
 	changed = _ensure_starter_skins() or changed
 	if equipped_skin != "" and equipped_skin not in owned_skins:
-		push_warning("Save: ausgerüsteter Skin \"%s\" nicht besessen — zurück zum Default Knight" % equipped_skin)
+		push_warning("Save: ausgerüsteter Skin \"%s\" nicht besessen — zurück zum Iron Knight" % equipped_skin)
 		equipped_skin = ""
 		changed = true
 	return changed

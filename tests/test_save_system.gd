@@ -147,7 +147,7 @@ func _test_fresh_install() -> void:
 	var p := _load_progression(path)
 	check(p.keys == 0 and p.key_fragments == 0 and p.dup_shards == 0, "Währungen starten bei 0")
 	check(p.owned_skins == ProgressionScript.STARTER_SKINS, "Starter-Skins vorhanden")
-	check(p.equipped_skin == "", "Default Knight ausgerüstet")
+	check(p.equipped_skin == "", "Iron Knight ausgerüstet")
 	check(p.active_ids.size() == ProgressionScript.DAILY_SLOTS, "3 Daily-Quests gerollt")
 	check(p.progress.size() == p.active_ids.size() and p.claimed.size() == p.active_ids.size(), "Quest-Arrays passen zu active_ids")
 	check(p.weekly_ids.size() == ProgressionScript.WEEKLY_SLOTS, "2 Weeklies gerollt")
@@ -212,7 +212,7 @@ func _test_wrong_types() -> void:
 	var p := _load_progression(path)
 	check(p.keys == 0, "keys: String → Default 0")
 	check(p.active_ids.size() == ProgressionScript.DAILY_SLOTS, "active_ids: kaputt → Reroll")
-	check(p.equipped_skin == "", "equipped_skin: int → Default Knight")
+	check(p.equipped_skin == "", "equipped_skin: int → Iron Knight")
 	check(p.best_pull == "", "best_pull: float → zurückgesetzt")
 	check(p.key_fragments == 2 and p.owned_skins.size() == 3, "intakte Nachbarfelder unangetastet")
 	p.free()
@@ -327,7 +327,7 @@ func _test_removed_tint_skins() -> void:
 	check("gold_knight" in p.owned_skins and "princess_blue" in p.owned_skins,
 		"gültige und Starter-Skins bleiben erhalten")
 	check(p.equipped_skin == "" and p.get_equipped_skin().id == "",
-		"entfernter ausgerüsteter Skin fällt auf Default Knight zurück")
+		"entfernter ausgerüsteter Skin fällt auf Iron Knight zurück")
 	var saved := ConfigFile.new()
 	saved.load(path)
 	var saved_owned: Array = saved.get_value("inventory", "owned_skins", [])
@@ -344,8 +344,9 @@ func _test_equipped_not_owned() -> void:
 	s.inventory.equipped_skin = "black_knight"
 	_write_cfg(path, s)
 	var p := _load_progression(path)
-	check(p.equipped_skin == "", "Fallback auf Default Knight")
-	check(p.get_equipped_skin().id == "" and p.get_equipped_skin().tier == "default", "get_equipped_skin liefert Default")
+	check(p.equipped_skin == "", "Fallback auf Iron Knight")
+	check(p.get_equipped_skin().id == "" and p.get_equipped_skin().tier == "starter" \
+		and p.get_equipped_skin().name == "Iron Knight", "get_equipped_skin liefert Iron Knight als Starter")
 	p.free()
 
 func _test_starter_skin_survives() -> void:

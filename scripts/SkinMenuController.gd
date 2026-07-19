@@ -114,7 +114,13 @@ func refresh() -> void:
 
 func selectable_skins() -> Array:
 	var entries: Array = [Progression.get_default_skin()]
-	entries.append_array(Progression.get_owned_skins())
+	var unlockable_entries: Array = []
+	for skin: Dictionary in Progression.get_owned_skins():
+		if String(skin.get("tier", "")) == "starter":
+			entries.append(skin)
+		else:
+			unlockable_entries.append(skin)
+	entries.append_array(unlockable_entries)
 	return entries
 
 
