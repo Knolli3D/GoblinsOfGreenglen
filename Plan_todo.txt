@@ -1,0 +1,130 @@
+You are working on “Goblins of Greenglen,” a Godot 4.6 2D platformer written entirely in GDScript.
+
+Repository:
+- Root: /Users/maxi/cloude-game
+- Campaign-map presentation: scripts/CampaignMapController.gd
+- Campaign path rendering: scripts/CampaignMapPathLayer.gd
+- Campaign catalog: scripts/CampaignCatalog.gd
+- Shared UI helpers: scripts/GreenglenUI.gd
+- Main scene: scenes/Main.tscn
+- Dedicated map background: assets/menu_bg_map.png
+- Relevant tests: tests/test_smoke.gd
+- Technical documentation:
+  - CLAUDE.md
+  - AGENTS.md
+
+Before editing:
+1. Read CLAUDE.md, AGENTS.md, README.md, and the relevant scripts and tests.
+2. Inspect `git status --short` and the current diff.
+3. Preserve all unrelated worktree changes.
+4. Run the complete test suite and record the baseline result.
+5. Work from the files currently on disk.
+
+Current state:
+- The campaign-map infrastructure already exists.
+- `CampaignMapController.gd` owns the hidden campaign-map shell on CanvasLayer 14.
+- The map remains unavailable through the normal player-facing menu flow.
+- It can be opened for development and validation through `Game.show_campaign_map_preview()`.
+- Region 1 contains the six existing levels.
+- Region 2 is an unreleased placeholder with eight main and two bonus nodes.
+- Required paths are solid; optional bonus paths are dotted.
+- The map currently uses `assets/menubackground.png`, which is also used by the main menu.
+- A dedicated map background now exists at `assets/menu_bg_map.png`.
+- The current complete automated suite contains approximately 325 checks. Report the actual final count.
+
+Task:
+Use `assets/menu_bg_map.png` as the full-screen background of the campaign-map submenu.
+
+Required behavior:
+1. Replace the current main-menu background used by `CampaignMapController` with:
+   - `res://assets/menu_bg_map.png`
+2. Use the dedicated map background for every region displayed by the current map shell.
+3. Keep it full-screen and responsive.
+4. Preserve its aspect ratio and cover the viewport without leaving empty bands.
+5. Keep the existing restrained dark overlay so map nodes, paths, headings, details, and buttons remain readable.
+6. Adjust the overlay opacity only if visual inspection proves necessary.
+7. Keep the background behind every path, node, label, and control.
+8. Give the runtime-created background node a clear name such as `MapBackground` if that improves testability.
+9. Fail safely if the asset cannot be loaded; do not crash the map menu.
+
+Preserve:
+- The hidden/infrastructure-only status of the campaign map.
+- CanvasLayer 14 ownership.
+- `PROCESS_MODE_ALWAYS`.
+- Shared Greenglen theme and Cinzel fonts.
+- Region 1 and Region 2 topology.
+- Stable region and level IDs.
+- Solid required paths.
+- Dotted optional paths.
+- Locked, available, completed, bonus, and unreleased node states.
+- Current keyboard focus and mouse interaction.
+- The Region selector, details panel, Play button, and Back button.
+- The normal six-level Start Game flow.
+- Campaign persistence and unlocking behavior.
+- All gameplay, result, progression, case, skin, quest, audio, and save behavior.
+
+Do not:
+- Expose the unfinished map through a new main-menu button.
+- Import the Excalidraw sketch as production artwork.
+- redesign map topology or node placement as part of this task.
+- add final region or location names.
+- introduce region-specific background switching yet.
+- alter the campaign catalog or progression rules.
+- add dependencies or autoloads.
+
+Testing:
+- Add or update a focused smoke assertion proving that the map background:
+  - uses `res://assets/menu_bg_map.png`;
+  - exists exactly once;
+  - remains behind the map graph and controls;
+  - is not recreated by repeated `initialize()`, `show_region()`, or `refresh()` calls.
+- Preserve all existing map-shell and campaign tests.
+- Do not weaken existing assertions.
+
+Visual validation:
+Invoke the map through its existing preview API and inspect:
+- Region 1 at 960×540.
+- Region 1 at 1280×720.
+- Region 2 at 960×540.
+- Region 2 at 1280×720.
+
+Confirm:
+- the dedicated map artwork covers the viewport;
+- the artwork is not stretched disproportionately;
+- no empty borders appear;
+- required and optional paths remain distinguishable;
+- labels and node states remain readable;
+- the details panel and buttons remain legible;
+- no control overlaps or extends beyond the viewport;
+- no decorative edge is clipped.
+
+Validation:
+Run:
+
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s res://tests/run_all.gd
+
+Also:
+- run a Godot 4.6 parser/import check;
+- run a normal headless startup smoke check;
+- run `git diff --check`;
+- inspect `git status --short`;
+- report any validation that could not be performed.
+
+Documentation:
+- Update CLAUDE.md and AGENTS.md together only where they describe the map background as generic or still using the main-menu artwork.
+- Keep both technical documents synchronized.
+- README.md does not need to change unless the map becomes publicly accessible, which is out of scope.
+
+Constraints:
+- GDScript and existing Godot resources only.
+- Preserve unrelated worktree changes.
+- Do not commit or push unless explicitly requested.
+
+Deliverables:
+- Campaign map using `assets/menu_bg_map.png`.
+- Focused regression coverage for the background assignment and ownership.
+- Visual-validation results at both target resolutions.
+- Final automated test counts.
+- Parser/import, startup, and diff-check results.
+- Modified-file list.
+- Anything that could not be validated.

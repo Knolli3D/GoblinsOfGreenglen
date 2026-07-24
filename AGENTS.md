@@ -14,6 +14,32 @@ gesperrte/unveröffentlichte Inhalte sind nur ansehbar. `Start Game` startet unv
 bekannten linearen Sechs-Level-Run. Der generierte Chiptune-Sound ist witzig und rundet das
 Ganze gut ab.
 
+## GDD und Quellenhierarchie
+
+Der vollständige Claude-Design-Handoff liegt unverändert unter `docs/gdd/`. Das primäre
+Produkt-/Design-Dokument ist `docs/gdd/project/Game Design Document.dc.html` (Dokument v0.2;
+Kopfstand 2026-07-20, Decision Log mit Einträgen bis 2026-07-24). Seine relativen Imports,
+Design-System-Dateien und der Handoff-README bleiben zusammen, damit das Dokument als Paket
+nachvollziehbar bleibt. `docs/gdd/project/uploads/GDD.md` ist nur der ältere v0.1-
+Markdown-Quellstand vom 2026-07-19 und nicht die aktuelle GDD-Fassung.
+
+Bei Widersprüchen gilt:
+1. Laufender Code und Tests definieren das tatsächlich implementierte Verhalten.
+2. Das primäre GDD definiert Produktabsicht, Canon und freigegebene Designrichtung.
+3. `AGENTS.md` und `CLAUDE.md` dokumentieren technische Constraints und den aktuellen Checkout.
+4. `README.md` fasst öffentlich sichtbare, bereits verfügbare Features zusammen.
+5. `Plan_todo.txt` bleibt Exploration und ist keine freigegebene Spezifikation.
+
+Aus dem importierten GDD sind insbesondere der neue Narrative-Canon, `Greenglen Vale` und
+`Stonepeak Reach` als angenommene Arbeitsnamen sowie die benannten Region-1- und vorgeschlagenen
+Region-2-Locations Design-Source-of-Truth. Region-3-bis-5-Namen bleiben ausdrücklich
+Placeholder/Vorschläge. Die dort als "Implemented" beschriebene Foundation ist im aktuellen
+Checkout vorhanden: aktiver Run-Timer und Final-Score-Formel, Highscore-Schema v3, öffentliches
+Map-Menü, Fünf-Regionen-Katalog und `Flawless Finale`. Spätere Polishing-Commits für Animation,
+Damage-Feedback und Skin-Menü-Gruppierung liegen bereits über dem GDD-Snapshot; ebenso umfasst
+die aktuelle Suite 449 statt der dort genannten 443 Checks. Für den exakten Implementierungsstand
+bleiben deshalb die unten dokumentierten Systeme und die real ausgeführte Testsuite maßgeblich.
+
 ## Spielprinzip
 
 Ritter springt durch 6 Level (Level 4+5 mit horizontalem Scrolling, Level 6 mit zufälliger
@@ -114,8 +140,14 @@ tests/
   run_all.gd          # DER Test-Runner: drei isolierte Kind-Prozesse + Save-Canary (siehe Tests-Abschnitt)
   test_save_system.gd # Save-System-Suite (95 Checks)
   test_campaign_progress.gd # Kampagnen-Katalog/Persistenz/Unlocks (68 Checks)
-  test_smoke.gd       # Smoke-/Verhaltens-Suite (284 Checks inkl. Timer, Map, Meta-Menüs, Run-Results)
+  test_smoke.gd       # Smoke-/Verhaltens-Suite (286 Checks inkl. Timer, Map, Meta-Menüs, Run-Results)
   test_env.gd         # Isolations-Helfer (setzt GOGG_TEST_SAVE_DIR vor Autoload-Start)
+
+docs/gdd/
+  README.md           # Originaler Claude-Design-Handoff-Hinweis
+  project/Game Design Document.dc.html # Primäres GDD v0.2
+  project/_ds/        # Importiertes Design-System, Tokens und Cinzel-Variable-Font
+  project/uploads/GDD.md # Älterer v0.1-Markdown-Quellstand (nicht primär)
 
 default_bus_layout.tres  # Audio-Busse: Master → Music (-6 dB), SFX
 ```
@@ -699,7 +731,7 @@ Die Suiten sind auch einzeln lauffähig (`-s res://tests/test_save_system.gd`,
 WARNING-Zeilen im Output sind erwartet
 (die Save-Tests füttern absichtlich kaputte Saves).
 
-- **Suiten (443 Checks gesamt)**: `test_save_system.gd` (95, Save-System inkl. direktem
+- **Suiten (449 Checks gesamt)**: `test_save_system.gd` (95, Save-System inkl. direktem
   `HighscoreStore`-Test), `test_campaign_progress.gd` (68: Catalog-Validierung,
   Fünf-Regionen-Roadmap (stabile geordnete IDs, exakt 6/8/10/12/14 Main-Level, sequenzielle
   Verkettung, unreleased/nicht startbare Regionen 2–5, Required-only-Platzhalterpfade mit
@@ -709,7 +741,7 @@ WARNING-Zeilen im Output sind erwartet
   frischer/kaputter Save, Backup-Recovery, stabile IDs,
   Required-/Optional-Unlocks,
   Level-Bestwerte, Core-/Mastery-Trials, Clear/Explore/Mastery und Future-Release-Abgleich)
-  und `test_smoke.gd` (284: Main-Komponenten/Interfaces,
+  und `test_smoke.gd` (286: Main-Komponenten/Interfaces,
   Region-Status-Banner (Available/Locked/Coming Soon inkl. Vorgänger-Anforderungen,
   Regionen-3-5-Platzhalter-Rendering und Play-Guards, keine Banner-Duplikate),
   einmalige Signalverbindungen, eindeutige CanvasLayer-Ownership und gemeinsame Theme-Instanz,

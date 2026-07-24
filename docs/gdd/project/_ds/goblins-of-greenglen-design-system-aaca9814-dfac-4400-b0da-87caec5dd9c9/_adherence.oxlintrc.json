@@ -1,0 +1,233 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/badges/**",
+              "components/core/**",
+              "components/hud/**",
+              "components/navigation/**",
+              "ui_kits/main-menu/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Cinzel))/i]",
+        "message": "Font not provided by the design system. Available: Cinzel."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GreenglenButton'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|height|disabled|onClick|key|ref|className|style|children)$/]",
+        "message": "<GreenglenButton> doesn't accept that prop. Declared props: label, height, disabled, onClick."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GreenglenHeading'] > JSXAttribute > JSXIdentifier[name!=/^(?:text|size|align|accent|key|ref|className|style|children)$/]",
+        "message": "<GreenglenHeading> doesn't accept that prop. Declared props: text, size, align, accent."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GreenglenHeading'] > JSXAttribute[name.name='align'] > Literal[value!=/^(?:left|center|right)$/]",
+        "message": "<GreenglenHeading> align must be one of 'left' | 'center' | 'right'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HeartsMeter'] > JSXAttribute > JSXIdentifier[name!=/^(?:health|maxHealth|size|key|ref|className|style|children)$/]",
+        "message": "<HeartsMeter> doesn't accept that prop. Declared props: health, maxHealth, size."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='StatValue'] > JSXAttribute > JSXIdentifier[name!=/^(?:caption|value|color|key|ref|className|style|children)$/]",
+        "message": "<StatValue> doesn't accept that prop. Declared props: caption, value, color."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SubmenuShell'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|background|dim|children|key|ref|className|style|children)$/]",
+        "message": "<SubmenuShell> doesn't accept that prop. Declared props: title, background, dim, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SubmenuShell'] > JSXAttribute[name.name='background'] > Literal[value!=/^(?:quests|cases|skins|map)$/]",
+        "message": "<SubmenuShell> background must be one of 'quests' | 'cases' | 'skins' | 'map'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TierBadge'] > JSXAttribute > JSXIdentifier[name!=/^(?:tier|label|key|ref|className|style|children)$/]",
+        "message": "<TierBadge> doesn't accept that prop. Declared props: tier, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TierBadge'] > JSXAttribute[name.name='tier'] > Literal[value!=/^(?:rare|epic|legendary|starter|default)$/]",
+        "message": "<TierBadge> tier must be one of 'rare' | 'epic' | 'legendary' | 'starter' | 'default'."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "GreenglenButton": {
+        "replaces": []
+      },
+      "GreenglenHeading": {
+        "replaces": []
+      },
+      "HeartsMeter": {
+        "replaces": []
+      },
+      "StatValue": {
+        "replaces": []
+      },
+      "SubmenuShell": {
+        "replaces": []
+      },
+      "TierBadge": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent-forest",
+      "--accent-primary",
+      "--brown-deep",
+      "--brown-ink",
+      "--btn-aspect",
+      "--btn-side-margin",
+      "--cream",
+      "--cream-bright",
+      "--default-tier",
+      "--dim-overlay",
+      "--epic",
+      "--font-body",
+      "--font-display",
+      "--forest",
+      "--forest-bright",
+      "--forest-deep",
+      "--fs-body",
+      "--fs-button",
+      "--fs-h1",
+      "--fs-h2",
+      "--fs-h3",
+      "--fs-hero",
+      "--fs-small",
+      "--gold-light",
+      "--leaf-gold",
+      "--legendary",
+      "--lh-normal",
+      "--lh-tight",
+      "--outline-button",
+      "--outline-heading",
+      "--parchment",
+      "--parchment-dark",
+      "--radius-none",
+      "--rare",
+      "--sky-blue",
+      "--sky-blue-deep",
+      "--space-1",
+      "--space-2",
+      "--space-3",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--space-7",
+      "--starter",
+      "--stone",
+      "--stone-dark",
+      "--surface-panel",
+      "--surface-parchment",
+      "--text-body",
+      "--text-disabled",
+      "--text-heading",
+      "--text-hover",
+      "--text-outline",
+      "--text-pressed",
+      "--wood-dark",
+      "--wood-mid"
+    ],
+    "tokenKinds": {
+      "--cream": "color",
+      "--cream-bright": "color",
+      "--gold-light": "color",
+      "--brown-ink": "color",
+      "--brown-deep": "color",
+      "--wood-dark": "color",
+      "--wood-mid": "color",
+      "--parchment": "color",
+      "--parchment-dark": "color",
+      "--forest-deep": "color",
+      "--forest": "color",
+      "--forest-bright": "color",
+      "--leaf-gold": "color",
+      "--stone": "color",
+      "--stone-dark": "color",
+      "--sky-blue": "color",
+      "--sky-blue-deep": "color",
+      "--rare": "color",
+      "--epic": "color",
+      "--legendary": "color",
+      "--starter": "color",
+      "--default-tier": "color",
+      "--dim-overlay": "color",
+      "--text-heading": "font",
+      "--text-body": "font",
+      "--text-hover": "font",
+      "--text-pressed": "font",
+      "--text-disabled": "font",
+      "--text-outline": "font",
+      "--surface-panel": "color",
+      "--surface-parchment": "color",
+      "--accent-primary": "color",
+      "--accent-forest": "color",
+      "--font-display": "font",
+      "--font-body": "font",
+      "--fs-hero": "spacing",
+      "--fs-h1": "spacing",
+      "--fs-h2": "spacing",
+      "--fs-h3": "spacing",
+      "--fs-button": "spacing",
+      "--fs-body": "spacing",
+      "--fs-small": "spacing",
+      "--outline-heading": "spacing",
+      "--outline-button": "spacing",
+      "--lh-tight": "other",
+      "--lh-normal": "other",
+      "--space-1": "spacing",
+      "--space-2": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--space-7": "spacing",
+      "--radius-none": "radius",
+      "--btn-aspect": "other",
+      "--btn-side-margin": "spacing"
+    },
+    "fontFamilies": [
+      "Cinzel"
+    ]
+  }
+}

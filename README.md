@@ -75,9 +75,24 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (95 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (280 checks: component ownership/wiring, active run timing and reset/freeze rules, Final Score and independent records, the campaign map submenu, 960×540 layout fit, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, and transition cancellation). **443 checks total.**
+- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (95 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (286 checks: component ownership/wiring, active run timing and reset/freeze rules, Final Score and independent records, the campaign map submenu, 960×540 layout fit, animation/damage feedback, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, and transition cancellation). **449 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
+
+---
+
+## Game Design Document
+
+The complete Claude Design handoff is versioned in [`docs/gdd/`](docs/gdd/). Its primary
+document is the [Game Design Document v0.2](docs/gdd/project/Game%20Design%20Document.dc.html),
+whose decision log includes the latest supplied entries through July 24, 2026. It records the
+product vision, narrative canon, campaign roadmap, content briefs, and open design decisions.
+
+The running game and tests remain the authority for what is implemented in this checkout; the
+GDD is the authority for design intent. Its implemented foundation is present here, while later
+animation, damage-feedback, and menu-polish work has already moved the code beyond that snapshot.
+The bundled [`uploads/GDD.md`](docs/gdd/project/uploads/GDD.md) is an older v0.1 source snapshot,
+not the primary document.
 
 ---
 
@@ -114,6 +129,9 @@ GoblinsOfGreenglen/
 │   ├── test_campaign_progress.gd # Catalog, unlock, record, trial, and persistence suite
 │   ├── test_smoke.gd        # Scene, resource, run-result, and transition-lifecycle suite
 │   └── test_env.gd          # Test isolation helper (redirects save I/O to a temp dir)
+├── docs/gdd/
+│   ├── README.md             # Original Claude Design handoff instructions
+│   └── project/              # Primary HTML GDD, source snapshot, runtime, and design system
 ├── scenes/
 │   ├── Main.tscn       # Entry point: Game coordinator plus explicit controller/service children
 │   ├── Player.tscn / Enemy.tscn / Coin.tscn / Goal.tscn / Platform.tscn

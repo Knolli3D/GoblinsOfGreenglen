@@ -1,0 +1,15 @@
+:root{
+--font-display:"Cinzel",serif;
+--font-body:"Cinzel",serif;
+--fs-hero:48px;
+--fs-h1:32px;
+--fs-h2:24px;
+--fs-h3:20px;
+--fs-button:18px;
+--fs-body:16px;
+--fs-small:13px;
+--outline-heading:5px;
+--outline-button:3px;
+--lh-tight:1.1; /* @kind other */
+--lh-normal:1.4; /* @kind other */
+}

@@ -1,0 +1,12 @@
+:root{
+--space-1:4px;
+--space-2:8px;
+--space-3:14px;
+--space-4:20px;
+--space-5:32px;
+--space-6:48px;
+--space-7:60px;
+--radius-none:0px;
+--btn-aspect:6; /* @kind other */
+--btn-side-margin:32px;
+}

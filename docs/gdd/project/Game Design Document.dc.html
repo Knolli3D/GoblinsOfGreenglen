@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/styles.css">
+  <script src="_ds/goblins-of-greenglen-design-system-aaca9814-dfac-4400-b0da-87caec5dd9c9/_ds_bundle.js"></script>
+<style>
+  a { color: var(--forest-deep); text-decoration: underline; }
+  a:hover { color: var(--leaf-gold); }
+  html { scroll-behavior: smooth; }
+</style>
+</helmet>
+<x-import component-from-global-scope="doc-page" from="./doc-page.js" size="letter" orientation="portrait" margin="0.75in" hint-size="100%,100%">
+<div style="font-family:var(--font-body);color:var(--brown-ink);font-size:16px;line-height:var(--lh-normal);">
+
+<div style="background:var(--wood-dark);padding:72px 40px;margin:0 0 8px;text-align:center;break-after:page;">
+  <x-import component-from-global-scope="GoblinsOfGreenglenDesignSystem_aaca98.GreenglenHeading" text="Goblins of Greenglen" size="46" hint-size="100%,60px"></x-import>
+  <div style="height:14px;"></div>
+  <x-import component-from-global-scope="GoblinsOfGreenglenDesignSystem_aaca98.GreenglenHeading" text="Game Design Document" size="22" accent="var(--gold-light)" hint-size="100%,32px"></x-import>
+  <p style="color:var(--cream);font-size:13px;letter-spacing:.04em;margin:32px 0 0;">Living design baseline &middot; Document v0.2 &middot; Updated 2026-07-20</p>
+  <p style="color:var(--parchment-dark);font-size:12px;margin:6px 0 0;">Godot 4.6 &middot; GDScript &middot; 2D action-platformer</p>
+</div>
+
+<p style="background:var(--parchment-dark);border-left:4px solid var(--leaf-gold);padding:10px 14px;margin:0 0 20px;font-size:14.5px;color:var(--brown-deep);">Living design baseline. Describes the intended player experience, the currently implemented game, and decisions still open for future development.</p>
+
+
+<h2 id="toc" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">Table of Contents</h2>
+<div style="columns:2;column-gap:32px;font-size:14px;margin:0 0 20px;break-after:page;">
+<a href="#sec-1" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">1. High Concept</a>
+<a href="#sec-2" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">2. Design Pillars</a>
+<a href="#sec-3" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">3. Audience, Positioning, and Scope</a>
+<a href="#sec-4" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">4. Player Fantasy, World, and Tone</a>
+<a href="#sec-5" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">5. Experience Structure</a>
+<a href="#sec-6" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">6. Game Modes and Entry Points</a>
+<a href="#sec-7" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">7. Controls and Player Movement</a>
+<a href="#sec-8" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">8. Combat, Damage, and Recovery</a>
+<a href="#sec-9" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">9. Score, Coins, Time, and Records</a>
+<a href="#sec-10" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">10. Run Outcomes and Lifecycle</a>
+<a href="#sec-11" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">11. Campaign and World Map</a>
+<a href="#sec-12" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">12. Current Level Set</a>
+<a href="#sec-13" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">13. Quests and Reward Economy</a>
+<a href="#sec-14" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">14. Cosmetic Collection</a>
+<a href="#sec-15" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">15. UI and Information Architecture</a>
+<a href="#sec-16" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">16. Art Direction</a>
+<a href="#sec-17" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">17. Audio Direction</a>
+<a href="#sec-18" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">18. Technical Design Constraints</a>
+<a href="#sec-19" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">19. Persistence and Player Data</a>
+<a href="#sec-20" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">20. Quality Bar and Validation</a>
+<a href="#sec-21" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">21. Production Roadmap</a>
+<a href="#sec-22" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">22. Key Risks and Mitigations</a>
+<a href="#sec-23" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">23. Open Design Decisions</a>
+<a href="#sec-24" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">24. Content Brief Templates</a>
+<a href="#sec-25" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">25. Region 1 &amp; Region 2 Naming and Content Briefs</a>
+<a href="#sec-26" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">26. Decision Log</a>
+<a href="#sec-27" style="display:block;padding:3px 0;color:var(--brown-ink);text-decoration:none;border-bottom:1px dotted var(--parchment-dark);">27. Revision Checklist</a>
+</div>
+
+<h2 id="doc-control" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:8px 0 14px;">Document Control</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);width:32%;">Field</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Value</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Project</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Goblins of Greenglen</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Document version</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">0.2</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Last updated</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-20</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Genre</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2D action-platformer, run-based + collection progression</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Engine</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Godot 4.6, GDScript only</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Current state</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Fully playable six-level release foundation; campaign framework and meta-progression implemented</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Primary platform</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Desktop PC, keyboard</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Additional platforms</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">PC and Mac desktop, plus Web; a specced-down mobile version is a possible post-1.0 candidate, TBD</td></tr>
+</table>
+
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Status labels</h3>
+<p style="margin:0 0 6px;"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;letter-spacing:.03em;background:var(--forest);color:var(--cream);">Implemented</span> present and playable today. &nbsp;<span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;letter-spacing:.03em;background:var(--sky-blue-deep);color:var(--cream);">Planned</span> on the active roadmap, not yet playable. &nbsp;<span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;letter-spacing:.03em;background:var(--leaf-gold);color:var(--brown-deep);">Candidate</span> worth prototyping, not approved scope. &nbsp;<span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;letter-spacing:.03em;background:var(--stone);color:var(--cream);">TBD</span> requires an explicit decision.</p>
+
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Purpose and source hierarchy</h3>
+<p style="margin:0 0 8px;">This GDD is the product-design baseline: what the game should feel like, why its systems exist, how future content fits together. When documents disagree, priority is: (1) the running game/code define implemented behavior, (2) this GDD defines design intent, (3) <code>AGENTS.md</code>/<code>CLAUDE.md</code> define technical constraints, (4) <code>README.md</code> is the public feature summary, (5) <code>plan.md</code> holds completed campaign-map prompts, (6) <code>Plan_todo.txt</code> is exploration, not approved behavior.</p>
+
+<h2 id="sec-1" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">1. High Concept</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Elevator pitch</h3>
+<p style="margin:0 0 10px;"><strong>Goblins of Greenglen</strong> is an approachable fantasy platformer: a nimble knight bounds across floating paths, stomps mischievous goblins, gathers coins, and races toward the next red flag. Short, readable levels feed replayable runs, local records, campaign mastery, quests, and a cosmetic collection.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Player promise</h3>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Movement easy to understand, satisfying to improve</li>
+<li style="margin:0 0 4px;">Combat that turns accurate platforming into a playful attack</li>
+<li style="margin:0 0 4px;">Compact levels, visible goals, little downtime</li>
+<li style="margin:0 0 4px;">Clear reasons to replay: score, time, map completion, quests, cosmetics</li>
+<li style="margin:0 0 4px;">Warm, whimsical medieval-fantasy identity &mdash; never grim or punishing</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Product identity</h3>
+<p style="margin:0 0 10px;">Sits between a light arcade platformer and a compact progression game. Platforming must stay enjoyable without the meta systems; quests, cases, skins, campaign milestones, and records strengthen replayability but never conceal weak core play.</p>
+
+<h2 id="sec-2" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">2. Design Pillars</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.1 Readable momentum</h3>
+<p style="margin:0 0 10px;">Most of a level is spent moving, jumping, lining up stomps, or choosing a route. Hazards stay legible so failure reads as a decision or execution error: controls respond immediately, double jump gives recovery and expressive routing, enemies patrol predictably, the goal flag is visually distinct, and non-interactive interruptions stay brief.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.2 Stomping is platforming</h3>
+<p style="margin:0 0 10px;">Combat is not a separate system &mdash; position, descent, timing, and horizontal overlap ARE the attack. A successful stomp feels precise but generous: immediate bounce, score feedback, sound, and a &ldquo;POW!&rdquo; flourish.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.3 One more clean run</h3>
+<p style="margin:0 0 10px;">Runs are short enough to restart willingly, layered with independent goals: complete the route, improve Final Score, lower Run Time, finish quests, clear without damage, perfect campaign regions.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.4 Storybook Greenglen</h3>
+<p style="margin:0 0 10px;">Bright, readable platforming inside ornate, painterly fantasy framing. Wood, dark metal, gold trim, leaves, vines, shields, castles, keys, chests, mushrooms, and saturated rarity colors form the Greenglen visual language.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.5 Progress is earned, not purchased</h3>
+<p style="margin:0 0 10px;">Gameplay and quest completion drive the cosmetic economy. Cases provide anticipation; duplicate shards ensure an unlucky reward still has value. No real-money economy in the current design.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">2.6 Expand without invalidating the foundation</h3>
+<p style="margin:0 0 10px;">Stable region/level identities, controller boundaries, and separate save domains let the game grow. New regions and modes reuse the strong core instead of silently changing what &ldquo;Start Game&rdquo; means.</p>
+
+<h2 id="sec-3" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">3. Audience, Positioning, and Scope</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Target audience</h3>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Players who enjoy accessible 2D platformers and score chasing</li>
+<li style="margin:0 0 4px;">Players drawn to colorful medieval fantasy and collectible cosmetics</li>
+<li style="margin:0 0 4px;">Players who prefer short sessions and clear progress</li>
+<li style="margin:0 0 4px;">Younger/casual players needing forgiving recovery, alongside mastery goals for experienced players</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Desired difficulty character</h3>
+<p style="margin:0 0 10px;"><strong>Easy to enter, increasingly demanding, fair to master.</strong> Early levels teach movement and stomp rules at low density. Later levels raise horizontal scale, enemy density, routing pressure, and variability &mdash; without changing the player's fundamental physics.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Current scope</h3>
+<p style="margin:0 0 6px;">Single-player, offline-first, desktop keyboard, six playable levels in one released campaign region, local saves/records, no networking/accounts/cloud/real-money/online leaderboard.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Non-goals for the current foundation</h3>
+<p style="margin:0 0 10px;">Precision-platformer difficulty as default; complex melee combos/weapons/inventory stats; multiplayer/PvP; a dialogue-heavy narrative campaign; mandatory grinding to access the core six levels; pay-to-win.</p>
+
+<h2 id="sec-4" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">4. Player Fantasy, World, and Tone</h2>
+<p style="margin:0 0 10px;">The player is a heroic fantasy character crossing the lively realm of Greenglen, outmaneuvering goblins and claiming a path through dangerous locations. The fantasy is carried through movement, visual identity, and playful confrontation rather than exposition.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Tone</h3>
+<p style="margin:0 0 10px;">Adventurous, mischievous, triumphant, colorful, lightly comedic &mdash; never excessively violent or bleak. Goblins read as troublesome, animated obstacles, not horror creatures. Defeat feedback is punchy and amusing; success feels celebratory without slowing the next attempt.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Narrative canon</h3>
+<p style="margin:0 0 10px;"><strong>Protagonist:</strong> a farmer's kid from Greenglen Vale who picked up a sword because nobody else would &mdash; no formal training, no chosen-one framing, just the nearest person willing to go. <strong>Inciting incident:</strong> goblins raided the Harvest Festival and made off with the mayor's secret pie recipe; emboldened (and well-fed), scattered raiders swelled into a full occupation of the Vale as more bands arrived for a taste. <strong>The flags:</strong> not goblin markers at all &mdash; they're waymarkers of the long-vanished Silvergreen Kingdom, predating the goblins entirely; restoring them re-opens the old royal road and unlocks the route between regions on the map. <strong>The region journey:</strong> escalating threat, played for atmosphere rather than horror &mdash; the goblins aren't invading so much as running, region by region, from something older and stranger than themselves; each biome hides a bigger reason they kept moving, culminating in whatever they were fleeing in the first place at the far edge of the ice. Tone stays light and comedic through Region 2; Regions 3&ndash;5 may lean into quieter, eerier atmosphere (old carvings, deep cold, things half-remembered) but never into real menace or grimness &mdash; goblins stay silly, danger stays implied, not shown.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">World and characters</h3>
+<ul style="margin:0 0 10px;padding-left:22px;">
+<li style="margin:0 0 4px;"><strong>Grubnash, the Pie King</strong> &mdash; self-appointed goblin leader who kicked off the invasion out of stolen-pie bravado; mostly bluster, no real menace, in keeping with the tone.</li>
+<li style="margin:0 0 4px;"><strong>The Silvergreen Princesses</strong> &mdash; Greenglen Vale's reigning royal line; the case/key reward shop is literally their treasury, opened to fund the knight's campaign. Collectible princess skins are an honor granted for service, not a rescue plot.</li>
+<li style="margin:0 0 4px;"><strong>Sir Alderic</strong> &mdash; a retired knight and mentor who explains regions and pie lore from the map screen; sideline voice only, never adventures directly.</li>
+<li style="margin:0 0 4px;"><strong>The Old Silvergreen Road</strong> &mdash; the ancient royal road the flags waymark; recurs across all five (and future) regions as the visible thread physically connecting them on the map.</li>
+</ul>
+<p style="margin:0 0 10px;">Ending: intentionally open past Region 5 &mdash; the old danger driving the escalating-threat journey is not resolved at the ice biome, and further regions beyond Region 5 remain TBD to carry it forward. Still open: naming that further danger, and any landmarks/allies/antagonists beyond the above. Future narrative work should favor environmental detail, map flavor, short introductions, and concise milestones over dialogue-heavy delivery.</p>
+
+<h2 id="sec-5" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">5. Experience Structure</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">5.1 Moment-to-moment loop</h3>
+<p style="margin:0 0 10px;">Read nearby platforms/enemies/coins &rarr; move and jump toward the route &rarr; use the second jump to extend/correct/redirect &rarr; choose to avoid or stomp a goblin &rarr; collect coins toward the flag &rarr; recover from a mistake or restart.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">5.2 Run loop</h3>
+<p style="margin:0 0 10px;">Start with 3 hearts, zero score, zero coins, fresh timer &rarr; complete levels via goal flags &rarr; carry score/coins/time across transitions &rarr; finish the route or lose all health &rarr; review Final Score and Run Time &rarr; run again, return to menu, or chase another goal.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">5.3 Campaign loop</h3>
+<p style="margin:0 0 10px;">Open the Map &rarr; review region status/routes/records/requirements &rarr; launch an unlocked location &rarr; complete it and unlock the next &rarr; clear the region once all main locations and required core trials are done &rarr; return for optional exploration/mastery.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">5.4 Meta-progression loop <span style="font-weight:400;font-size:13px;color:var(--stone-dark);">(cosmetic only &mdash; never affects movement, health, damage, score, or odds)</span></h3>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 6px;font-size:13px;">
+<span style="border:1px solid var(--stone);padding:6px 10px;background:var(--parchment-dark);">Play levels &amp; runs</span><span>&rarr;</span>
+<span style="border:1px solid var(--stone);padding:6px 10px;background:var(--parchment-dark);">Advance daily/weekly quests</span><span>&rarr;</span>
+<span style="border:1px solid var(--stone);padding:6px 10px;background:var(--parchment-dark);">Claim keys / fragments</span><span>&rarr;</span>
+<span style="border:1px solid var(--stone);padding:6px 10px;background:var(--parchment-dark);">Open regular / premium cases</span><span>&rarr;</span>
+<span style="border:1px solid var(--leaf-gold);padding:6px 10px;background:var(--gold-light);">Unlock &amp; equip skins</span>
+</div>
+<p style="margin:0 0 10px;font-size:13px;color:var(--stone-dark);">Cases also convert duplicate rewards into shards &rarr; more keys, feeding back into further case openings; equipped skins feed back into more runs.</p>
+
+<h2 id="sec-6" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">6. Game Modes and Entry Points</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">6.1 Classic Run <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Implemented</span></h3>
+<p style="margin:0 0 10px;"><strong>Start Game</strong> begins the linear six-level run at Location 1, played in order. Location 6 completion yields <strong>Run Complete</strong>; zero hearts yields <strong>Run Over</strong>. Completed runs may set Best Score, Best Time, both, or neither &mdash; failed runs never update either record. <code>R</code>, pause <strong>Try Again</strong>, and result <strong>Run Again</strong> all start a clean run at Location 1. This remains the default &ldquo;whole game&rdquo; challenge.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">6.2 Campaign Map <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Implemented foundation</span></h3>
+<p style="margin:0 0 10px;"><strong>Map</strong> opens the campaign submenu. Players inspect all planned regions; only released/unlocked locations can launch gameplay. Starting an unlocked Region 1 location continues through subsequent required locations to the region endpoint &mdash; the mode doesn't return to the map after every level, nor auto-cross into a successor region. Locked/unreleased locations stay visible for orientation. The map remembers the last valid selection.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">6.3 Endless Challenge <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--leaf-gold);color:var(--brown-deep);">Candidate</span></h3>
+<p style="margin:0 0 10px;"><code>Plan_todo.txt</code> describes an arcade survival concept: cycles the six templates with rising difficulty, persistent run health, larger arcade scoring, death-only finalization, and a future leaderboard-ready result object. Treat as an <strong>additional mode candidate</strong>, not a Classic Run/Campaign replacement, unless a later decision says otherwise. Prototype should answer: does cycling stay fun beyond two loops? Is persistent 3-heart health too punishing without recovery? Does scoring stay comparable with random spawns? Do endless-compatible quests coexist with campaign quests? Is an online leaderboard worth its cost? No networking or leaderboard is currently approved.</p>
+
+<h2 id="sec-7" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">7. Controls and Player Movement</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">7.1 Current controls</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Action</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Input</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Move left / right</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Left/Right Arrow or A/D</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Jump / double jump</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Space or Up Arrow (press again in air)</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Pause</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Escape</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Restart fresh run</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">R</td></tr>
+</table>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">7.2 Movement values</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Property</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Value</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gravity</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">1400 px/s&sup2;</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Horizontal move speed</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">220 px/s</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">First jump velocity</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">&minus;520 px/s</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Double-jump velocity</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">&minus;460 px/s</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Maximum jumps</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2</td></tr>
+</table>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">7.3 Movement design rules</h3>
+<p style="margin:0 0 10px;">Horizontal movement is direct and predictable; the first jump provides the main arc, the second provides correction and expression. Level geometry is authored against the existing physics unless a deliberate global rebalance is approved. Required routes never depend on random spawns. A player should be able to read why a jump failed from the visible arc and landing point. Camera behavior preserves forward visibility and never reveals space beyond level bounds.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">7.4 Input roadmap &mdash; TBD</h3>
+<p style="margin:0 0 10px;">Controller support, full key rebinding, input prompt switching, configurable hold/toggle behavior, touch controls or console certification.</p>
+
+<h2 id="sec-8" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">8. Combat, Damage, and Recovery</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">8.1 Stomp combat</h3>
+<p style="margin:0 0 8px;">Valid only when descending and crossing the top of a living goblin with sufficient overlap.</p>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Property</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Value</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Goblin patrol speed</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">60 px/s</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Stomp top tolerance</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2 px</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Min. horizontal stomp overlap</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">4 px</td></tr>
+</table>
+<p style="margin:0 0 10px;">On a valid stomp: the goblin is defeated exactly once, combat score +1, the player bounces at double-jump velocity, both jumps refresh, stomp audio plays with pitch variation, quest progress advances, and a &ldquo;POW!&rdquo; effect appears. Upward/side contact or insufficient overlap counts as a hit instead. The swept contact test accounts for both actors' movement to reduce tunneling and frame-rate-dependent outcomes.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">8.2 Health and damage</h3>
+<p style="margin:0 0 10px;">A fresh level load begins with 3 hearts. Enemy damage removes one heart and 1 combat-score point; falling does the same and respawns the player if health remains. A non-fatal hit/fall grants 1 second of invulnerability. New level loads have no spawn protection by design &mdash; spawns are placed away from enemies. Reaching 0 hearts ends the run exactly once.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">8.3 Fairness rules</h3>
+<p style="margin:0 0 10px;">A dead or already-rewarded enemy cannot damage the player or award a second stomp. Spawn points never overlap enemy patrol areas; enemy patrol stays on its supporting platform. Invulnerability should be visually readable if future feedback is added (exact treatment TBD). A fatal event freezes the run before late callbacks can change the outcome.</p>
+
+<h2 id="sec-9" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">9. Score, Coins, Time, and Records</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Resource</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Rule</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Purpose</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Hearts</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">3 at level load; &minus;1 per hit/fall</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Immediate survival margin</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Combat Score</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">+1 per stomp; &minus;1 per hit/fall</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Rewards combat cleanliness</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Coins</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">+1 per pickup, carried across the run</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Route incentive, major score input</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Run Time</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Active gameplay milliseconds only</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Independent speed measure</td></tr>
+</table>
+<p style="background:var(--parchment-dark);border-left:4px solid var(--leaf-gold);padding:10px 14px;margin:0 0 10px;font-size:15px;">Final Score = max(0, Combat Score) + (Coins &times; 10)</p>
+<p style="margin:0 0 10px;">Coins are intentionally worth more than stomps in the final result. Combat Score and Coins stay separately visible in play and separately recorded for level bests. The timer counts only active gameplay &mdash; not menus, pause, or the 1-second &ldquo;Level Cleared!&rdquo; delay; normal level changes retain elapsed time; both completion and failure freeze the result time.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Records</h3>
+<p style="margin:0 0 10px;"><strong>Best Score</strong> replaced only by a strictly higher Final Score; <strong>Best Time</strong> replaced only by a lower positive time; the two are independent and only completed runs are submitted. A failed run never changes either record. Legacy score records without a timed completion show &ldquo;No best time yet.&rdquo; Each stable location separately stores its best local score/coins (higher score first, then more coins on a tie).</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Balance questions &mdash; TBD</h3>
+<p style="margin:0 0 10px;">Should combat score stay &plusmn;1 as enemy types grow? Does Final Score need a completion/no-damage/exploration/time component? Do coins stay score-only or gain a spendable purpose? Should campaign records add a time component? Resolve through playtest data, not hidden complexity.</p>
+
+<h2 id="sec-10" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">10. Run Outcomes and Lifecycle</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">State</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Trigger</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Record policy</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Active</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Fresh run or level in progress</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">No submission</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Run Complete</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Final required level reached</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Submit score and time</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Run Over</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Health reaches zero</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Never submit</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Abandoned</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Restart, menu exit, or replacement</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Never submit</td></tr>
+</table>
+<p style="margin:0 0 10px;">Both final outcomes share one result hierarchy over the frozen final frame: outcome title, Final Score, Run Time, saved Best Score/Time status, completion-only &ldquo;New Highscore!&rdquo;/&ldquo;New Best Time!&rdquo;, and <strong>Run Again</strong>/<strong>Main Menu</strong> actions. Run Again gets initial keyboard focus; Pause cannot open over a result.</p>
+<p style="margin:0 0 10px;"><strong>Exactly-once rule:</strong> result finalization, record submission, completion quests, and transitions must be idempotent &mdash; repeated fatal contacts, goal signals, stale callbacks, or input must never produce duplicate rewards or level loads.</p>
+
+<h2 id="sec-11" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">11. Campaign and World Map</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.1 Region roadmap</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 8px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Region</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Working title</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Main</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Bonus</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Release state</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">1</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Greenglen Vale</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">6</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">0</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Implemented / released</span></td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Stonepeak Reach</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">8</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--sky-blue-deep);color:var(--cream);">Planned / unreleased</span></td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">3</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">The Hollowdeep <span style="font-size:11px;color:var(--stone-dark);">(placeholder)</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">10</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">0</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--sky-blue-deep);color:var(--cream);">Planned / unreleased</span></td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">4</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">The Murkfen <span style="font-size:11px;color:var(--stone-dark);">(placeholder)</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">12</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">0</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--sky-blue-deep);color:var(--cream);">Planned / unreleased</span></td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Rimecrown Peaks <span style="font-size:11px;color:var(--stone-dark);">(placeholder)</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">14</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">0</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--sky-blue-deep);color:var(--cream);">Planned / unreleased</span></td></tr>
+</table>
+<p style="margin:0 0 10px;font-size:13px;color:var(--stone-dark);">Greenglen Vale and Stonepeak Reach are adopted working names (see Section 25). Regions 3&ndash;5 titles are early placeholders only &mdash; not canon until a content/naming pass confirms them.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.2 Connection language</h3>
+<p style="margin:0 0 10px;"><strong>Required</strong> (solid): advances the main route and region-clear requirement. <strong>Optional</strong> (dotted): bonus exploration, never required for &ldquo;cleared.&rdquo; <strong>Locked/undiscovered</strong> (dimmed): visual state only, same semantic line.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.3 Region milestone model</h3>
+<p style="margin:0 0 10px;"><strong>Cleared:</strong> all main locations + all core trials. <strong>Explored:</strong> Cleared + all bonus locations. <strong>Mastered:</strong> all main + bonus + mastery trials. Region 1 has no bonus locations or mastery trials, so Explored/Mastered follow Cleared automatically.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.4 Region 1 gate</h3>
+<p style="margin:0 0 10px;">Requires all six main locations complete, plus <strong>Flawless Finale</strong>: clear Greenglen Crest (Location 6) without damage on that attempt. Does not require an entirely damage-free six-level run. Progress is capped and idempotent.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.5 Region availability states</h3>
+<p style="margin:0 0 10px;"><strong>Available:</strong> released and unlocked, play unlocked locations. <strong>Locked:</strong> predecessor requirements remain, inspect dimmed topology. <strong>Coming Soon:</strong> predecessor cleared but region unreleased, preview only. An unreleased region stays non-playable even once its gate is earned.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">11.6 Future region rules</h3>
+<p style="margin:0 0 10px;">Give every region a distinct mechanical identity, not just new art. Teach one or two new ideas early, combine them later, reserve mastery demands for optional paths/trials. Don't define fictional core trials before the real mechanics exist. Don't release a region until every required location has a valid scene and reachable route. Keep stable IDs once save data references them. Optional branches should offer a real variation: route challenge, collectible focus, unusual enemy mix, or mastery test.</p>
+
+<h2 id="sec-12" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">12. Current Level Set</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">12.1 Content inventory (Region 1 &mdash; Greenglen Vale)</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 8px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Loc.</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Display name</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Width</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Goblins</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Coins</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Role</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">1</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Greenhorn Glade</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">960px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Introduce movement, coins, stomps, goal</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gobbler's Hollow</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">960px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">3</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Increase enemy interaction</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">3</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Snickerroot Thicket</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">960px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">4</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Increase density and route pressure</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">4</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">The Longleaf Road</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">1920px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">8</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Introduce scrolling, longer routing</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Tanglewood Reach</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2560px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">8</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">10</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Highest authored density, longest route</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">6</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Greenglen Crest</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">2200px</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">8 rand.</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">10 rand.</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Replayable finale, no-damage core trial</td></tr>
+</table>
+<p style="margin:0 0 10px;font-size:13px;color:var(--stone-dark);">Names above are proposed display names layered onto the existing implemented data (Section 25) &mdash; underlying stable location IDs are unchanged.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">12.2 Level construction rules</h3>
+<p style="margin:0 0 10px;">Scenes stay editable in Godot's 2D editor. Required jumps are tested against current movement constants. <code>PlayerSpawn</code> stays safely separated from enemies and falls. The goal flag stays reachable and visually clear. Coins support route readability, optional risk, or reward skilled arcs. Enemies create timing/landing decisions rather than unavoidable damage. Scrolling stages keep the player within camera bounds. The final approach to a goal never places an unavoidable enemy under the goal trigger.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">12.3 Randomized spawns (Greenglen Crest / Location 6)</h3>
+<p style="margin:0 0 10px;">Only <code>spawn_platforms</code>-group platforms participate; start/goal platforms stay out of the pool. Patrol ranges are chosen within a safe range, constrained to platform bounds. Enemies use one per platform before cycling if more are requested. Multiple coins may share a platform; vertical offsets match the authored convention. A retry creates a new arrangement &mdash; no seed persists. Randomization may change tactical routing but never makes the level impossible.</p>
+
+<h2 id="sec-13" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">13. Quests and Reward Economy</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">13.1 Quest structure</h3>
+<p style="margin:0 0 10px;">3 daily slots from a pool of 7; 2 weekly slots from a pool of 4. Daily quests reset by calendar day; claiming all three active dailies immediately rolls a fresh set. Progress counts gameplay actions, not Final Score points. Daily goals cover stomps, coin collection, a no-damage goal, full-run completion, double jumps, and level clears; weekly goals cover completed runs, stomps, coins, and no-damage runs.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">13.2 Keys and fragments</h3>
+<p style="margin:0 0 10px;">Keys come only from claimed quests, never purchased with coins. The first 6 daily claims in a day grant one full key each; further claims grant a fragment. 3 fragments auto-convert to 1 key. A claimed weekly quest grants 3 keys.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">13.3 Cases</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Case</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Cost</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Rare</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Epic</th><th style="text-align:right;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Legendary</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Regular</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">1 key</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">60%</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">30%</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">10%</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Premium</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">3 keys</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">55%</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">30%</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);text-align:right;">15%</td></tr>
+</table>
+<p style="margin:0 0 10px;">Opening uses a decelerating reel and rarity-scaled reveal feedback. Premium improves Legendary odds but doesn't guarantee beating three Regular openings every time.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">13.4 Duplicate protection</h3>
+<p style="margin:0 0 10px;">An owned skin awards 1 duplicate shard; 10 shards auto-convert to 1 key. Duplicate value is intentionally weaker than quest-fragment value, so cases stay a collection sink, not a self-sustaining farm.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">13.5 Economy design rules</h3>
+<p style="margin:0 0 10px;">The core game stays playable with zero case interaction. Cosmetics never modify gameplay outcomes. Costs/odds are always visible before spending keys. Random rewards never consume real money under the current design. A player always retains the Default Knight and starter skin. Save normalization never removes legitimately owned cosmetics. New skins should weigh duplicate dilution and completion pacing before launch.</p>
+
+<h2 id="sec-14" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">14. Cosmetic Collection</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 8px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Tier</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Skins</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Drop behavior</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--default-tier);color:var(--brown-deep);">Default</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Default Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Always selectable; never drops; excluded from completion count</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--starter);color:var(--brown-deep);">Starter</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sapphire Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Owned from the start; never drops</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--rare);color:var(--cream);">Rare</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gold, Emerald, Pink Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Regular and Premium cases</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--epic);color:var(--cream);">Epic</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Blood Knight, Black Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Regular and Premium cases</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--legendary);color:var(--brown-deep);">Legendary</span></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Golden, Emerald, Amethyst, Ruby Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Regular and Premium cases</td></tr>
+</table>
+<p style="margin:0 0 10px;">10 collectible variants across starter/droppable tiers, plus the virtual Default Knight entry.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Skin design rules</h3>
+<p style="margin:0 0 10px;">Every skin needs transparent source art. Collision and movement stay unchanged. Silhouette stays readable at in-game height. Rarity reads through craftsmanship, color treatment, and reveal presentation &mdash; never gameplay power. New skins need a unique stable ID, display name, tier, texture, collection behavior, preview, and save-compatibility check. Avoid low-value hue swaps that vanish during normal play.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Skin canon &mdash; knights and princesses of old</h3>
+<p style="margin:0 0 10px;">In-fiction, every skin (Default Knight excepted) is a preserved likeness of a real figure from the Silvergreen Kingdom's past &mdash; a knight or princess who walked Greenglen generations before the current goblin trouble. Equipping one means the player's knight dons that figure's remembered armor and bearing, not their skill: appearance and spirit only transfer, never stats, which is why cosmetics stay purely visual by design. The Default Knight carries no such memory &mdash; it's simply the knight as they are right now, present-day and untitled.</p>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Skin</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Figure</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Remembered for</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sapphire Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Princess Marabel</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Youngest of the Silvergreen sisters; every new knight is granted her likeness first</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gold Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sir Corwin the Gilded</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">First to map the Old Silvergreen Road; guarded its caravans alone</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Emerald Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Dame Wren of the Greenwood</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Scout-knight who watched these woods long before goblins ever reached them</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Pink Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sir Bramwell Rosebright</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Cheered up whole villages with mock tournaments; beloved goofball hero</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Blood Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sir Tarric of the Red Vow</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Swore to answer any call for help, whatever the cost; never came back from the last one</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Black Knight</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Dame Ysolt Nightward</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Night-watch knight of the kingdom's last days; said to still walk when she's needed most</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Golden Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Princess Aurelia</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Founding matriarch of the Silvergreen line; first to open the treasury to knights in need</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Emerald Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Princess Sorrel</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Planted the first orchard of Greenglen Vale with her own hands</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Amethyst Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Princess Liora</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Scholar-princess who catalogued the kingdom's roads and waymark flags</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Ruby Princess</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Princess Isolde</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Led the last royal procession down the Old Silvergreen Road before the fall</td></tr>
+</table>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Collection UX</h3>
+<p style="margin:0 0 10px;">Two-column Skins menu: rarity-colored selectable list on the left, large character preview/status on the right. Selection previews a skin; a separate action equips it; the equipped skin applies on every level load.</p>
+
+<h2 id="sec-15" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">15. UI and Information Architecture</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">15.1 Main navigation</h3>
+<p style="margin:0 0 10px;">Start Game &middot; Map &middot; Quests &middot; Cases &middot; Skins &middot; Quit Game. Exact ordering may evolve, but Start Game remains the primary action and Map the campaign entry point.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">15.2 Gameplay HUD</h3>
+<p style="margin:0 0 10px;">Communicates current level context, hearts, combat score, coins, active Run Time, short transient messages, and stomp feedback. Stays readable over bright and dark backgrounds through pale text, dark outlines, spacing, and consistent anchoring.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">15.3 Menu-state priority</h3>
+<p style="margin:0 0 10px;">Only one major context is active at a time, in priority order: result, pause, campaign/meta submenu, main menu, gameplay HUD. Opening one hides incompatible contexts, clears stale gameplay when appropriate, and restores sensible keyboard focus.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">15.4 Map UX</h3>
+<p style="margin:0 0 10px;">One reused map shell; region selector as primary navigation; status banner in the header; visible solid required / dotted optional routes; selectable locked/unreleased nodes for inspection; a disabled, silent Play action for anything unplayable; a details panel for the selected location; remembered last selection; clean Back navigation.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">15.5 Accessibility and usability roadmap &mdash; TBD</h3>
+<p style="margin:0 0 10px;">Controller navigation/rebinding, separate music/SFX volume, reduced screen shake/flash, high-contrast and color-independent rarity indicators, scalable UI/text beyond viewport stretch, visible invulnerability feedback, subtitles/text equivalents for audio cues, pause-on-focus-loss, localization-safe layouts, assisted-mode options if playtests show repeated early abandonment. Rarity, map status, and health must never rely on color alone.</p>
+
+<h2 id="sec-16" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">16. Art Direction</h2>
+<p style="margin:0 0 10px;"><strong>Visual thesis:</strong> a bright platforming storybook framed by a richly illustrated medieval-fantasy interface. Gameplay prioritizes silhouette and spatial clarity; menus carry the ornate fantasy spectacle.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Existing visual language</h3>
+<p style="margin:0 0 10px;">Lush green valleys, forests, mountains, rivers, castles, ruins, caves; painterly backdrops with atmospheric depth; crisp floating stone-and-grass platforms; saturated gold coins and a simple red flag; expressive green goblins and detailed knight/princess art; dark wood panels framed by vines, roots, stone, dark metal; gold keys, chests, crystals, mushrooms, shields, leaf crests, warm lantern light; ornate 6:1 buttons with normal/hover/pressed/disabled states; Cinzel Bold titles, Cinzel SemiBold buttons/body; pale cream text with dark brown outlines.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Palette roles</h3>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Role</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Direction</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">World base</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Sky blue, fresh green, pale cloud white, cool mountain blue</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Structure</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gray stone, dark brown wood, blackened metal</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Primary accent</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Warm Greenglen gold</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Nature accent</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Leaf and emerald green</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Failure accent</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Restrained warm red-orange</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Rare / Epic / Legendary</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Item-specific bright / stronger dramatic / gold-led premium</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Interactive disabled</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Dimmed and desaturated, still legible</td></tr>
+</table>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Composition rules</h3>
+<p style="margin:0 0 10px;">Reserve a calm area behind UI text/controls. Use ornate framing at edges and menu anchors without covering the core interaction area. Preserve strong foreground/midground/background separation. Keep collectibles/hazards distinguishable from the backdrop at gameplay scale. Use gold for reward, completion, legendary rarity, and primary emphasis. Keep failure warm and readable without turning the tone grim. New menu backgrounds belong to the same illustrated world and repeat the leaf-crest identity.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Character/object scale</h3>
+<p style="margin:0 0 10px;">Knight art targets 52px in-game height; goblin art targets 40px; platform art scales to its collision rectangle. Source images may be high-resolution but must stay clean and readable reduced to gameplay scale.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Environment roadmap</h3>
+<p style="margin:0 0 10px;">Future regions should each define: biome and time/weather identity, foreground framing motifs, platform-material family, background depth layers, landmark/destination, enemy/collectible contrast plan, map-node/banner accent, and transition relationship to neighboring regions. A future true parallax setup needs foreground art with transparent sky areas &mdash; two opaque full-frame backgrounds must not be stacked and called depth.</p>
+
+<h2 id="sec-17" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">17. Audio Direction</h2>
+<p style="margin:0 0 10px;">Playful generated chiptune: energetic, slightly goofy, intentionally lighter than the richly painted menu art. Reinforces arcade pace and keeps defeat from feeling harsh.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Current event set</h3>
+<p style="margin:0 0 10px;">Looping music; jump; double jump; coin; stomp; hit; death; level clear; win; UI click. Coin/stomp/jump use slight pitch jitter to reduce repetition. Eight round-robin SFX voices allow overlap.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Mixing rules</h3>
+<p style="margin:0 0 10px;">Music and SFX use separate buses; Music bus sits at &minus;6dB; pause ducks music a further 14dB via the audio controller. Resume/restart/main-menu return always restore the normal music level. Run completion/failure stops gameplay music before the result presentation.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Future audio rules</h3>
+<p style="margin:0 0 10px;">New region music keeps melodic chiptune continuity while reflecting biome identity. Essential events need unique, short, non-fatiguing cues. Rarity-reveal audio scales in excitement without masking the reward name. No single effect should dominate after bus routing and simultaneous playback. Volume sliders and mute controls are a priority usability addition.</p>
+
+<h2 id="sec-18" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">18. Technical Design Constraints</h2>
+<p style="margin:0 0 10px;">Godot 4.6 standard build; pure GDScript, no C#; 960&times;540 internal viewport; 1280&times;720 default window; <code>canvas_items</code> stretch mode; no external plugins or runtime dependencies.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Ownership boundaries</h3>
+<p style="margin:0 0 10px;"><code>Game.gd</code> owns run state, active stable IDs, level lifecycle, transitions, score, coins, health, timing, outcomes. Explicit scene-tree controllers own audio, HUD, menus, quests, cases, skins, campaign map, campaign progress, and highscores. UI sends intent signals; it doesn't own competing gameplay state. <code>CampaignCatalog.gd</code> is the source of truth for region/location/trial/connection/scene-path/map metadata. <code>Progression.gd</code> is the sole deliberate autoload, since meta-progression must exist across scenes and menus. Player-to-game combat/movement events stay signal-based.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Design-facing invariants</h3>
+<p style="margin:0 0 10px;">Stable IDs are never renamed post-release without migration. Unreleased content never becomes playable just because it's visible. Level-changing, menu, restart, and run-ending paths invalidate delayed transitions. Rewards and saves are exactly-once under duplicate signals. New menus reuse the shared theme and ownership model. Core gameplay stays offline-capable.</p>
+
+<h2 id="sec-19" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">19. Persistence and Player Data</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">File</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Schema</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Owner</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Data</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><code>user://highscore.cfg</code></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">v3</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">HighscoreStore</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Best Final Score and Best Time</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><code>user://progression.cfg</code></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">v2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Progression</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Quests, keys, fragments, shards, cases, skins</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><code>user://campaign.cfg</code></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">v1</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">CampaignProgressStore</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Unlocks, completions, records, trials, milestones, map selection</td></tr>
+</table>
+<p style="margin:0 0 10px;">All domains use typed reads, normalization, schema metadata, backup-compatible writes, and <code>.bak</code> recovery via the shared save helper. Corrupt/malformed values fall back safely; older supported schema versions stay loadable; a load pass may reconcile newly released campaign content idempotently; meta-progression survives restarts and failures; tests never touch a real save directory; the historical project-name migration remains one-time and non-destructive.</p>
+<p style="margin:0 0 10px;"><strong>Online data (candidate only):</strong> a leaderboard would need a stable immutable run-result schema, unique run identity, versioning, validation, privacy decisions, server operations, and anti-cheat strategy &mdash; none implied by the current local system.</p>
+
+<h2 id="sec-20" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">20. Quality Bar and Validation</h2>
+<p style="margin:0 0 10px;">443 deterministic headless checks currently cover save-system, campaign-progress, and smoke/behavior suites, run in isolated child processes with a canary protecting real save files. Test counts should only be updated from actual final test output.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Feature definition of done</h3>
+<p style="margin:0 0 10px;">Intended player outcome documented; happy path, failure path, restart, menu exit, and duplicate-input behavior defined; keyboard focus and 960&times;540 layout verified; save compatibility considered where state persists; automated regression coverage exists; parser/import and normal headless startup pass; visual/audio feedback matches the existing style; public and technical docs stay in sync.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Level definition of done</h3>
+<p style="margin:0 0 10px;">Loads from the catalog and is reachable through the intended flow; all required jumps are consistently possible; spawn/goal/collision/camera/fall/retry behavior is correct; enemy patrols stay on valid surfaces; collectibles are reachable and purposeful; completable with and without optional risks; no-damage completion is possible where a trial needs it; art has no seams, opaque boxes, or unreadable overlaps; playtested for first-clear and repeat-clear experience.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Playtest questions</h3>
+<p style="margin:0 0 10px;">Where do first-timers misread stomp direction? Do players discover and use the double jump intentionally? Which coins read as route guidance vs. arbitrary placement? Where does damage feel unavoidable? Do players understand Combat Score vs. Final Score? Can they explain why failed runs skip records? Can they tell Locked from Coming Soon on the map? Do quests motivate another run or distract from platforming? Are case costs/odds understood before opening? Does randomized Location 6 feel fresh or unfair? Telemetry isn't implemented &mdash; playtest notes should avoid collecting unnecessary personal data.</p>
+
+<h2 id="sec-21" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">21. Production Roadmap</h2>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase A &mdash; Playable foundation <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Implemented</span></h3>
+<p style="margin:0 0 10px;">Six complete levels; movement, double jump, stomp combat, health, coins, goal flow; Classic Run outcomes, Final Score, active Run Time, local records; pause/retry/main/result/quest/case/skin menus; chiptune music/SFX and shared Greenglen UI; versioned, isolated saves; automated test harness.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase B &mdash; Campaign foundation <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Implemented</span></h3>
+<p style="margin:0 0 10px;">Stable five-region roadmap; Region 1 (Greenglen Vale) playable through the Map; locked and Coming Soon preview states; required/optional route semantics; per-location completion and records; Region 1 Flawless Finale gate; Regions 2&ndash;5 protected as unreleased content.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase C &mdash; Product polish <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--leaf-gold);color:var(--brown-deep);">Recommended next</span></h3>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Formal playtest pass and balance notes for all six Greenglen Vale levels</li>
+<li style="margin:0 0 4px;"><strong>Settings menu</strong> with music/SFX controls &mdash; new controller + dedicated <code>settings.cfg</code> save domain; see Section 25</li>
+<li style="margin:0 0 4px;"><strong>Controller support</strong> and input rebinding &mdash; InputMap bindings first, rebinding UI later; see Section 25</li>
+<li style="margin:0 0 4px;">Accessibility options for flash, shake, contrast, and text</li>
+<li style="margin:0 0 4px;">Version string and release-build conventions</li>
+<li style="margin:0 0 4px;">Refresh screenshots and public media after UI milestones</li>
+<li style="margin:0 0 4px;">Target platforms set &mdash; PC, Mac, Web; specced-down mobile is a possible post-1.0 candidate, TBD; minimum performance requirements still open</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase D &mdash; Region 2 pre-production <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--sky-blue-deep);color:var(--cream);">Planned, content TBD</span></h3>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Approve biome, story role, and visual palette &mdash; Mountains / Stonepeak Reach, done in Section 25; mechanical identity remains open</li>
+<li style="margin:0 0 4px;">Replace the 8 main + 2 bonus placeholders with named designs &mdash; done in Section 25</li>
+<li style="margin:0 0 4px;">Define core and mastery trials from actual mechanics &mdash; placeholder no-damage trial proposed; true mastery trial waits on mechanic decision</li>
+<li style="margin:0 0 4px;">Create level blockouts before final art</li>
+<li style="margin:0 0 4px;">Validate save reconciliation and the Region 1 gate message against the new region</li>
+<li style="margin:0 0 4px;">Release only when every required location is complete and tested</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase E &mdash; Additional modes <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--leaf-gold);color:var(--brown-deep);">Candidate</span></h3>
+<p style="margin:0 0 10px;">Prototype Endless Challenge as a separate entry point; evaluate template repetition, score model, health persistence, scaling cap, and quest compatibility; decide whether local survival records are sufficient; consider online leaderboard scope only after a fun, deterministic local mode exists.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">Phase F &mdash; Regions 3&ndash;5 <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--stone);color:var(--cream);">Planned framework, content TBD</span></h3>
+<p style="margin:0 0 10px;">Proceed one region at a time. The 10/12/14 placeholder counts describe roadmap capacity, not an obligation to create filler &mdash; revisit if playtesting or production capacity favors a smaller, stronger region.</p>
+
+<h2 id="sec-22" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">22. Key Risks and Mitigations</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Risk</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Mitigation</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Core and meta loops compete</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Keep rewards cosmetic; playtest menu-to-game return rate</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Art-style drift</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Reuse palette, motifs, type, outlines, a shared art brief</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Random finale feels unfair</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Constrain spawns, preserve safe routes, test many seeded layouts</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Campaign scope grows too large</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Gate production region by region; prioritize distinctive mechanics over count</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Placeholder names become accidental canon</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Require a naming pass before any region ships (Section 25 covers Regions 1&ndash;2)</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Record rules confuse players</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Explain policy in results; keep labels consistent</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Economy fatigue</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Monitor collection pacing; keep shards transparent; avoid bloated pools</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Save regression</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Maintain schemas, backups, normalization, isolated tests, stable IDs</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Endless concept conflicts with campaign</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Prototype as a distinct mode; record a formal product decision</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Accessibility debt</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Prioritize settings and redundant non-color communication before content scale-up</td></tr>
+</table>
+
+<h2 id="sec-23" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">23. Open Design Decisions</h2>
+<ol style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">What is the protagonist's canonical identity and goal?</li>
+<li style="margin:0 0 4px;"><s>Is Region 1's generic naming temporary for all six locations?</s> <span style="display:inline-block;padding:2px 9px;font-size:12px;font-weight:700;background:var(--forest);color:var(--cream);">Resolved 2026-07-20</span> &mdash; yes; see Section 25</li>
+<li style="margin:0 0 4px;">What are the final themes and mechanical identities of Regions 2&ndash;5? <span style="font-size:12px;color:var(--stone-dark);">(Region 2 theme/name set; mechanic still open)</span></li>
+<li style="margin:0 0 4px;">Should Region 2 keep exactly 8 main and 2 bonus locations after blockout?</li>
+<li style="margin:0 0 4px;">Should Classic Run always remain a six-level gauntlet as new regions ship?</li>
+<li style="margin:0 0 4px;">Should campaign runs have region-specific results or reuse the generic Run Complete screen indefinitely?</li>
+<li style="margin:0 0 4px;">Should an unlocked location launch the remaining region route, or offer a true single-level replay mode?</li>
+<li style="margin:0 0 4px;">Should Combat Score remain a small modifier next to coin-heavy Final Score?</li>
+<li style="margin:0 0 4px;">Do campaign location records need a time component?</li>
+<li style="margin:0 0 4px;">Should coins remain score-only, or become a separate non-premium currency?</li>
+<li style="margin:0 0 4px;">What accessibility options are required for the first public release target?</li>
+<li style="margin:0 0 4px;">Which controllers and platforms are officially supported?</li>
+<li style="margin:0 0 4px;">Is Endless Challenge approved as a separate mode, rejected, or deferred?</li>
+<li style="margin:0 0 4px;">If Endless is approved, does it use fixed seeds for competitive comparability?</li>
+<li style="margin:0 0 4px;">Is any online leaderboard worth the moderation, privacy, hosting, and anti-cheat obligations?</li>
+<li style="margin:0 0 4px;">What is the release and versioning strategy for saves and run results?</li>
+</ol>
+
+<h2 id="sec-24" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">24. Content Brief Templates</h2>
+<p style="margin:0 0 10px;">Standing templates for future region/level/feature work &mdash; filled examples for Regions 1&ndash;2 are in Section 25.</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">24.1 Region brief</h3>
+<p style="background:var(--parchment-dark);padding:10px 14px;margin:0 0 14px;font-size:13.5px;white-space:pre-wrap;">Region ID: / Working title: / Release state: / Narrative purpose: / Player-facing fantasy: / Biome and landmark: / Primary palette: / Signature mechanic(s): / Main location count: / Bonus location count: / Required core trial(s): / Optional mastery trial(s): / New enemy/object needs: / Music direction: / Map presentation: / Difficulty entry/exit targets: / Dependencies and risks:</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">24.2 Level brief</h3>
+<p style="background:var(--parchment-dark);padding:10px 14px;margin:0 0 14px;font-size:13.5px;white-space:pre-wrap;">Stable level ID: / Display name: / Region / route type: / Learning or mastery goal: / Start-state promise: / Critical path beats: / Optional risk/reward: / Enemy plan: / Coin plan: / Camera / width: / Spawn and checkpoint rules: / Goal presentation: / No-damage feasibility: / Art and audio landmarks: / Playtest questions: / Completion criteria:</p>
+<h3 style="font-size:17px;font-weight:700;color:var(--brown-ink);margin:16px 0 6px;">24.3 Feature brief</h3>
+<p style="background:var(--parchment-dark);padding:10px 14px;margin:0 0 14px;font-size:13.5px;white-space:pre-wrap;">Player problem: / Desired player outcome: / In scope: / Out of scope: / Entry and exit points: / Rules and edge cases: / UI / focus states: / Audio / visual feedback: / Persistence impact: / Compatibility impact: / Test plan: / Success criteria: / Open decisions:</p>
+
+<div style="break-after:page;"></div>
+<h2 id="sec-25" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:8px 0 14px;">25. Region 1 &amp; Region 2 Naming and Content Briefs <span style="font-size:14px;font-weight:400;color:var(--stone-dark);">&mdash; 2026-07-20 addendum</span></h2>
+<p style="margin:0 0 10px;">&ldquo;Greenglen&rdquo; is the home valley itself (Region 1) rather than the whole world &mdash; Regions 2&ndash;5 are realms beyond it. World naming below maps the five approved biome directions onto the roadmap's difficulty order (valley &rarr; climb &rarr; underground &rarr; lowland &rarr; frozen summit). Only Regions 1&ndash;2 are treated as adopted working names; 3&ndash;5 are early placeholders flagged for a future naming pass.</p>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Region</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Biome</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Working title</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Status</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">1</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Forest</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><strong>Greenglen Vale</strong></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Adopted</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Mountains</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);"><strong>Stonepeak Reach</strong></td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Adopted</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">3</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Caves</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">The Hollowdeep</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Placeholder</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">4</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Swamp</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">The Murkfen</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Placeholder</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Ice</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Rimecrown Peaks</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Placeholder</td></tr>
+</table>
+
+<h3 style="font-size:22px;font-weight:700;color:var(--forest-deep);margin:24px 0 8px;">25.1 Region 1 brief &mdash; Greenglen Vale</h3>
+<p style="background:var(--parchment-dark);padding:10px 14px;margin:0 0 14px;font-size:13.5px;">Region ID: <code>region_1</code> (existing, unchanged) &middot; Release state: Implemented / released &middot; Narrative purpose: home valley, the knight's first stand against Greenglen's goblin trouble &middot; Biome/landmark: green valley, floating grass-and-stone platforms, leaf-crest banner at the finale &middot; Palette: sky blue / fresh green / cloud white (existing) &middot; Signature mechanic: none new &mdash; establishes the baseline &middot; Main/bonus: 6 / 0 &middot; Core trial: Flawless Finale (no damage on Greenglen Crest) &middot; Risk: renaming is display-only, stable IDs and save data are untouched.</p>
+<h4 style="font-size:15px;font-weight:700;color:var(--brown-ink);margin:14px 0 6px;">Levels</h4>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;"><strong>Greenhorn Glade</strong> &mdash; teach movement/coins/stomp/goal &middot; 960px &middot; 2 goblins &middot; 5 coins</li>
+<li style="margin:0 0 4px;"><strong>Gobbler's Hollow</strong> &mdash; more enemy interaction &middot; 960px &middot; 3 goblins &middot; 5 coins</li>
+<li style="margin:0 0 4px;"><strong>Snickerroot Thicket</strong> &mdash; density and route pressure &middot; 960px &middot; 4 goblins &middot; 5 coins</li>
+<li style="margin:0 0 4px;"><strong>The Longleaf Road</strong> &mdash; first scrolling, longer route &middot; 1920px &middot; 5 goblins &middot; 8 coins</li>
+<li style="margin:0 0 4px;"><strong>Tanglewood Reach</strong> &mdash; highest authored density, longest route &middot; 2560px &middot; 8 goblins &middot; 10 coins</li>
+<li style="margin:0 0 4px;"><strong>Greenglen Crest</strong> &mdash; replayable finale, Flawless Finale trial &middot; 2200px &middot; 8 randomized goblins &middot; 10 randomized coins</li>
+</ul>
+
+<h3 style="font-size:22px;font-weight:700;color:var(--forest-deep);margin:24px 0 8px;">25.2 Region 2 brief &mdash; Stonepeak Reach</h3>
+<p style="background:var(--parchment-dark);padding:10px 14px;margin:0 0 14px;font-size:13.5px;">Region ID: <code>region_2</code> (proposed, TBD in catalog) &middot; Release state: Planned / unreleased &middot; Narrative purpose: goblins have dug into the mountains beyond the vale, forcing the knight to climb &middot; Player-facing fantasy: leaving the vale's safety for thinner air &mdash; less forgiving ground, bigger view, bigger loot &middot; Biome/landmark: grey crags, pine ledges, rope bridges, Stonepeak Summit banner &middot; Signature element: verticality &mdash; routes climb more than they scroll, using only the existing double jump, no new mechanic &middot; Main/bonus: 8 / 2 &middot; Core trial candidate: Flawless Ascent (no damage on the summit) &mdash; reuses the Region 1 trial pattern, no new system needed &middot; Open: true mechanical identity and mastery trial (Open Decision #3).</p>
+<h4 style="font-size:15px;font-weight:700;color:var(--brown-ink);margin:14px 0 6px;">Main locations (proposed)</h4>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;"><strong>Foothill Scramble</strong> &mdash; intro to climbing &middot; 1200px &middot; 4 goblins &middot; 6 coins</li>
+<li style="margin:0 0 4px;"><strong>Rockjaw Ridge</strong> &mdash; narrow ledges, timing-focused stomps &middot; 1400px &middot; 5 goblins &middot; 6 coins</li>
+<li style="margin:0 0 4px;"><strong>Cragspite Climb</strong> &mdash; branching vertical routes &middot; ~1600px tall &middot; 6 goblins &middot; 7 coins</li>
+<li style="margin:0 0 4px;"><strong>The Boulder Run</strong> &mdash; first climb + scroll mix &middot; 2000px &middot; 6 goblins &middot; 8 coins</li>
+<li style="margin:0 0 4px;"><strong>Windwhistle Pass</strong> &mdash; long exposed ledge traverse &middot; 2400px &middot; 7 goblins &middot; 8 coins</li>
+<li style="margin:0 0 4px;"><strong>Goblin's Perch</strong> &mdash; nesting goblins, stomp chains &middot; ~2200px tall &middot; 8 goblins &middot; 9 coins</li>
+<li style="margin:0 0 4px;"><strong>Stonefang Heights</strong> &mdash; hardest density before the summit &middot; 2600px &middot; 9 goblins &middot; 10 coins</li>
+<li style="margin:0 0 4px;"><strong>Stonepeak Summit</strong> &mdash; finale, randomized like Greenglen Crest &middot; ~2400px &middot; 9 randomized goblins &middot; 10 randomized coins &middot; Flawless Ascent trial</li>
+</ul>
+<h4 style="font-size:15px;font-weight:700;color:var(--brown-ink);margin:14px 0 6px;">Bonus locations (optional, dotted route)</h4>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;"><strong>Glinthollow Nook</strong> &mdash; hidden coin-heavy side cave, no required combat</li>
+<li style="margin:0 0 4px;"><strong>The Miser's Ledge</strong> &mdash; precision-jump optional shortcut, high coin density and risk</li>
+</ul>
+
+<h3 style="font-size:22px;font-weight:700;color:var(--forest-deep);margin:24px 0 8px;">25.3 Regions 3&ndash;5 narrative previews (proposed working titles)</h3>
+<p style="margin:0 0 10px;">Content and stat tables remain Phase F work; these are narrative-only previews to carry the canon established in Section 4, one to two sentences each per the current scope decision.</p>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;"><strong>Region 3 &mdash; Underglow Hollow (Caves, proposed):</strong> Chased below ground, the goblins turn tunnel-diggers &mdash; but the deeper the vale's hero goes, the older and stranger the carvings on the walls become.</li>
+<li style="margin:0 0 4px;"><strong>Region 4 &mdash; Mudmuck Fen (Swamp, proposed):</strong> The goblins finally have room to spread out in the fen's tangled bogs, and something in the deep mud has started spreading out too.</li>
+<li style="margin:0 0 4px;"><strong>Region 5 &mdash; Glasswind Tundra (Ice, proposed):</strong> At the edge of the map the goblins finally stop running &mdash; because whatever they were running from, the ice remembers it.</li>
+</ul>
+
+<h3 style="font-size:22px;font-weight:700;color:var(--forest-deep);margin:24px 0 8px;">25.4 Phase C implementation notes</h3>
+<h4 style="font-size:15px;font-weight:700;color:var(--brown-ink);margin:14px 0 6px;">Settings menu (music / SFX volume)</h4>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">New <code>SettingsMenuController</code> alongside the existing menu controllers, matching the established ownership model</li>
+<li style="margin:0 0 4px;">Add &ldquo;Settings&rdquo; to the main nav (between Skins and Quit) and reachable from Pause</li>
+<li style="margin:0 0 4px;">Two sliders write to the existing Music/SFX buses; pause-duck (&minus;14dB) layers on top of the chosen baseline rather than overriding it</li>
+<li style="margin:0 0 4px;">Persist as a new <code>user://settings.cfg</code> (v1) using the existing typed-read/normalization/backup pattern, kept separate from <code>progression.cfg</code></li>
+<li style="margin:0 0 4px;">Skin with existing GreenglenButton / GreenglenHeading / SubmenuShell &mdash; no new visual language needed</li>
+</ul>
+<h4 style="font-size:15px;font-weight:700;color:var(--brown-ink);margin:14px 0 6px;">Controller support</h4>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Add controller bindings alongside keyboard in the project InputMap (D-pad/left-stick + face buttons)</li>
+<li style="margin:0 0 4px;">Menu navigation already runs on Godot's focus system &mdash; verify focus-neighbor wiring per menu rather than building new nav logic</li>
+<li style="margin:0 0 4px;">Ship raw bindings first; leave full rebinding UI and prompt-icon swapping for a later pass (already tracked as TBD)</li>
+</ul>
+
+<h2 id="sec-26" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">26. Decision Log</h2>
+<table style="width:100%;border-collapse:collapse;margin:8px 0 18px;font-size:13.5px;">
+<tr><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);width:14%;">Date</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Decision</th><th style="text-align:left;background:var(--parchment-dark);color:var(--brown-deep);padding:6px 9px;border:1px solid var(--stone);">Status / rationale</th></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-19</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Treat the current six-level completion flow as the shipped Classic Run</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Matches the running game, docs, results, quests, record policy</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-19</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Treat the five-region catalog as the active campaign roadmap</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Region 1 released; Regions 2&ndash;5 stay visible, safe previews</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-19</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Treat the endless survival proposal as a separate mode candidate</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Avoids silently replacing campaign completion semantics</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-19</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Keep current progression cosmetic and offline-first</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Preserves fair platforming, avoids monetization/network dependencies</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-20</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Adopt Greenglen Vale (Region 1) and Stonepeak Reach (Region 2) as working titles, plus Location 1&ndash;6 and Region 2 main/bonus location names</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Resolves Open Decision #2; unblocks the Phase D content pass (Section 25)</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-24</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Target platforms: PC, Mac, Web; specced-down mobile is a possible post-1.0 candidate</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Resolves the platform half of the Phase C target-platforms item; minimum performance requirements still open</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-24</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Adopt narrative canon: farmer's-kid protagonist, comic pie-theft inciting incident, flags as Silvergreen Kingdom waymarkers, and an escalating-threat region journey (goblins fleeing something older, one biome at a time)</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Resolves most of the Section 4 narrative-status TBD; princess-skin canon, named landmarks/allies/antagonists, and the ending stay open; Regions 3&ndash;5 get proposed working titles and one-line previews in Section 25.3</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-24</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Name remaining canon: Grubnash the Pie King (antagonist), the Silvergreen Princesses (village rulers, treasury funds the case/key shop), Sir Alderic (sideline mentor), the Old Silvergreen Road (cross-region landmark); ending left open beyond Region 5</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Closes the remaining Section 4 open items; further regions beyond Region 5 and the ending stay TBD by design</td></tr>
+<tr><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">2026-07-24</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Give each existing skin (Default Knight excepted) an in-fiction identity: a named Silvergreen-era knight or princess whose likeness the skin preserves, appearance/spirit only (no stat transfer) &mdash; see Section 14</td><td style="padding:6px 9px;border:1px solid var(--parchment-dark);">Adds canon meaning to existing cosmetic names without renaming or restatting any implemented skin</td></tr>
+</table>
+
+<h2 id="sec-27" style="font-size:32px;font-weight:700;color:var(--brown-deep);border-bottom:3px solid var(--leaf-gold);padding-bottom:6px;margin:36px 0 14px;">27. Revision Checklist</h2>
+<p style="margin:0 0 6px;">When expanding this document:</p>
+<ul style="margin:0 0 12px;padding-left:22px;">
+<li style="margin:0 0 4px;">Mark every new item Implemented, Planned, Candidate, or TBD</li>
+<li style="margin:0 0 4px;">Distinguish player-facing rules from technical implementation notes</li>
+<li style="margin:0 0 4px;">Update tables and formulas when balance values change</li>
+<li style="margin:0 0 4px;">Record decisions that resolve an open question</li>
+<li style="margin:0 0 4px;">Keep placeholder content visibly labeled</li>
+<li style="margin:0 0 4px;">Synchronize implemented behavior with <code>README.md</code> and technical constraints with <code>AGENTS.md</code>/<code>CLAUDE.md</code></li>
+<li style="margin:0 0 4px;">Verify test totals from actual output rather than copying stale documentation</li>
+<li style="margin:0 0 4px;">Avoid describing prototypes or future online features as shipped</li>
+</ul>
+
+</div>
+</x-import>
+
+</x-dc>
+</body>
+</html>
