@@ -28,7 +28,6 @@ Bei Widersprüchen gilt:
 2. Das primäre GDD definiert Produktabsicht, Canon und freigegebene Designrichtung.
 3. `AGENTS.md` und `CLAUDE.md` dokumentieren technische Constraints und den aktuellen Checkout.
 4. `README.md` fasst öffentlich sichtbare, bereits verfügbare Features zusammen.
-5. `Plan_todo.txt` bleibt Exploration und ist keine freigegebene Spezifikation.
 
 Aus dem importierten GDD sind insbesondere der neue Narrative-Canon, `Greenglen Vale` und
 `Stonepeak Reach` als angenommene Arbeitsnamen sowie die benannten Region-1- und vorgeschlagenen
