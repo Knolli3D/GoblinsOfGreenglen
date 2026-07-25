@@ -114,6 +114,46 @@
       "asset_id": "2a425e27-a35d-4bbe-a438-25f028d5aba0",
       "sha12": "042aaa5a008a",
       "label": "Ruby Princess Jump Animation"
+    },
+    {
+      "asset_id": "86a666f1-a55d-4555-beb6-e9a77c08b2e3",
+      "sha12": "dc0a2421b1e4",
+      "label": "Sapphire Princess Walk Animation"
+    },
+    {
+      "asset_id": "71eec0dc-e1fe-4e90-8a56-af504a4b031b",
+      "sha12": "7ad4c9690bbd",
+      "label": "Sapphire Princess Jump Animation"
+    },
+    {
+      "asset_id": "d234d6b8-9abf-40ef-96cf-336e26bea5cd",
+      "sha12": "399e4d4cc191",
+      "label": "Golden Princess Walk Animation"
+    },
+    {
+      "asset_id": "31f521cd-8d00-47e6-b221-a0f22c38b8c9",
+      "sha12": "40686169506b",
+      "label": "Golden Princess Jump Animation"
+    },
+    {
+      "asset_id": "1ebd8e35-a71f-414e-bcb7-c7167cd6cc81",
+      "sha12": "952d91b46270",
+      "label": "Emerald Princess Walk Animation"
+    },
+    {
+      "asset_id": "c62e03cf-472d-4c3e-84ec-b8f6dd0978ff",
+      "sha12": "12acfe5ad7d9",
+      "label": "Emerald Princess Jump Animation"
+    },
+    {
+      "asset_id": "3e0a7df6-2029-472a-be90-0c6275dde35e",
+      "sha12": "f19cb602a941",
+      "label": "Amethyst Princess Walk Animation"
+    },
+    {
+      "asset_id": "d90857f7-da78-4ec2-8de4-136afb95e75c",
+      "sha12": "3d7d10992dcf",
+      "label": "Amethyst Princess Jump Animation"
     }
   ]
 }

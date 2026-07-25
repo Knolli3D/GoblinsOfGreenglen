@@ -114,6 +114,8 @@ assets/
   animations/princess_run_sheet.png # SpriteCook-Rohdownload mit grauem Matte
   animations/princess_run_sheet_transparent.png # Bereinigtes Sapphire-Princess-Run-Sheet (8×640×640)
   animations/princess_run_frames.tres # Godot-SpriteFrames-Ressource, 8 FPS, loopend
+  animations/sprite_princess_{blue,gold,green,purple,red}_{walk,jump}_spritesheet.png
+                       # SpriteCook-Princessenanimationen: je 8 Frames, 320×640 pro Frame
   sprite_goblin.png   # Goblin-Sprite (923×1318, transparent)
   sprite_platform.png # Plattform-Textur (4128×496)
   sprite_knight_*.png   # Skin-Artwork (gold, emerald, pink, blood, black)
@@ -442,9 +444,11 @@ Sprites werden in `_ready()` der jeweiligen Scripts skaliert (kein White-Keying 
   wird bei Jump/Double-Jump neu gestartet und bei der Landung wieder durch das Standbild ersetzt.
   Ausgerüstete alternative Skins bleiben bewusst beim bisherigen Standbild, da bislang nur der
   Default-Ritter als SpriteCook-Animationsquelle vorliegt.
-- Sapphire-Princess-Run: 8-Frame-`AnimatedSprite2D` mit Zielhöhe 52px → `scale = 52 / 640`;
-  loopt bei horizontaler Bodenbewegung und fällt bei Stillstand oder in der Luft auf das statische
-  Skin-Artwork zurück. Andere Princess-Farbvarianten bleiben statisch.
+- Alle fünf Princess-Skins (Sapphire/Blue, Golden, Emerald, Amethyst, Ruby) besitzen je eigene
+  SpriteCook-8-Frame-`AnimatedSprite2D`-Sheets für Walk (8 FPS, loopend) und Jump (8 FPS,
+  nicht loopend), mit Zielhöhe 52px → `scale = 52 / 640`. Sie werden über `Player.apply_skin()`
+  anhand der IDs `princess_blue`, `princess_gold`, `princess_green`, `princess_purple` und
+  `princess_red` ausgewählt; bei Stillstand bzw. Landung erscheint wieder das Skin-Standbild.
 - Goblin: Ziel-Höhe 40px → `scale = 40 / 1318`
 - Platform: Breite/Höhe aus CollisionShape2D-Größe berechnet
 
