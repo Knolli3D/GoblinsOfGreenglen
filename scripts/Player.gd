@@ -105,6 +105,30 @@ func _ready() -> void:
 		blood_knight_run_sprite.scale = Vector2.ONE * (52.0 / float(blood_knight_run_texture.get_height()))
 	blood_knight_run_sprite.position = Vector2(0, -2)
 	blood_knight_run_sprite.visible = false
+	var emerald_knight_jump_sprite := $EmeraldKnightJumpSprite as AnimatedSprite2D
+	var emerald_knight_jump_texture := emerald_knight_jump_sprite.sprite_frames.get_frame_texture(&"jump", 0)
+	if emerald_knight_jump_texture:
+		emerald_knight_jump_sprite.scale = Vector2.ONE * (52.0 / float(emerald_knight_jump_texture.get_height()))
+	emerald_knight_jump_sprite.position = Vector2(0, -2)
+	emerald_knight_jump_sprite.visible = false
+	var emerald_knight_run_sprite := $EmeraldKnightRunSprite as AnimatedSprite2D
+	var emerald_knight_run_texture := emerald_knight_run_sprite.sprite_frames.get_frame_texture(&"run", 0)
+	if emerald_knight_run_texture:
+		emerald_knight_run_sprite.scale = Vector2.ONE * (52.0 / float(emerald_knight_run_texture.get_height()))
+	emerald_knight_run_sprite.position = Vector2(0, -2)
+	emerald_knight_run_sprite.visible = false
+	var princess_red_jump_sprite := $PrincessRedJumpSprite as AnimatedSprite2D
+	var princess_red_jump_texture := princess_red_jump_sprite.sprite_frames.get_frame_texture(&"jump", 0)
+	if princess_red_jump_texture:
+		princess_red_jump_sprite.scale = Vector2.ONE * (52.0 / float(princess_red_jump_texture.get_height()))
+	princess_red_jump_sprite.position = Vector2(0, -2)
+	princess_red_jump_sprite.visible = false
+	var princess_red_run_sprite := $PrincessRedRunSprite as AnimatedSprite2D
+	var princess_red_run_texture := princess_red_run_sprite.sprite_frames.get_frame_texture(&"run", 0)
+	if princess_red_run_texture:
+		princess_red_run_sprite.scale = Vector2.ONE * (52.0 / float(princess_red_run_texture.get_height()))
+	princess_red_run_sprite.position = Vector2(0, -2)
+	princess_red_run_sprite.visible = false
 	active_run_sprite = knight_run_sprite
 	set_process(false)
 
@@ -154,8 +178,8 @@ func _set_damage_blink_alpha(alpha: float) -> void:
 func apply_skin(skin: Dictionary) -> void:
 	var sprite := $Sprite2D
 	var skin_id := String(skin.get("id", ""))
-	jump_animation_enabled = skin_id == "" or skin_id == "princess_blue" or skin_id == "gold_knight" or skin_id == "pink_knight" or skin_id == "black_knight" or skin_id == "blood_knight"
-	run_animation_enabled = skin_id == "" or skin_id == "princess_blue" or skin_id == "gold_knight" or skin_id == "pink_knight" or skin_id == "black_knight" or skin_id == "blood_knight"
+	jump_animation_enabled = skin_id == "" or skin_id == "princess_blue" or skin_id == "gold_knight" or skin_id == "pink_knight" or skin_id == "black_knight" or skin_id == "blood_knight" or skin_id == "emerald_knight" or skin_id == "princess_red"
+	run_animation_enabled = skin_id == "" or skin_id == "princess_blue" or skin_id == "gold_knight" or skin_id == "pink_knight" or skin_id == "black_knight" or skin_id == "blood_knight" or skin_id == "emerald_knight" or skin_id == "princess_red"
 	match skin_id:
 		"":
 			active_jump_sprite = $JumpSprite as AnimatedSprite2D
@@ -175,6 +199,12 @@ func apply_skin(skin: Dictionary) -> void:
 		"blood_knight":
 			active_jump_sprite = $BloodKnightJumpSprite as AnimatedSprite2D
 			active_run_sprite = $BloodKnightRunSprite as AnimatedSprite2D
+		"emerald_knight":
+			active_jump_sprite = $EmeraldKnightJumpSprite as AnimatedSprite2D
+			active_run_sprite = $EmeraldKnightRunSprite as AnimatedSprite2D
+		"princess_red":
+			active_jump_sprite = $PrincessRedJumpSprite as AnimatedSprite2D
+			active_run_sprite = $PrincessRedRunSprite as AnimatedSprite2D
 		_:
 			active_jump_sprite = $JumpSprite as AnimatedSprite2D
 			active_run_sprite = $KnightRunSprite as AnimatedSprite2D
@@ -256,12 +286,16 @@ func _play_jump_animation() -> void:
 	($PinkKnightRunSprite as AnimatedSprite2D).visible = false
 	($BlackKnightRunSprite as AnimatedSprite2D).visible = false
 	($BloodKnightRunSprite as AnimatedSprite2D).visible = false
+	($EmeraldKnightRunSprite as AnimatedSprite2D).visible = false
+	($PrincessRedRunSprite as AnimatedSprite2D).visible = false
 	($JumpSprite as AnimatedSprite2D).visible = false
 	($PrincessJumpSprite as AnimatedSprite2D).visible = false
 	($GoldKnightJumpSprite as AnimatedSprite2D).visible = false
 	($PinkKnightJumpSprite as AnimatedSprite2D).visible = false
 	($BlackKnightJumpSprite as AnimatedSprite2D).visible = false
 	($BloodKnightJumpSprite as AnimatedSprite2D).visible = false
+	($EmeraldKnightJumpSprite as AnimatedSprite2D).visible = false
+	($PrincessRedJumpSprite as AnimatedSprite2D).visible = false
 	jump_sprite.visible = true
 	jump_sprite.stop()
 	jump_sprite.frame = 0
@@ -286,6 +320,12 @@ func _show_static_sprite() -> void:
 	var blood_knight_jump_sprite := $BloodKnightJumpSprite as AnimatedSprite2D
 	blood_knight_jump_sprite.stop()
 	blood_knight_jump_sprite.visible = false
+	var emerald_knight_jump_sprite := $EmeraldKnightJumpSprite as AnimatedSprite2D
+	emerald_knight_jump_sprite.stop()
+	emerald_knight_jump_sprite.visible = false
+	var princess_red_jump_sprite := $PrincessRedJumpSprite as AnimatedSprite2D
+	princess_red_jump_sprite.stop()
+	princess_red_jump_sprite.visible = false
 	var run_sprite := $RunSprite as AnimatedSprite2D
 	run_sprite.stop()
 	run_sprite.visible = false
@@ -304,6 +344,12 @@ func _show_static_sprite() -> void:
 	var blood_knight_run_sprite := $BloodKnightRunSprite as AnimatedSprite2D
 	blood_knight_run_sprite.stop()
 	blood_knight_run_sprite.visible = false
+	var emerald_knight_run_sprite := $EmeraldKnightRunSprite as AnimatedSprite2D
+	emerald_knight_run_sprite.stop()
+	emerald_knight_run_sprite.visible = false
+	var princess_red_run_sprite := $PrincessRedRunSprite as AnimatedSprite2D
+	princess_red_run_sprite.stop()
+	princess_red_run_sprite.visible = false
 	($Sprite2D as Sprite2D).visible = true
 
 func _update_run_animation(direction: float) -> void:

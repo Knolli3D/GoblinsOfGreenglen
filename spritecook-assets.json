@@ -94,6 +94,26 @@
       "asset_id": "50c4e050-20af-45eb-b5d9-ba3b8756f3c0",
       "sha12": "67c2b9951f1b",
       "label": "Goblins of Greenglen - Blood Knight Jump Animation"
+    },
+    {
+      "asset_id": "139be31f-ac0d-4e07-8f2f-8184a7336498",
+      "sha12": "80f26162d434",
+      "label": "Emerald Knight Walk Animation"
+    },
+    {
+      "asset_id": "03ce6ab4-a5b1-4153-b176-8d342d4a1559",
+      "sha12": "37a0d60a6d8f",
+      "label": "Emerald Knight Jump Animation"
+    },
+    {
+      "asset_id": "e4cef6b0-401b-4818-8d8b-d497892de97e",
+      "sha12": "193a8fff3947",
+      "label": "Ruby Princess Walk Animation"
+    },
+    {
+      "asset_id": "2a425e27-a35d-4bbe-a438-25f028d5aba0",
+      "sha12": "042aaa5a008a",
+      "label": "Ruby Princess Jump Animation"
     }
   ]
 }
