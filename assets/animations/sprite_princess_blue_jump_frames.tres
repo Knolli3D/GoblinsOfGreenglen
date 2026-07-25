@@ -1,6 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=10 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cju7jipvad7ti"]
 
-[ext_resource type="Texture2D" path="res://assets/animations/sprite_princess_blue_jump_sheet_transparent.png" id="1_princess_jump_sheet"]
+[ext_resource type="Texture2D" uid="uid://da2lowix15qyd" path="res://assets/animations/sprite_princess_blue_jump_sheet_transparent.png" id="1_princess_jump_sheet"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_princess_jump_0"]
 atlas = ExtResource("1_princess_jump_sheet")

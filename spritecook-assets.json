@@ -19,6 +19,16 @@
       "asset_id": "240c6d8f-d2cc-4c67-84d0-dcd30e0c5e46",
       "sha12": "8bf9f0aa8fe6",
       "label": "Goblins of Greenglen - Sapphire Princess Run Animation (transparent cleanup)"
+    },
+    {
+      "asset_id": "5b7aa8b6-9444-4783-9bb6-5ee2880230a2",
+      "sha12": "29fd40f82e17",
+      "label": "Goblins of Greenglen - Goblin Source"
+    },
+    {
+      "asset_id": "678c653f-2fe6-4b83-8f6a-941fac25ef67",
+      "sha12": "8bbbe29750d4",
+      "label": "Goblins of Greenglen - Goblin Walk Animation"
     }
   ]
 }

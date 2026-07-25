@@ -4,3 +4,7 @@ export_presets.cfg
 .DS_Store
 *.dmg
 *.exe
+.fennara/
+addons/fennara/
+*.fennara.bak
+SpriteCook_Godot_Export.zip

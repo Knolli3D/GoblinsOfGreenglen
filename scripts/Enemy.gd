@@ -13,10 +13,9 @@ func _ready() -> void:
 	origin_x = position.x
 	previous_global_position = global_position
 	add_to_group("enemies")
-	var sprite := $Sprite2D
-	if sprite and sprite.texture:
-		sprite.scale = Vector2.ONE * (40.0 / float(sprite.texture.get_height()))
-		sprite.position = Vector2(0, -2)
+	var sprite: AnimatedSprite2D = $Sprite2D as AnimatedSprite2D
+	if sprite != null:
+		sprite.play(&"walk")
 
 func is_enemy() -> bool:
 	return not dead
