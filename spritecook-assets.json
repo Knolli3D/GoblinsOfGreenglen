@@ -64,6 +64,36 @@
       "asset_id": "dbd17e5c-afdd-40e9-8f1d-7e00e0764172",
       "sha12": "934f27bcd498",
       "label": "Goblins of Greenglen - Pink Knight Jump Animation"
+    },
+    {
+      "asset_id": "05f5ce40-a9a3-41ee-8c64-70a7d897910c",
+      "sha12": "94b17ae5de32",
+      "label": "Goblins of Greenglen - Black Knight Animation Source"
+    },
+    {
+      "asset_id": "25292823-0d26-4feb-bae1-c59b6a1e836d",
+      "sha12": "169540442652",
+      "label": "Goblins of Greenglen - Black Knight Walk Animation"
+    },
+    {
+      "asset_id": "c3c5478b-1dee-4de6-ac48-49bb161a217a",
+      "sha12": "526a4cb394e1",
+      "label": "Goblins of Greenglen - Black Knight Jump Animation"
+    },
+    {
+      "asset_id": "a3795c3d-02e1-4f72-b294-1721795f7798",
+      "sha12": "0fdfa3226cb8",
+      "label": "Goblins of Greenglen - Blood Knight Animation Source"
+    },
+    {
+      "asset_id": "7828078d-d6e1-4879-88b8-f6b01b4c0da6",
+      "sha12": "c30a48739b1f",
+      "label": "Goblins of Greenglen - Blood Knight Walk Animation"
+    },
+    {
+      "asset_id": "50c4e050-20af-45eb-b5d9-ba3b8756f3c0",
+      "sha12": "67c2b9951f1b",
+      "label": "Goblins of Greenglen - Blood Knight Jump Animation"
     }
   ]
 }
