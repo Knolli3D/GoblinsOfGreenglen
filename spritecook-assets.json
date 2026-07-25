@@ -29,6 +29,41 @@
       "asset_id": "678c653f-2fe6-4b83-8f6a-941fac25ef67",
       "sha12": "8bbbe29750d4",
       "label": "Goblins of Greenglen - Goblin Walk Animation"
+    },
+    {
+      "asset_id": "15aef43a-e63b-4db3-8fa6-8c17197ba2b2",
+      "sha12": "18e7265ba48e",
+      "label": "Goblins of Greenglen - Gold Knight Source"
+    },
+    {
+      "asset_id": "194d4a37-fa5b-425c-b700-314f69c68cfd",
+      "sha12": "b24a1623ef61",
+      "label": "Goblins of Greenglen - Gold Knight Animation Source"
+    },
+    {
+      "asset_id": "f522815e-cf02-4ecc-8451-231e9333f166",
+      "sha12": "023ef843d1a5",
+      "label": "Goblins of Greenglen - Gold Knight Walk Animation"
+    },
+    {
+      "asset_id": "2ca698c7-2d06-498c-b867-789ef41dbd06",
+      "sha12": "b276034cf4c3",
+      "label": "Goblins of Greenglen - Gold Knight Jump Animation"
+    },
+    {
+      "asset_id": "a0fcc239-e00d-488d-8fe0-0049df9e68f2",
+      "sha12": "302ef1f4c1ad",
+      "label": "Goblins of Greenglen - Pink Knight Animation Source"
+    },
+    {
+      "asset_id": "b4c55226-5b23-4c2c-ad18-4ff48bc4522e",
+      "sha12": "9840d6a1fd75",
+      "label": "Goblins of Greenglen - Pink Knight Walk Animation"
+    },
+    {
+      "asset_id": "dbd17e5c-afdd-40e9-8f1d-7e00e0764172",
+      "sha12": "934f27bcd498",
+      "label": "Goblins of Greenglen - Pink Knight Jump Animation"
     }
   ]
 }
