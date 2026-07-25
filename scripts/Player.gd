@@ -20,6 +20,8 @@ const DAMAGE_BLINK_ALPHA := 0.25
 var jumps_remaining := 0
 var jump_animation_enabled := true
 var run_animation_enabled := false
+var active_jump_sprite: AnimatedSprite2D
+var active_run_sprite: AnimatedSprite2D
 var damage_blink_time_left := 0.0
 var damage_blink_step_time_left := 0.0
 var damage_blink_dimmed := false
@@ -36,12 +38,26 @@ func _ready() -> void:
 		jump_sprite.scale = Vector2.ONE * (52.0 / float(jump_texture.get_height()))
 	jump_sprite.position = Vector2(0, -2)
 	jump_sprite.visible = false
+	var princess_jump_sprite := $PrincessJumpSprite as AnimatedSprite2D
+	var princess_jump_texture := princess_jump_sprite.sprite_frames.get_frame_texture(&"jump", 0)
+	if princess_jump_texture:
+		princess_jump_sprite.scale = Vector2.ONE * (52.0 / float(princess_jump_texture.get_height()))
+	princess_jump_sprite.position = Vector2(0, -2)
+	princess_jump_sprite.visible = false
+	active_jump_sprite = jump_sprite
 	var run_sprite := $RunSprite as AnimatedSprite2D
 	var run_texture := run_sprite.sprite_frames.get_frame_texture(&"run", 0)
 	if run_texture:
 		run_sprite.scale = Vector2.ONE * (52.0 / float(run_texture.get_height()))
 	run_sprite.position = Vector2(0, -2)
 	run_sprite.visible = false
+	var knight_run_sprite := $KnightRunSprite as AnimatedSprite2D
+	var knight_run_texture := knight_run_sprite.sprite_frames.get_frame_texture(&"run", 0)
+	if knight_run_texture:
+		knight_run_sprite.scale = Vector2.ONE * (52.0 / float(knight_run_texture.get_height()))
+	knight_run_sprite.position = Vector2(0, -2)
+	knight_run_sprite.visible = false
+	active_run_sprite = knight_run_sprite
 	set_process(false)
 
 
@@ -90,8 +106,10 @@ func _set_damage_blink_alpha(alpha: float) -> void:
 func apply_skin(skin: Dictionary) -> void:
 	var sprite := $Sprite2D
 	var skin_id := String(skin.get("id", ""))
-	jump_animation_enabled = skin_id == ""
-	run_animation_enabled = skin_id == "princess_blue"
+	jump_animation_enabled = skin_id == "" or skin_id == "princess_blue"
+	run_animation_enabled = skin_id == "" or skin_id == "princess_blue"
+	active_jump_sprite = ($JumpSprite as AnimatedSprite2D) if skin_id == "" else ($PrincessJumpSprite as AnimatedSprite2D)
+	active_run_sprite = ($KnightRunSprite as AnimatedSprite2D) if skin_id == "" else ($RunSprite as AnimatedSprite2D)
 	_show_static_sprite()
 	var texture_path: String = skin.get("texture", "")
 	if texture_path != "" and ResourceLoader.exists(texture_path):
@@ -130,7 +148,7 @@ func _physics_process(delta: float) -> void:
 	var previous_global_position := global_position
 	var was_descending := velocity.y > 0.0
 	move_and_slide()
-	if ($JumpSprite as AnimatedSprite2D).visible and is_on_floor():
+	if active_jump_sprite != null and active_jump_sprite.visible and is_on_floor():
 		_show_static_sprite()
 	_update_run_animation(dir)
 
@@ -160,9 +178,14 @@ func _physics_process(delta: float) -> void:
 func _play_jump_animation() -> void:
 	if not jump_animation_enabled:
 		return
-	var jump_sprite := $JumpSprite as AnimatedSprite2D
+	var jump_sprite := active_jump_sprite
+	if jump_sprite == null:
+		return
 	($Sprite2D as Sprite2D).visible = false
 	($RunSprite as AnimatedSprite2D).visible = false
+	($KnightRunSprite as AnimatedSprite2D).visible = false
+	($JumpSprite as AnimatedSprite2D).visible = false
+	($PrincessJumpSprite as AnimatedSprite2D).visible = false
 	jump_sprite.visible = true
 	jump_sprite.stop()
 	jump_sprite.frame = 0
@@ -172,18 +195,26 @@ func _show_static_sprite() -> void:
 	var jump_sprite := $JumpSprite as AnimatedSprite2D
 	jump_sprite.stop()
 	jump_sprite.visible = false
+	var princess_jump_sprite := $PrincessJumpSprite as AnimatedSprite2D
+	princess_jump_sprite.stop()
+	princess_jump_sprite.visible = false
 	var run_sprite := $RunSprite as AnimatedSprite2D
 	run_sprite.stop()
 	run_sprite.visible = false
+	var knight_run_sprite := $KnightRunSprite as AnimatedSprite2D
+	knight_run_sprite.stop()
+	knight_run_sprite.visible = false
 	($Sprite2D as Sprite2D).visible = true
 
 func _update_run_animation(direction: float) -> void:
-	var run_sprite := $RunSprite as AnimatedSprite2D
+	var run_sprite := active_run_sprite
+	if run_sprite == null:
+		return
 	if not run_animation_enabled or not is_on_floor() or is_zero_approx(direction):
 		if run_sprite.visible:
 			_show_static_sprite()
 		return
-	if ($JumpSprite as AnimatedSprite2D).visible:
+	if active_jump_sprite != null and active_jump_sprite.visible:
 		return
 	($Sprite2D as Sprite2D).visible = false
 	run_sprite.visible = true

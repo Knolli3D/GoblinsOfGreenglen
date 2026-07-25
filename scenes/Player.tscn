@@ -1,36 +1,51 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/Player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/sprite_knight.png" id="2_knight"]
 [ext_resource type="SpriteFrames" path="res://assets/animations/sprite_knight_jump_frames.tres" id="3_jump_frames"]
 [ext_resource type="SpriteFrames" path="res://assets/animations/princess_run_frames.tres" id="4_run_frames"]
+[ext_resource type="SpriteFrames" path="res://assets/animations/sprite_knight_run_frames.tres" id="5_qu4a1"]
+[ext_resource type="SpriteFrames" path="res://assets/animations/sprite_princess_blue_jump_frames.tres" id="6_princess_jump"]
 
 [sub_resource type="RectangleShape2D" id="shape_player"]
 size = Vector2(28, 44)
 
-[node name="Player" type="CharacterBody2D"]
+[node name="Player" type="CharacterBody2D" unique_id=378607525]
 collision_layer = 2
-collision_mask = 1
 script = ExtResource("1_player")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=722755127]
 shape = SubResource("shape_player")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_knight")
-scale = Vector2(0.0311, 0.0311)
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1724561934]
 position = Vector2(0, -2)
+scale = Vector2(0.0311, 0.0311)
+texture = ExtResource("2_knight")
 
-[node name="JumpSprite" type="AnimatedSprite2D" parent="."]
+[node name="JumpSprite" type="AnimatedSprite2D" parent="." unique_id=1681683209]
 visible = false
+position = Vector2(0, -2)
+scale = Vector2(0.08125, 0.08125)
 sprite_frames = ExtResource("3_jump_frames")
 animation = &"jump"
-scale = Vector2(0.08125, 0.08125)
-position = Vector2(0, -2)
 
-[node name="RunSprite" type="AnimatedSprite2D" parent="."]
+[node name="RunSprite" type="AnimatedSprite2D" parent="." unique_id=1526349328]
 visible = false
+position = Vector2(0, -2)
+scale = Vector2(0.08125, 0.08125)
 sprite_frames = ExtResource("4_run_frames")
 animation = &"run"
-scale = Vector2(0.08125, 0.08125)
+
+[node name="KnightRunSprite" type="AnimatedSprite2D" parent="." unique_id=1381868367]
+visible = false
 position = Vector2(0, -2)
+scale = Vector2(0.08125, 0.08125)
+sprite_frames = ExtResource("5_qu4a1")
+animation = &"run"
+
+[node name="PrincessJumpSprite" type="AnimatedSprite2D" parent="."]
+visible = false
+position = Vector2(0, -2)
+scale = Vector2(0.08125, 0.08125)
+sprite_frames = ExtResource("6_princess_jump")
+animation = &"jump"

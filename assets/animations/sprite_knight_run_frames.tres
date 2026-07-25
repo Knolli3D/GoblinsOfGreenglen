@@ -1,0 +1,67 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/animations/sprite_knight_run_sheet_transparent.png" id="1_3jqr7"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p1sp7"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(0, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_53yht"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(640, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ur23q"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(1280, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pb3qa"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(1920, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j2wck"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(2560, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wtu5k"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(3200, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_aobyn"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(3840, 0, 640, 640)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b7cyj"]
+atlas = ExtResource("1_3jqr7")
+region = Rect2(4480, 0, 640, 640)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p1sp7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_53yht")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ur23q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pb3qa")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j2wck")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wtu5k")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_aobyn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b7cyj")
+}],
+"loop": true,
+"name": &"run",
+"speed": 8.0
+}]

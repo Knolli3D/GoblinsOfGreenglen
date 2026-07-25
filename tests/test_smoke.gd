@@ -95,19 +95,37 @@ func _test_player_scene() -> void:
 		and is_equal_approx(run_sprite.sprite_frames.get_animation_speed(&"run"), 8.0) \
 		and run_sprite.sprite_frames.get_animation_loop(&"run"),
 		"Princess-Run-Animation hat 8 Frames bei 8 FPS und loopt")
+	var knight_run_sprite := p.get_node_or_null("KnightRunSprite") as AnimatedSprite2D
+	check(knight_run_sprite != null and knight_run_sprite.sprite_frames.has_animation(&"run"),
+		"Player besitzt die Default-Knight-Run-Animation")
+	check(knight_run_sprite != null and knight_run_sprite.sprite_frames.get_frame_count(&"run") == 8 \
+		and is_equal_approx(knight_run_sprite.sprite_frames.get_animation_speed(&"run"), 8.0) \
+		and knight_run_sprite.sprite_frames.get_animation_loop(&"run"),
+		"Default-Knight-Run-Animation hat 8 Frames bei 8 FPS und loopt")
+	var princess_jump_sprite := p.get_node_or_null("PrincessJumpSprite") as AnimatedSprite2D
+	check(princess_jump_sprite != null and princess_jump_sprite.sprite_frames.has_animation(&"jump"),
+		"Player besitzt die Sapphire-Princess-Jump-Animation")
+	check(princess_jump_sprite != null and princess_jump_sprite.sprite_frames.get_frame_count(&"jump") == 8 \
+		and is_equal_approx(princess_jump_sprite.sprite_frames.get_animation_speed(&"jump"), 8.0) \
+		and not princess_jump_sprite.sprite_frames.get_animation_loop(&"jump"),
+		"Sapphire-Princess-Jump-Animation hat 8 Frames bei 8 FPS und loopt nicht")
 	_test_player_damage_blink(p)
 	p.free()
 
 func _test_player_damage_blink(p: CharacterBody2D) -> void:
 	var static_sprite := p.get_node("Sprite2D") as Sprite2D
 	var jump_sprite := p.get_node("JumpSprite") as AnimatedSprite2D
+	var princess_jump_sprite := p.get_node("PrincessJumpSprite") as AnimatedSprite2D
 	var run_sprite := p.get_node("RunSprite") as AnimatedSprite2D
+	var knight_run_sprite := p.get_node("KnightRunSprite") as AnimatedSprite2D
 	p.call("start_damage_blink", 1.0)
 	check(bool(p.call("is_damage_blinking")) and p.modulate.a < 1.0,
 		"Schadensfeedback startet sofort auf dem Player-Root")
 	check(is_equal_approx(static_sprite.modulate.a, 1.0) \
 		and is_equal_approx(jump_sprite.modulate.a, 1.0) \
-		and is_equal_approx(run_sprite.modulate.a, 1.0),
+		and is_equal_approx(princess_jump_sprite.modulate.a, 1.0) \
+		and is_equal_approx(run_sprite.modulate.a, 1.0) \
+		and is_equal_approx(knight_run_sprite.modulate.a, 1.0),
 		"Blinken verändert keine einzelnen Skin-/Animations-Sprites")
 	p.call("_process", 0.11)
 	check(is_equal_approx(p.modulate.a, 1.0), "Schadensfeedback blinkt im 0,1s-Takt")
