@@ -1,0 +1,24 @@
+{
+  "title": "Credits",
+  "sections": [
+    {
+      "heading": "Music",
+      "entries": [
+        {
+          "title": "Wonders of the Earth",
+          "artist": "Roman Dudchyk (Grand Project)",
+          "source": "Pixabay",
+          "url": "https://pixabay.com/music//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=550792",
+          "usage": "Main menu music"
+        },
+        {
+          "title": "Game / Gaming / Video Game Music",
+          "artist": "Viacheslav Starostin",
+          "source": "Pixabay",
+          "url": "https://pixabay.com/music//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=471936",
+          "usage": "Gameplay music"
+        }
+      ]
+    }
+  ]
+}

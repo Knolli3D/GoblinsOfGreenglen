@@ -16,7 +16,9 @@ const LEVELS := CampaignCatalogScript.REGION_1_SCENE_PATHS
 
 # Compatibility aliases for resource validation and the future leaderboard hook.
 const SFX_FILES := AudioControllerScript.SFX_FILES
-const MUSIC_FILE := AudioControllerScript.MUSIC_FILE
+const MAIN_MENU_MUSIC_FILE := AudioControllerScript.MAIN_MENU_MUSIC_FILE
+const GAMEPLAY_MUSIC_FILE := AudioControllerScript.GAMEPLAY_MUSIC_FILE
+const MUSIC_FILE := GAMEPLAY_MUSIC_FILE
 const SAVE_PATH := HighscoreStoreScript.SAVE_PATH
 const HIGHSCORE_SAVE_VERSION := HighscoreStoreScript.SAVE_VERSION
 
@@ -55,6 +57,7 @@ var ui_body_font: Font
 @onready var quest_menu: Node = $QuestMenuController
 @onready var case_menu: Node = $CaseMenuController
 @onready var skin_menu: Node = $SkinMenuController
+@onready var credits_menu: Node = $CreditsMenuController
 @onready var campaign_progress: Node = $CampaignProgressStore
 @onready var campaign_map: Node = $CampaignMapController
 
@@ -73,6 +76,7 @@ func _ready() -> void:
 	quest_menu.initialize(ui_theme, ui_heading_font, audio)
 	case_menu.initialize(ui_theme, ui_heading_font, audio)
 	skin_menu.initialize(ui_theme, ui_heading_font, audio)
+	credits_menu.initialize(ui_theme, ui_heading_font, ui_body_font)
 	campaign_map.initialize(
 		ui_theme, ui_heading_font, ui_body_font, campaign_catalog, campaign_progress, audio)
 	_connect_components()
@@ -116,11 +120,13 @@ func _connect_components() -> void:
 	menus.quests_requested.connect(_show_quests_menu)
 	menus.cases_requested.connect(_show_cases_menu)
 	menus.skins_requested.connect(_show_skins_menu)
+	menus.credits_requested.connect(_show_credits_menu)
 	menus.quit_requested.connect(_quit_game)
 	quest_menu.back_requested.connect(_hide_submenus)
 	quest_menu.keys_changed.connect(_update_hud)
 	case_menu.back_requested.connect(_hide_submenus)
 	skin_menu.back_requested.connect(_hide_submenus)
+	credits_menu.back_requested.connect(_hide_submenus)
 	campaign_map.level_requested.connect(_start_campaign_level)
 	campaign_map.back_requested.connect(_show_main_menu)
 
@@ -197,8 +203,9 @@ func _show_main_menu() -> void:
 	quest_menu.hide_menu()
 	case_menu.hide_menu()
 	skin_menu.hide_menu()
-	audio.stop_music()
+	credits_menu.hide_menu()
 	_set_music_ducked(false)
+	audio.play_main_menu_music()
 
 
 func _start_game() -> void:
@@ -208,7 +215,7 @@ func _start_game() -> void:
 	hud.show_gameplay()
 	_begin_fresh_run()
 	_set_music_ducked(false)
-	audio.start_music()
+	audio.play_gameplay_music()
 	_load_level(0)
 
 
@@ -251,12 +258,13 @@ func _open_campaign_map(region_id: String) -> void:
 	quest_menu.hide_menu()
 	case_menu.hide_menu()
 	skin_menu.hide_menu()
+	credits_menu.hide_menu()
 	_stop_player_damage_blink()
 	if level_root:
 		level_root.queue_free()
 		level_root = null
-	audio.stop_music()
 	_set_music_ducked(false)
+	audio.play_main_menu_music()
 	campaign_map.show_region(region_id)
 
 
@@ -269,7 +277,7 @@ func _start_campaign_level(level_id: String) -> void:
 	hud.show_gameplay()
 	_begin_fresh_run()
 	_set_music_ducked(false)
-	audio.start_music()
+	audio.play_gameplay_music()
 	_load_level_by_id(level_id)
 
 
@@ -302,8 +310,7 @@ func _start_new_run() -> void:
 	menus.set_pause_visible(false)
 	_set_music_ducked(false)
 	_begin_fresh_run()
-	if not audio.is_music_playing():
-		audio.start_music()
+	audio.play_gameplay_music()
 	_load_level(0)
 
 
@@ -325,11 +332,18 @@ func _show_skins_menu() -> void:
 	skin_menu.show_menu()
 
 
+func _show_credits_menu() -> void:
+	play_sfx("click")
+	menus.hide_main_menu()
+	credits_menu.show_menu()
+
+
 func _hide_submenus() -> void:
 	play_sfx("click")
 	quest_menu.hide_menu()
 	case_menu.hide_menu()
 	skin_menu.hide_menu()
+	credits_menu.hide_menu()
 	menus.show_main_menu(highscore_store.main_menu_text())
 
 

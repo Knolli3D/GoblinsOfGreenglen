@@ -12,15 +12,21 @@ const SFX_FILES := {
 	"click": "res://assets/audio/click.wav",
 }
 
-const MUSIC_FILE := "res://assets/audio/music.wav"
+const MAIN_MENU_MUSIC_FILE := "res://assets/audio/music/grand_project-wonders-of-the-earth-550792.mp3"
+const GAMEPLAY_MUSIC_FILE := "res://assets/audio/music/viacheslavstarostin-game-gaming-video-game-music-471936.mp3"
+# Compatibility alias for older resource checks. New code should choose an explicit track.
+const MUSIC_FILE := GAMEPLAY_MUSIC_FILE
 const SFX_VOICES := 8
 const MUSIC_NORMAL_DB := 0.0
 const MUSIC_PAUSED_DB := -14.0
+
+enum MusicTrack { NONE, MAIN_MENU, GAMEPLAY }
 
 var music_player: AudioStreamPlayer
 var sfx_players: Array[AudioStreamPlayer] = []
 var sfx_streams: Dictionary = {}
 var sfx_next := 0
+var current_music_track := MusicTrack.NONE
 
 
 func _ready() -> void:
@@ -39,18 +45,31 @@ func play_sfx(sfx_name: String, pitch_jitter := 0.0) -> void:
 	player.play()
 
 
+func play_main_menu_music() -> void:
+	_play_music_track(MusicTrack.MAIN_MENU, MAIN_MENU_MUSIC_FILE)
+
+
+func play_gameplay_music() -> void:
+	_play_music_track(MusicTrack.GAMEPLAY, GAMEPLAY_MUSIC_FILE)
+
+
+# Compatibility wrapper for callers that predate separate menu/gameplay tracks.
 func start_music() -> void:
-	if music_player != null and not music_player.playing:
-		music_player.play()
+	play_gameplay_music()
 
 
 func stop_music() -> void:
 	if music_player != null:
 		music_player.stop()
+	current_music_track = MusicTrack.NONE
 
 
 func is_music_playing() -> bool:
 	return music_player != null and music_player.playing
+
+
+func is_playing_music_track(track: MusicTrack) -> bool:
+	return current_music_track == track and is_music_playing()
 
 
 func set_music_ducked(ducked: bool) -> void:
@@ -63,12 +82,6 @@ func _build_players() -> void:
 	music_player.name = "MusicPlayer"
 	music_player.bus = "Music"
 	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
-	if ResourceLoader.exists(MUSIC_FILE):
-		var music: AudioStreamWAV = load(MUSIC_FILE)
-		music.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		music.loop_begin = 0
-		music.loop_end = int(music.get_length() * music.mix_rate)
-		music_player.stream = music
 	add_child(music_player)
 
 	for i in range(SFX_VOICES):
@@ -82,3 +95,22 @@ func _build_players() -> void:
 	for key: String in SFX_FILES:
 		if ResourceLoader.exists(SFX_FILES[key]):
 			sfx_streams[key] = load(SFX_FILES[key])
+
+
+func _play_music_track(track: MusicTrack, path: String) -> void:
+	if music_player == null:
+		return
+	if current_music_track == track and music_player.playing:
+		return
+	if not ResourceLoader.exists(path):
+		push_warning("Music track is missing: %s" % path)
+		return
+	var music := load(path) as AudioStream
+	if music == null:
+		push_warning("Music track could not be loaded: %s" % path)
+		return
+	if music is AudioStreamMP3:
+		(music as AudioStreamMP3).loop = true
+	music_player.stream = music
+	music_player.play()
+	current_music_track = track

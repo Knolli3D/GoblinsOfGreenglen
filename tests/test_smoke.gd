@@ -154,8 +154,11 @@ func _test_audio_resources() -> void:
 	var sfx: Dictionary = AudioControllerScript.SFX_FILES
 	for key: String in sfx:
 		check(ResourceLoader.exists(sfx[key]), "SFX '%s' existiert (%s)" % [key, sfx[key]])
-	check(ResourceLoader.exists(AudioControllerScript.MUSIC_FILE),
-		"Musik existiert (%s)" % AudioControllerScript.MUSIC_FILE)
+	check(ResourceLoader.exists(AudioControllerScript.MAIN_MENU_MUSIC_FILE),
+		"Menu music exists (%s)" % AudioControllerScript.MAIN_MENU_MUSIC_FILE)
+	check(ResourceLoader.exists(AudioControllerScript.GAMEPLAY_MUSIC_FILE),
+		"Gameplay music exists (%s)" % AudioControllerScript.GAMEPLAY_MUSIC_FILE)
+	check(FileAccess.file_exists("res://assets/credits.json"), "Credits JSON exists")
 
 func _test_component_scene() -> void:
 	print("Main-Komponenten:")
@@ -167,6 +170,7 @@ func _test_component_scene() -> void:
 		"QuestMenuController",
 		"CaseMenuController",
 		"SkinMenuController",
+		"CreditsMenuController",
 		"CampaignProgressStore",
 		"CampaignMapController",
 	]
@@ -177,6 +181,7 @@ func _test_component_scene() -> void:
 	check(game.get_node("HUDController").has_method("update_status"), "HUDController hat Snapshot-API")
 	check(game.get_node("CampaignProgressStore").has_method("record_level_completion"),
 		"CampaignProgressStore hat Completion-API")
+	check(game.get_node("CreditsMenuController").has_method("show_menu"), "Credits controller exposes a presentation API")
 	check(game.get_node("CampaignMapController").has_method("show_region"),
 		"CampaignMapController hat Präsentations-API")
 
@@ -333,7 +338,8 @@ func _test_run_results() -> void:
 	check(game.format_run_time(65432) == "1:05", "Run Time formatiert kompakt als M:SS")
 	check(game.menus.main_menu.theme == game.ui_theme, "Main-Menü nutzt das gemeinsame Theme")
 	check(game.quest_menu.menu.theme == game.ui_theme and game.case_menu.menu.theme == game.ui_theme \
-		and game.skin_menu.menu.theme == game.ui_theme, "Submenüs teilen dieselbe Theme-Instanz")
+		and game.skin_menu.menu.theme == game.ui_theme and game.credits_menu.menu.theme == game.ui_theme,
+		"Submenus share the same theme instance")
 	check(game.menus.start_requested.get_connections().size() == 1,
 		"Start-Signal ist genau einmal mit dem Coordinator verbunden")
 	check(game.quest_menu.keys_changed.get_connections().size() == 1,
@@ -341,10 +347,16 @@ func _test_run_results() -> void:
 	check(game.campaign_map.level_requested.get_connections().size() == 1 \
 		and game.campaign_map.back_requested.get_connections().size() == 1,
 		"Campaign-Map-Intents sind genau einmal verbunden")
+	check(game.menus.credits_requested.get_connections().size() == 1 \
+		and game.credits_menu.back_requested.get_connections().size() == 1,
+		"Credits intents are connected exactly once")
 	check(_direct_canvas_layers(game.menus) == 3, "GameMenuController besitzt genau 3 CanvasLayers")
 	check(_direct_canvas_layers(game.hud) == 1, "HUDController besitzt genau 1 CanvasLayer")
 	check(_direct_canvas_layers(game.quest_menu) == 1 and _direct_canvas_layers(game.case_menu) == 1 \
-		and _direct_canvas_layers(game.skin_menu) == 1, "jedes Submenü besitzt genau 1 CanvasLayer")
+		and _direct_canvas_layers(game.skin_menu) == 1 and _direct_canvas_layers(game.credits_menu) == 1,
+		"Each submenu owns exactly one CanvasLayer")
+	check(game.audio.is_playing_music_track(game.audio.MusicTrack.MAIN_MENU),
+		"Main menu starts with the menu track")
 	await _test_campaign_map_shell()
 	await _test_meta_menus(prog)
 
@@ -353,6 +365,8 @@ func _test_run_results() -> void:
 	check(game.level_root != null and game.current_level == 0 \
 		and game.current_region_id == "region_01" and game.current_level_id == "r01_level_01",
 		"Run startet mit stabilen IDs in Region 1 Level 1")
+	check(game.audio.is_playing_music_track(game.audio.MusicTrack.GAMEPLAY),
+		"Start Game switches to the gameplay track")
 	check(game.run_timer_active and game.run_time_ms == 0 \
 		and game.hud.timer_label.visible and game.hud.timer_label.text == "0:00",
 		"Start Game startet einen frischen HUD-Timer")
@@ -655,6 +669,8 @@ func _test_campaign_map_shell() -> void:
 	var buttons_inside := true
 	var quit_overlap := false
 	for menu_button: Button in menu_buttons:
+		if not menu_button.visible:
+			continue
 		var rect: Rect2 = menu_button.get_global_rect()
 		if rect.size.y <= 0.0:
 			buttons_sized = false
@@ -663,12 +679,15 @@ func _test_campaign_map_shell() -> void:
 		if quit_button != null and menu_button != quit_button \
 				and quit_button.get_global_rect().intersects(rect):
 			quit_overlap = true
-	check(menu_buttons.size() == 6 and buttons_sized,
-		"Hauptmenü rendert sechs gelayoutete Buttons (inkl. Map und Quit)")
+	check(menu_buttons.size() == 7 and buttons_sized,
+		"Main menu includes its prepared Credits button (plus Map and Quit)")
 	check(buttons_inside, "alle Hauptmenü-Buttons liegen vollständig im 960×540-Viewport")
 	check(not quit_overlap, "Quit Game überlappt den Button-Stack nicht")
 	check(game.menus.map_requested.get_connections().size() == 1,
 		"map_requested-Intent ist genau einmal verbunden")
+	var credits_button := _find_button_by_text(game.menus.main_menu, "Credits")
+	check(credits_button != null and not credits_button.visible,
+		"Credits button is present but hidden for now")
 	if map_button != null:
 		map_button.pressed.emit()
 	await process_frame
@@ -919,6 +938,14 @@ func _test_meta_menus(prog: Node) -> void:
 	game.skin_menu.back_requested.emit()
 	check(game.menus.main_menu.visible and not game.skin_menu.menu.visible,
 		"Skin-Back-Intent kehrt ins Hauptmenü zurück")
+
+	game.menus.credits_requested.emit()
+	check(game.credits_menu.menu.visible and not game.menus.main_menu.visible \
+		and game.credits_menu.credits_list.get_child_count() > 0,
+		"Credits intent loads editable JSON credits")
+	game.credits_menu.back_requested.emit()
+	check(game.menus.main_menu.visible and not game.credits_menu.menu.visible,
+		"Credits back intent returns to the main menu")
 
 # --- Transition-Cancellation ------------------------------------------------------
 

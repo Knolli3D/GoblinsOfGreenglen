@@ -228,7 +228,7 @@ Before each `move_and_slide()`, the player records its previous global position 
 
 ## Audio
 
-All music and sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). `AudioController.gd` owns the looping music player, round-robin SFX voices, pitch jitter, and pause ducking; the run coordinator invokes its small playback API. Music consistently restores to normal volume on resume, restart, or exiting to the main menu.
+Sound effects are generated chiptune WAVs (`tools/generate_audio.py`), routed through two audio buses (`Master → Music`, `SFX`). `AudioController.gd` owns the looping music player, round-robin SFX voices, pitch jitter, pause ducking, and explicit menu/gameplay tracks: Roman Dudchyk (Grand Project)'s “Wonders of the Earth” on menu screens and Viacheslav Starostin's gameplay track during runs. The editable attributions live in `assets/credits.json`; the Credits button is implemented but intentionally hidden for now. Music consistently restores to normal volume on resume, restart, or returning to a menu screen.
 
 ## Best Score and Best Time
 

@@ -14,6 +14,7 @@ signal map_requested
 signal quests_requested
 signal cases_requested
 signal skins_requested
+signal credits_requested
 signal quit_requested
 
 var main_menu: Control
@@ -26,6 +27,7 @@ var result_time_value: Label
 var result_best_label: Label
 var result_record_label: Label
 var result_run_again_btn: Button
+var credits_button: Button
 
 var ui_theme: Theme
 var heading_font: Font
@@ -300,6 +302,9 @@ func _build_main_menu() -> void:
 	_add_main_button(box, "Quests", 40, quests_requested.emit)
 	_add_main_button(box, "Cases", 40, cases_requested.emit)
 	_add_main_button(box, "Skins", 40, skins_requested.emit)
+	credits_button = _add_main_button(box, "Credits", 40, credits_requested.emit)
+	# Prepared for release, but intentionally not visible in the current menu.
+	credits_button.visible = false
 
 	var quit_button := Button.new()
 	quit_button.text = "Quit Game"
@@ -314,10 +319,11 @@ func _build_main_menu() -> void:
 	main_menu.add_child(quit_button)
 
 
-func _add_main_button(parent: VBoxContainer, text: String, height: float, handler: Callable) -> void:
+func _add_main_button(parent: VBoxContainer, text: String, height: float, handler: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
 	GreenglenUI.configure_button(button, height)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.pressed.connect(handler)
 	parent.add_child(button)
+	return button

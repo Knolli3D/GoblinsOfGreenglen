@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/SkinMenuController.gd" id="8_skins"]
 [ext_resource type="Script" path="res://scripts/CampaignProgressStore.gd" id="9_campaign_progress"]
 [ext_resource type="Script" path="res://scripts/CampaignMapController.gd" id="10_campaign_map"]
+[ext_resource type="Script" path="res://scripts/CreditsMenuController.gd" id="11_credits"]
 
 [node name="Main" type="Node2D" unique_id=647499754]
 script = ExtResource("1_game")
@@ -35,6 +36,8 @@ script = ExtResource("7_cases")
 [node name="SkinMenuController" type="Node" parent="."]
 script = ExtResource("8_skins")
 
+[node name="CreditsMenuController" type="Node" parent="."]
+script = ExtResource("11_credits")
 [node name="CampaignProgressStore" type="Node" parent="."]
 script = ExtResource("9_campaign_progress")
 
