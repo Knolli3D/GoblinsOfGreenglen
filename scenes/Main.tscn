@@ -1,45 +1,46 @@
-[gd_scene load_steps=11 format=3 uid="uid://dh3trkvrd6uv8"]
+[gd_scene format=3 uid="uid://dh3trkvrd6uv8"]
 
 [ext_resource type="Script" uid="uid://cem1u50vcdgtp" path="res://scripts/Game.gd" id="1_game"]
-[ext_resource type="Script" path="res://scripts/AudioController.gd" id="2_audio"]
-[ext_resource type="Script" path="res://scripts/HighscoreStore.gd" id="3_highscore"]
-[ext_resource type="Script" path="res://scripts/HUDController.gd" id="4_hud"]
-[ext_resource type="Script" path="res://scripts/GameMenuController.gd" id="5_menus"]
-[ext_resource type="Script" path="res://scripts/QuestMenuController.gd" id="6_quests"]
-[ext_resource type="Script" path="res://scripts/CaseMenuController.gd" id="7_cases"]
-[ext_resource type="Script" path="res://scripts/SkinMenuController.gd" id="8_skins"]
-[ext_resource type="Script" path="res://scripts/CampaignProgressStore.gd" id="9_campaign_progress"]
-[ext_resource type="Script" path="res://scripts/CampaignMapController.gd" id="10_campaign_map"]
-[ext_resource type="Script" path="res://scripts/CreditsMenuController.gd" id="11_credits"]
+[ext_resource type="Script" uid="uid://bodw67usuooiu" path="res://scripts/AudioController.gd" id="2_audio"]
+[ext_resource type="Script" uid="uid://byhhqde243kew" path="res://scripts/HighscoreStore.gd" id="3_highscore"]
+[ext_resource type="Script" uid="uid://xmn2g7wopsm6" path="res://scripts/HUDController.gd" id="4_hud"]
+[ext_resource type="Script" uid="uid://bq805jal5enby" path="res://scripts/GameMenuController.gd" id="5_menus"]
+[ext_resource type="Script" uid="uid://cid7dxd7vw8ku" path="res://scripts/QuestMenuController.gd" id="6_quests"]
+[ext_resource type="Script" uid="uid://c4rogjm08yp2" path="res://scripts/CaseMenuController.gd" id="7_cases"]
+[ext_resource type="Script" uid="uid://bt161gagm4hok" path="res://scripts/SkinMenuController.gd" id="8_skins"]
+[ext_resource type="Script" uid="uid://biaw35ks0nklc" path="res://scripts/CampaignProgressStore.gd" id="9_campaign_progress"]
+[ext_resource type="Script" uid="uid://j3peatv813n2" path="res://scripts/CampaignMapController.gd" id="10_campaign_map"]
+[ext_resource type="Script" uid="uid://2ghgk85id4v5" path="res://scripts/CreditsMenuController.gd" id="11_credits"]
 
 [node name="Main" type="Node2D" unique_id=647499754]
 script = ExtResource("1_game")
 
-[node name="AudioController" type="Node" parent="."]
+[node name="AudioController" type="Node" parent="." unique_id=1480563294]
 script = ExtResource("2_audio")
 
-[node name="HighscoreStore" type="Node" parent="."]
+[node name="HighscoreStore" type="Node" parent="." unique_id=32640601]
 script = ExtResource("3_highscore")
 
-[node name="HUDController" type="Node" parent="."]
+[node name="HUDController" type="Node" parent="." unique_id=1559492352]
 script = ExtResource("4_hud")
 
-[node name="GameMenuController" type="Node" parent="."]
+[node name="GameMenuController" type="Node" parent="." unique_id=70970794]
 script = ExtResource("5_menus")
 
-[node name="QuestMenuController" type="Node" parent="."]
+[node name="QuestMenuController" type="Node" parent="." unique_id=1325240120]
 script = ExtResource("6_quests")
 
-[node name="CaseMenuController" type="Node" parent="."]
+[node name="CaseMenuController" type="Node" parent="." unique_id=1142248609]
 script = ExtResource("7_cases")
 
-[node name="SkinMenuController" type="Node" parent="."]
+[node name="SkinMenuController" type="Node" parent="." unique_id=1639670518]
 script = ExtResource("8_skins")
 
-[node name="CreditsMenuController" type="Node" parent="."]
+[node name="CreditsMenuController" type="Node" parent="." unique_id=1200246450]
 script = ExtResource("11_credits")
-[node name="CampaignProgressStore" type="Node" parent="."]
+
+[node name="CampaignProgressStore" type="Node" parent="." unique_id=671527316]
 script = ExtResource("9_campaign_progress")
 
-[node name="CampaignMapController" type="Node" parent="."]
+[node name="CampaignMapController" type="Node" parent="." unique_id=920500166]
 script = ExtResource("10_campaign_map")
