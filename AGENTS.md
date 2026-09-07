@@ -207,7 +207,9 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
 
 - **Catalog als Source of Truth**: `CampaignCatalog.gd` definiert stabile IDs, Reihenfolge,
   Szenenpfade, Voraussetzungen, Kartenpositionen, Fokus-Nachbarn, Core Trials und Verbindungen.
-  Region 1 (`region_01`) enthält `r01_level_01` bis `r01_level_06` mit den sechs realen Szenen.
+  Region 1 (`region_01`, Anzeigename **Greenglen Vale**) enthält die sechs realen Szenen
+  `r01_level_01`–`r01_level_06`, angezeigt als Greenhorn Glade, Gobbler's Hollow,
+  Snickerroot Thicket, The Longleaf Road, Tanglewood Reach und Greenglen Crest.
   Region 2 (`region_02`) enthält acht Main- und zwei Bonus-Level als unveröffentlichte Platzhalter
   mit leeren Szenenpfaden. Regionen 3–5 (`region_03`–`region_05`) sind weitere unveröffentlichte
   Platzhalter (exakt 10/12/14 Main-Level, generische Namen, leere Szenenpfade, keine
@@ -235,8 +237,8 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   alle Core Trials; `explored` ergänzt alle Bonus-Level; `mastered` verlangt alle Main-/Bonus-Level
   plus Mastery Trials. Region 1 hat keine Bonus-Level, aber den Core Trial "Flawless Finale":
   `cleared` (und damit die spätere Region-2-Berechtigung) verlangt alle sechs Main-Level PLUS
-  einen schadenfreien Abschluss von Level 6 (`took_damage_this_level`-basiert, nur dieser eine
-  Levelversuch — kein schadenfreier Gesamt-Run). Da Region 1 weder Bonus-Level noch
+  einen schadenfreien Abschluss von Level 6 / Greenglen Crest (`took_damage_this_level`-basiert,
+  nur dieser eine Levelversuch — kein schadenfreier Gesamt-Run). Da Region 1 weder Bonus-Level noch
   Mastery-Trials hat, folgen `explored` und `mastered` mit dem Clear. Ein erfülltes
   Region-1-Paket wird persistiert, macht die unveröffentlichte Region 2 aber nicht spielbar;
   bereits erreichte Meilensteine werden beim späteren Veröffentlichen einer Folgeregion vom

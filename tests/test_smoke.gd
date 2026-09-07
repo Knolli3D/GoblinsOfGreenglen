@@ -741,7 +741,7 @@ func _test_campaign_map_shell() -> void:
 	check(game.campaign_map.current_region_id == "region_02",
 		"echte Selector-Auswahl wechselt zur unveröffentlichten Region 2")
 	check(game.campaign_map.region_status_banner.text.begins_with("Locked") \
-		and game.campaign_map.region_status_banner.text.contains("Region 1") \
+		and game.campaign_map.region_status_banner.text.contains("Greenglen Vale") \
 		and game.campaign_map.region_status_banner.text.contains("main levels 0/6") \
 		and game.campaign_map.region_status_banner.text.contains("Flawless Finale"),
 		"Region-2-Banner erklärt das Region-1-Gate (sechs Main-Level + Flawless Finale)")

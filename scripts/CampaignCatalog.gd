@@ -23,7 +23,7 @@ static func default_regions() -> Array:
 	return [
 	{
 		"id": REGION_1_ID,
-		"display_name": "Region 1",
+		"display_name": "Greenglen Vale",
 		"released": true,
 		"entry_level_id": "r01_level_01",
 		"next_region_id": REGION_2_ID,
@@ -33,7 +33,7 @@ static func default_regions() -> Array:
 		"trials": [{
 			"id": "r01_core_flawless_finale",
 			"region_id": REGION_1_ID,
-			"display_name": "Flawless Finale: clear Location 6 without taking damage",
+			"display_name": "Flawless Finale: clear Greenglen Crest without taking damage",
 			"target": 1,
 			"required_for_clear": true,
 			"required_for_mastery": false,
@@ -41,12 +41,12 @@ static func default_regions() -> Array:
 			"level_id": "r01_level_06",
 		}],
 		"levels": [
-			_level("r01_level_01", REGION_1_ID, "Region 1 - Location 1", REGION_1_SCENE_PATHS[0], Vector2(55, 275), false, [], {"right": "r01_level_02"}),
-			_level("r01_level_02", REGION_1_ID, "Region 1 - Location 2", REGION_1_SCENE_PATHS[1], Vector2(155, 205), false, ["r01_level_01"], {"left": "r01_level_01", "right": "r01_level_03"}),
-			_level("r01_level_03", REGION_1_ID, "Region 1 - Location 3", REGION_1_SCENE_PATHS[2], Vector2(270, 285), false, ["r01_level_02"], {"left": "r01_level_02", "right": "r01_level_04"}),
-			_level("r01_level_04", REGION_1_ID, "Region 1 - Location 4", REGION_1_SCENE_PATHS[3], Vector2(380, 185), false, ["r01_level_03"], {"left": "r01_level_03", "right": "r01_level_05"}),
-			_level("r01_level_05", REGION_1_ID, "Region 1 - Location 5", REGION_1_SCENE_PATHS[4], Vector2(485, 270), false, ["r01_level_04"], {"left": "r01_level_04", "right": "r01_level_06"}),
-			_level("r01_level_06", REGION_1_ID, "Region 1 - Location 6", REGION_1_SCENE_PATHS[5], Vector2(545, 115), false, ["r01_level_05"], {"left": "r01_level_05"}),
+			_level("r01_level_01", REGION_1_ID, "Greenhorn Glade", REGION_1_SCENE_PATHS[0], Vector2(55, 275), false, [], {"right": "r01_level_02"}),
+			_level("r01_level_02", REGION_1_ID, "Gobbler's Hollow", REGION_1_SCENE_PATHS[1], Vector2(155, 205), false, ["r01_level_01"], {"left": "r01_level_01", "right": "r01_level_03"}),
+			_level("r01_level_03", REGION_1_ID, "Snickerroot Thicket", REGION_1_SCENE_PATHS[2], Vector2(270, 285), false, ["r01_level_02"], {"left": "r01_level_02", "right": "r01_level_04"}),
+			_level("r01_level_04", REGION_1_ID, "The Longleaf Road", REGION_1_SCENE_PATHS[3], Vector2(380, 185), false, ["r01_level_03"], {"left": "r01_level_03", "right": "r01_level_05"}),
+			_level("r01_level_05", REGION_1_ID, "Tanglewood Reach", REGION_1_SCENE_PATHS[4], Vector2(485, 270), false, ["r01_level_04"], {"left": "r01_level_04", "right": "r01_level_06"}),
+			_level("r01_level_06", REGION_1_ID, "Greenglen Crest", REGION_1_SCENE_PATHS[5], Vector2(545, 115), false, ["r01_level_05"], {"left": "r01_level_05"}),
 		],
 		"connections": [
 			_connection("r01_level_01", "r01_level_02", REQUIRED_CONNECTION),
