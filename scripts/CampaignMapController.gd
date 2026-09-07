@@ -7,7 +7,7 @@ const VIEW := Vector2(960, 540)
 const MAP_BACKGROUND_PATH := "res://assets/menu_bg_map.png"
 const MAP_ORIGIN := Vector2(20, 88)
 const MAP_SIZE := Vector2(650, 370)
-const NODE_SIZE := Vector2(94, 42)
+const NODE_SIZE := Vector2(104, 52)
 const MAP_LAYER := 14
 
 # Regionsweiter Verfügbarkeits-Banner im Karten-Header (getrennt von den Location-Details).
@@ -162,8 +162,10 @@ func _build_map_shell() -> void:
 	# The themed OptionButton is wider than its content minimum because of the
 	# decorative texture ends. Center that full footprint over the detail pane.
 	region_selector.position = Vector2(674, 24)
-	region_selector.custom_minimum_size = Vector2(230, 38)
+	region_selector.custom_minimum_size = Vector2(230, 54)
 	region_selector.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	region_selector.clip_text = true
+	region_selector.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	region_selector.add_theme_font_override("font", body_font)
 	region_selector.add_theme_font_size_override("font_size", 16)
 	region_selector.item_selected.connect(_on_region_selected)
@@ -284,6 +286,8 @@ func _build_nodes(region: Dictionary) -> void:
 		button.size = NODE_SIZE
 		button.custom_minimum_size = NODE_SIZE
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.clip_text = true
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_font_override("font", body_font)
 		button.add_theme_font_size_override("font_size", 13)
 		button.pressed.connect(select_level.bind(level_id, true))
@@ -373,8 +377,7 @@ func _refresh_region_selector() -> void:
 	var index := 0
 	for region: Dictionary in catalog.call("get_regions"):
 		var region_id := String(region.get("id", ""))
-		var suffix := "" if bool(region.get("released", false)) else " - Coming Soon"
-		region_selector.add_item(String(region.get("display_name", "Region")) + suffix)
+		region_selector.add_item(String(region.get("display_name", "Region")))
 		region_selector.set_item_metadata(index, region_id)
 		if region_id == current_region_id:
 			selected_index = index

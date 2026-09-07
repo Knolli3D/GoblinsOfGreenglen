@@ -732,7 +732,7 @@ func _test_campaign_map_shell() -> void:
 		"wiederholtes Refresh dupliziert weder Nodes noch CanvasLayer")
 
 	check(game.campaign_map.region_selector.item_count == 5 \
-		and game.campaign_map.region_selector.get_item_text(1) == "Region 2 - Coming Soon" \
+		and game.campaign_map.region_selector.get_item_text(1) == "Stonepeak Reach" \
 		and String(game.campaign_map.region_selector.get_item_metadata(1)) == "region_02",
 		"Region-Selector führt alle fünf Regionen, Region 2 metadatengetrieben als Coming Soon")
 	game.campaign_map.region_selector.select(1)
@@ -781,7 +781,7 @@ func _test_campaign_map_shell() -> void:
 	# Regionen 3-5: Platzhalter-Topologie sichtbar, Banner erklärt die Vorgänger-Sperre,
 	# Play bleibt für jede unveröffentlichte Auswahl stumm.
 	for future_case: Array in [
-		["region_03", 10, "Region 2"], ["region_04", 12, "Region 3"], ["region_05", 14, "Region 4"],
+		["region_03", 10, "Stonepeak Reach"], ["region_04", 12, "Region 3"], ["region_05", 14, "Region 4"],
 	]:
 		var future_id: String = future_case[0]
 		game.campaign_map.show_region(future_id)

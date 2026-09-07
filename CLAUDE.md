@@ -210,8 +210,11 @@ unverändert. Namen und Kartenpositionen sind vorerst Platzhalter.
   Region 1 (`region_01`, Anzeigename **Greenglen Vale**) enthält die sechs realen Szenen
   `r01_level_01`–`r01_level_06`, angezeigt als Greenhorn Glade, Gobbler's Hollow,
   Snickerroot Thicket, The Longleaf Road, Tanglewood Reach und Greenglen Crest.
-  Region 2 (`region_02`) enthält acht Main- und zwei Bonus-Level als unveröffentlichte Platzhalter
-  mit leeren Szenenpfaden. Regionen 3–5 (`region_03`–`region_05`) sind weitere unveröffentlichte
+  Region 2 (`region_02`, Anzeigename **Stonepeak Reach**) enthält acht Main-Level — Foothill
+  Scramble, Rockjaw Ridge, Cragspite Climb, The Boulder Run, Windwhistle Pass, Goblin's Perch,
+  Stonefang Heights und Stonepeak Summit — plus zwei Bonus-Level, Glinthollow Nook und The
+  Miser's Ledge, als unveröffentlichte Platzhalter mit leeren Szenenpfaden (Namen final,
+  Levelinhalt noch nicht gebaut). Regionen 3–5 (`region_03`–`region_05`) sind weitere unveröffentlichte
   Platzhalter (exakt 10/12/14 Main-Level, generische Namen, leere Szenenpfade, keine
   Bonus-Abzweige), die `_placeholder_region()` als serpentinenförmigen Required-Pfad im
   5-Spalten-Raster innerhalb `MAP_BOUNDS` generiert (inkl. Raster-Fokus-Nachbarn). Die fünf
