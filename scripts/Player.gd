@@ -21,7 +21,11 @@ const DAMAGE_BLINK_ALPHA := 0.25
 const WALL_SLIDE_SPEED := 120.0
 const WALL_KICK := Vector2(260.0, -480.0)
 const WALL_REGRAB_TIME := 0.25
-const WALL_KICK_CONTROL_TIME := 0.12
+# A kick carries the player across the shaft until the next wall, a floor, or this
+# timeout; input steering resumes afterwards (e.g. after leaving the shaft top).
+const WALL_KICK_CARRY_TIME := 0.45
+# Gentle push that keeps an attached player in contact without holding a direction.
+const WALL_STICK_PUSH := 40.0
 const JUMP_BUFFER_TIME := 0.12
 const WALL_COYOTE_TIME := 0.10
 
@@ -312,7 +316,11 @@ func _physics_process(delta: float) -> void:
 		velocity.y += GRAVITY * delta
 
 	if kick_control_left <= 0.0:
-		velocity.x = dir * MOVE_SPEED
+		if is_wall_sliding and dir * wall_normal.x <= 0.0:
+			# Attached: stay on the wall until jumping or pressing away from it.
+			velocity.x = -wall_normal.x * WALL_STICK_PUSH
+		else:
+			velocity.x = dir * MOVE_SPEED
 	_update_wall_contact(dir)
 	if is_wall_sliding:
 		velocity.y = minf(velocity.y, WALL_SLIDE_SPEED)
@@ -322,7 +330,7 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector2(wall_normal.x * WALL_KICK.x, WALL_KICK.y)
 			locked_wall_id = wall_id
 			wall_lock_left = WALL_REGRAB_TIME
-			kick_control_left = WALL_KICK_CONTROL_TIME
+			kick_control_left = WALL_KICK_CARRY_TIME
 			wall_coyote_left = 0.0
 			# The kick is separate; exactly one mid-air double jump remains.
 			jumps_remaining = 1
@@ -375,9 +383,11 @@ func _physics_process(delta: float) -> void:
 
 
 # Only authored climbable bodies participate; old level geometry stays ordinary.
+# Any airborne contact catches the wall (rising or falling, no input needed) unless
+# the player presses away from it, so kicks chain left-right-left up a shaft.
 func _update_wall_contact(direction: float) -> void:
 	is_wall_sliding = false
-	if is_on_floor() or not is_on_wall() or velocity.y < 0.0:
+	if is_on_floor() or not is_on_wall():
 		return
 	for index in get_slide_collision_count():
 		var collision := get_slide_collision(index)
@@ -385,7 +395,7 @@ func _update_wall_contact(direction: float) -> void:
 		var normal := collision.get_normal()
 		if body == null or not body.is_in_group("climbable_walls"):
 			continue
-		if absf(normal.x) < 0.9 or direction * normal.x >= 0.0:
+		if absf(normal.x) < 0.9 or direction * normal.x > 0.0:
 			continue
 		var candidate_id := body.get_instance_id()
 		if candidate_id == locked_wall_id and wall_lock_left > 0.0:
@@ -394,6 +404,8 @@ func _update_wall_contact(direction: float) -> void:
 		wall_normal = normal
 		wall_coyote_left = WALL_COYOTE_TIME
 		is_wall_sliding = true
+		# Reaching the next wall ends the kick carry.
+		kick_control_left = 0.0
 		return
 
 func _draw() -> void:

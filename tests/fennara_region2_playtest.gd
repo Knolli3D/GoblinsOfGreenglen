@@ -24,28 +24,32 @@ func walk_to(ctx: Variant, target_x: float, seconds: float = 2.0) -> void:
 		await ctx.wait(0.025)
 	ctx.release_all_actions()
 
+# Jump-only zig-zag: hold right only until the first crag catches, then just tap jump
+# whenever attached. Each kick carries the player to the opposite crag; the last one
+# exits the shaft top onto solid ground.
 func climb(ctx: Variant, exit_y: float) -> void:
 	ctx.press_action("move_right")
 	await ctx.tap_action("jump", 0.03)
+	for step in range(40):
+		if game(ctx).player.is_wall_sliding:
+			break
+		await ctx.wait(0.02)
+	ctx.release_all_actions()
+	var kicks_here := 0
 	for step in range(210):
 		var player: CharacterBody2D = game(ctx).player
-		if player.position.y < exit_y:
+		if player.position.y < exit_y or game(ctx).run_outcome != 0:
 			break
-		if player.position.y < exit_y + 125 and player.jumps_remaining == 1 and player.velocity.y < 0:
-			await ctx.tap_action("jump", 0.025)
-			ctx.release_all_actions()
-			ctx.press_action("move_right")
-		elif player.is_wall_sliding:
-			var away: float = player.wall_normal.x
+		if kicks_here > 0 and player.is_on_floor():
+			break
+		if player.is_wall_sliding:
 			await ctx.tap_action("jump", 0.025)
 			if game(ctx).player.velocity.y < -400:
 				kick_count += 1
-			ctx.release_all_actions()
-			ctx.press_action("move_right" if away > 0 else "move_left")
-		if game(ctx).run_outcome != 0:
-			break
+				kicks_here += 1
 		await ctx.wait(0.04)
 	ctx.release_all_actions()
+
 
 func run(ctx: Variant) -> void:
 	await ctx.restart_scene()

@@ -37,6 +37,7 @@ func release_inputs() -> void:
 func _run() -> void:
 	await _bounds()
 	await _walls()
+	await _zigzag()
 	await _checkpoints()
 	release_inputs()
 	if failures == 0:
@@ -155,6 +156,53 @@ func _walls() -> void:
 	await frames(1)
 	check(falls == 1, "player emits fall at authored limit")
 	check(player.wall_coyote_left == 0 and player.jump_buffer_left == 0, "fall reset clears pending wall and jump state")
+	lab.queue_free()
+	await frames(2)
+
+# Jump-only zig-zag: after the first contact no direction is held; each kick must carry
+# the player to the opposite crag, where it catches automatically and gains height.
+func _zigzag() -> void:
+	var lab: Node2D = load("res://scenes/prototypes/WallJumpLab.tscn").instantiate()
+	root.add_child(lab)
+	await frames(5)
+	var player: CharacterBody2D = lab.get_node("Player")
+	var kicks: Array = []
+	player.wall_jumped.connect(func(): kicks.append(player.wall_normal.x))
+	Input.action_press("move_right")
+	await tap_jump()
+	for index in range(40):
+		await frames(1)
+		if player.is_wall_sliding:
+			break
+	Input.action_release("move_right")
+	check(player.is_wall_sliding and player.wall_normal.x < 0, "zigzag: first crag caught")
+	var start_y: float = player.global_position.y
+	await frames(12)
+	check(player.is_wall_sliding and player.velocity.y <= 120.01,
+		"zigzag: no input keeps a slow slide on the wall")
+	var normals: Array = []
+	for bounce in range(6):
+		await tap_jump()
+		var caught := false
+		for index in range(45):
+			await frames(1)
+			if player.is_wall_sliding:
+				caught = true
+				break
+		if not caught:
+			break
+		normals.append(player.wall_normal.x)
+	var alternating := normals.size() == 6
+	for index in range(normals.size()):
+		var expected := 1.0 if index % 2 == 0 else -1.0
+		if signf(normals[index]) != expected:
+			alternating = false
+	check(kicks.size() == 6 and alternating, "zigzag: six jump-only kicks alternate left/right walls")
+	check(start_y - player.global_position.y > 300.0, "zigzag: chained kicks climb the shaft")
+	Input.action_press("move_right" if player.wall_normal.x > 0 else "move_left")
+	await frames(6)
+	check(not player.is_wall_sliding, "zigzag: pressing away lets go of the wall")
+	release_inputs()
 	lab.queue_free()
 	await frames(2)
 

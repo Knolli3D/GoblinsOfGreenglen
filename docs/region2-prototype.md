@@ -12,8 +12,10 @@ Map. The other Region 2 levels show "Coming Soon" until their scenes exist. Map 
 Region 2 never update Best Score/Best Time.
 
 - Move with A/D or arrows; Space/Up jumps and double-jumps.
-- Hold toward a green, striped crag while falling to slide. Press jump to kick away,
-  then steer toward the opposite wall. Each kick leaves one double-jump available.
+- Touch a green, striped crag in the air to catch it; you slowly slide down. Tap jump
+  to kick diagonally up to the opposite crag, which catches you automatically, and
+  keep tapping to zig-zag up the shaft. No direction input is needed; pressing away
+  from the wall lets go. Each kick leaves one double-jump available.
 - Touch the midway flag to activate the checkpoint. Both hits and falls respawn
   there, cost one heart/score point, and retain damage tracking. Before activation,
   recovery uses the starting position. Fatal damage ends the attempt.
@@ -35,10 +37,12 @@ hidden in the development harness.
    and the original bottom-plus-160 fall margin. The existing parallax landscape
    remains vertically fixed to the viewport; the fallback sky covers the full level.
 2. **Wall jumping:** only StaticBody2D nodes explicitly in `climbable_walls` qualify.
-   Falling while holding toward the wall caps descent at 120 px/s. Kicks use
-   260 px/s horizontally and -480 px/s vertically, a 250 ms same-wall re-grab
-   lock, 120 ms initial kick control, a 120 ms jump buffer, and 100 ms wall coyote
-   grace. Landing/respawning clears the lock. Ordinary walls remain ordinary.
+   Any airborne contact catches the wall (rising or falling, no input needed) and
+   caps descent at 120 px/s; pressing away releases it. Kicks use 260 px/s
+   horizontally and -480 px/s vertically and carry the player across the shaft
+   without steering until the next wall, a floor, or 450 ms pass (~85 px gained per
+   bounce in the 120 px Foothill shafts). Also: 250 ms same-wall re-grab lock,
+   120 ms jump buffer, and 100 ms wall coyote grace. Landing/respawning clears the lock. Ordinary walls remain ordinary.
    Jump buffering also applies to the existing ground/air jump input.
 3. **Checkpoints:** `Checkpoint.tscn` contains an Area2D and an editable
    `RespawnPoint`. It emits an activation intent; Game owns the accepted checkpoint
