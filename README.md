@@ -66,6 +66,10 @@ No external plugins or dependencies required.
 
 ---
 
+## Region 2 Development Prototype
+
+Open `scenes/prototypes/Region2Playtest.tscn` in Godot and press **F6** to play the Foothill Scramble blockout: vertical camera bounds, tagged wall slides/jumps, and an attempt-local midway checkpoint. Region 2 remains unreleased on the campaign map. Prototype play awards no quests, campaign progress, or records. See the [playtest and verification notes](docs/region2-prototype.md).
+
 ## Testing
 
 The project ships a dependency-free headless test harness (plain GDScript, no external framework). It requires **Godot 4.6**. One command runs the complete suite:
@@ -75,7 +79,7 @@ The project ships a dependency-free headless test harness (plain GDScript, no ex
 ```
 
 - **Exit codes:** `0` when every check passes *and* the save-isolation canary is intact; any failing check (or canary violation) returns `1`.
-- **Coverage:** three suites run as isolated child processes — save validation/upgrade/recovery (95 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (286 checks: component ownership/wiring, active run timing and reset/freeze rules, Final Score and independent records, the campaign map submenu, 960×540 layout fit, animation/damage feedback, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, and transition cancellation). **449 checks total.**
+- **Coverage:** four suites run as isolated child processes — save validation/upgrade/recovery (95 checks), campaign catalog/progression behavior (68 checks), and scene/behavior smoke coverage (311 checks: component ownership/wiring, active run timing and reset/freeze rules, Final Score and independent records, the campaign map submenu, 960×540 layout fit, animation/damage feedback, menu interactions and case/skin flow, all scenes and levels, resources, run-result lifecycle, and transition cancellation). The vertical-platforming suite adds 48 checks for bounds, wall movement, checkpoint guards, damage recovery, and retry isolation. **522 checks total.**
 - **Deterministic:** all randomness is seeded and no assertion depends on frame rate; repeated runs produce identical results.
 - **Verified save isolation:** every suite redirects all save I/O into a fresh temporary directory *before* the game's autoload starts (save migration included), and the runner hash-verifies your real `highscore.cfg`, `progression.cfg`, and `campaign.cfg` files (plus `.bak` backups) before and after the run. Temporary files are cleaned up on success.
 

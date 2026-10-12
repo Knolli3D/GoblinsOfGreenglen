@@ -5,6 +5,7 @@ signal hit_enemy
 signal fell_off
 signal reached_goal
 signal jumped
+signal wall_jumped
 signal double_jumped
 
 const GRAVITY := 1400.0
@@ -17,6 +18,22 @@ const STOMP_MIN_HORIZONTAL_OVERLAP := 4.0
 const DAMAGE_BLINK_INTERVAL := 0.1
 const DAMAGE_BLINK_ALPHA := 0.25
 
+const WALL_SLIDE_SPEED := 120.0
+const WALL_KICK := Vector2(260.0, -480.0)
+const WALL_REGRAB_TIME := 0.25
+const WALL_KICK_CONTROL_TIME := 0.12
+const JUMP_BUFFER_TIME := 0.12
+const WALL_COYOTE_TIME := 0.10
+
+var fall_limit_y := 700.0
+var is_wall_sliding := false
+var wall_coyote_left := 0.0
+var jump_buffer_left := 0.0
+var wall_lock_left := 0.0
+var kick_control_left := 0.0
+var wall_id := 0
+var locked_wall_id := 0
+var wall_normal := Vector2.ZERO
 var jumps_remaining := 0
 var jump_animation_enabled := true
 var run_animation_enabled := false
@@ -264,29 +281,67 @@ func apply_skin(skin: Dictionary) -> void:
 		sprite.scale = Vector2.ONE * (52.0 / float(sprite.texture.get_height()))
 		sprite.position = Vector2(0, -2)
 
+func reset_movement() -> void:
+	velocity = Vector2.ZERO
+	jumps_remaining = MAX_JUMPS
+	is_wall_sliding = false
+	wall_coyote_left = 0.0
+	jump_buffer_left = 0.0
+	wall_lock_left = 0.0
+	kick_control_left = 0.0
+	wall_id = 0
+	locked_wall_id = 0
+	wall_normal = Vector2.ZERO
+	queue_redraw()
+
 func _physics_process(delta: float) -> void:
+	var dir := Input.get_axis("move_left", "move_right")
+	jump_buffer_left = maxf(0.0, jump_buffer_left - delta)
+	wall_coyote_left = maxf(0.0, wall_coyote_left - delta)
+	wall_lock_left = maxf(0.0, wall_lock_left - delta)
+	kick_control_left = maxf(0.0, kick_control_left - delta)
+	if Input.is_action_just_pressed("jump"):
+		jump_buffer_left = JUMP_BUFFER_TIME
 	if is_on_floor():
 		jumps_remaining = MAX_JUMPS
-
-	if not is_on_floor():
+		wall_coyote_left = 0.0
+		wall_lock_left = 0.0
+		locked_wall_id = 0
+		kick_control_left = 0.0
+	else:
 		velocity.y += GRAVITY * delta
 
-	if Input.is_action_just_pressed("jump") and jumps_remaining > 0:
-		if jumps_remaining == MAX_JUMPS:
-			velocity.y = JUMP_VELOCITY
-			jumped.emit()
-		else:
-			velocity.y = DOUBLE_JUMP_VELOCITY
-			double_jumped.emit()
-		_play_jump_animation()
-		jumps_remaining -= 1
-
-	var dir := 0.0
-	if Input.is_action_pressed("move_left"):
-		dir -= 1.0
-	if Input.is_action_pressed("move_right"):
-		dir += 1.0
-	velocity.x = dir * MOVE_SPEED
+	if kick_control_left <= 0.0:
+		velocity.x = dir * MOVE_SPEED
+	_update_wall_contact(dir)
+	if is_wall_sliding:
+		velocity.y = minf(velocity.y, WALL_SLIDE_SPEED)
+	if jump_buffer_left > 0.0:
+		if wall_coyote_left > 0.0 and not is_on_floor() \
+				and (wall_id != locked_wall_id or wall_lock_left <= 0.0):
+			velocity = Vector2(wall_normal.x * WALL_KICK.x, WALL_KICK.y)
+			locked_wall_id = wall_id
+			wall_lock_left = WALL_REGRAB_TIME
+			kick_control_left = WALL_KICK_CONTROL_TIME
+			wall_coyote_left = 0.0
+			# The kick is separate; exactly one mid-air double jump remains.
+			jumps_remaining = 1
+			jump_buffer_left = 0.0
+			is_wall_sliding = false
+			wall_jumped.emit()
+			_play_jump_animation()
+		elif jumps_remaining > 0:
+			if jumps_remaining == MAX_JUMPS:
+				velocity.y = JUMP_VELOCITY
+				jumped.emit()
+			else:
+				velocity.y = DOUBLE_JUMP_VELOCITY
+				double_jumped.emit()
+			jumps_remaining -= 1
+			jump_buffer_left = 0.0
+			wall_coyote_left = 0.0
+			_play_jump_animation()
+	queue_redraw()
 
 	var previous_global_position := global_position
 	var was_descending := velocity.y > 0.0
@@ -295,7 +350,7 @@ func _physics_process(delta: float) -> void:
 		_show_static_sprite()
 	_update_run_animation(dir)
 
-	if position.y > 700:
+	if global_position.y > fall_limit_y:
 		fell_off.emit()
 		return
 
@@ -317,6 +372,35 @@ func _physics_process(delta: float) -> void:
 		if col and col.is_in_group("goals"):
 			reached_goal.emit()
 			return
+
+
+# Only authored climbable bodies participate; old level geometry stays ordinary.
+func _update_wall_contact(direction: float) -> void:
+	is_wall_sliding = false
+	if is_on_floor() or not is_on_wall() or velocity.y < 0.0:
+		return
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		var body := collision.get_collider() as Node
+		var normal := collision.get_normal()
+		if body == null or not body.is_in_group("climbable_walls"):
+			continue
+		if absf(normal.x) < 0.9 or direction * normal.x >= 0.0:
+			continue
+		var candidate_id := body.get_instance_id()
+		if candidate_id == locked_wall_id and wall_lock_left > 0.0:
+			continue
+		wall_id = candidate_id
+		wall_normal = normal
+		wall_coyote_left = WALL_COYOTE_TIME
+		is_wall_sliding = true
+		return
+
+func _draw() -> void:
+	if is_wall_sliding:
+		var side := -wall_normal.x * 17.0
+		draw_line(Vector2(side, -12), Vector2(side, 7), Color("#b8efd0"), 2.0)
+		draw_line(Vector2(side * 0.8, 0), Vector2(side * 0.8, 17), Color("#b8efd0"), 1.5)
 
 func _play_jump_animation() -> void:
 	if not jump_animation_enabled:

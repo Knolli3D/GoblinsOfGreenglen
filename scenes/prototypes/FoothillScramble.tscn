@@ -1,0 +1,511 @@
+[gd_scene format=3 uid="uid://d0y6rhq1fcp0s"]
+
+[ext_resource type="Script" uid="uid://d16oo5woybv4x" path="res://scripts/Level.gd" id="1_1tx3q"]
+[ext_resource type="PackedScene" uid="uid://cr755a63q6fvf" path="res://scenes/Checkpoint.tscn" id="2_tixwk"]
+[ext_resource type="PackedScene" uid="uid://c0krjl0wjbek4" path="res://scenes/Enemy.tscn" id="3_hqn6f"]
+[ext_resource type="PackedScene" path="res://scenes/Coin.tscn" id="4_q1o3a"]
+[ext_resource type="PackedScene" path="res://scenes/Goal.tscn" id="5_jhmfv"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o8w0q"]
+size = Vector2(220, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grkbx"]
+size = Vector2(340, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_18dgl"]
+size = Vector2(40, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3tj18"]
+size = Vector2(40, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6ypfc"]
+size = Vector2(410, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7rr8d"]
+size = Vector2(160, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2fujc"]
+size = Vector2(40, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nhhsy"]
+size = Vector2(40, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_veoig"]
+size = Vector2(120, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3macs"]
+size = Vector2(150, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v8smw"]
+size = Vector2(40, 1620)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_an8ol"]
+size = Vector2(40, 1620)
+
+[node name="FoothillScramble" type="Node2D" unique_id=556674224]
+script = ExtResource("1_1tx3q")
+level_width = 1200
+level_height = 1620
+checkpoint_respawn_on_hit = true
+
+[node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1378906887]
+position = Vector2(90, 1460)
+
+[node name="Platforms" type="Node2D" parent="." unique_id=1843319529]
+
+[node name="StartShelf" type="StaticBody2D" parent="Platforms" unique_id=1029669178]
+position = Vector2(110, 1520)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/StartShelf" unique_id=982888655]
+shape = SubResource("RectangleShape2D_o8w0q")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/StartShelf" unique_id=231916405]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-110, -20, 110, -20, 110, 20, -110, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/StartShelf" unique_id=816075557]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-110, -20, 110, -20, 110, -14, -110, -14)
+
+[node name="ApproachShelf" type="StaticBody2D" parent="Platforms" unique_id=1751473928]
+position = Vector2(650, 1520)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/ApproachShelf" unique_id=1420521500]
+shape = SubResource("RectangleShape2D_grkbx")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/ApproachShelf" unique_id=379607487]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-170, -20, 170, -20, 170, 20, -170, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/ApproachShelf" unique_id=1631047936]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-170, -20, 170, -20, 170, -14, -170, -14)
+
+[node name="FirstLeftCrag" type="StaticBody2D" parent="Platforms" unique_id=1878089439 groups=["climbable_walls"]]
+position = Vector2(540, 1170)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FirstLeftCrag" unique_id=280554201]
+shape = SubResource("RectangleShape2D_18dgl")
+
+[node name="Crag" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=792804281]
+color = Color(0.3137255, 0.52156866, 0.45882353, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, 250, -20, 250)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=629463059]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, -244, -20, -244)
+
+[node name="Grip0" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1468184576]
+position = Vector2(0, -225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip1" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=313701065]
+position = Vector2(0, -175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip2" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1863355602]
+position = Vector2(0, -125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip3" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1376437014]
+position = Vector2(0, -75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip4" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1144464410]
+position = Vector2(0, -25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip5" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1834897412]
+position = Vector2(0, 25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip6" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1898976040]
+position = Vector2(0, 75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip7" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=65981020]
+position = Vector2(0, 125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip8" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=357056592]
+position = Vector2(0, 175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip9" type="Polygon2D" parent="Platforms/FirstLeftCrag" unique_id=1374649191]
+position = Vector2(0, 225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="FirstRightCrag" type="StaticBody2D" parent="Platforms" unique_id=1087662054 groups=["climbable_walls"]]
+position = Vector2(700, 1170)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/FirstRightCrag" unique_id=1684461937]
+shape = SubResource("RectangleShape2D_3tj18")
+
+[node name="Crag" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1440431011]
+color = Color(0.3137255, 0.52156866, 0.45882353, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, 250, -20, 250)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1802068478]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, -244, -20, -244)
+
+[node name="Grip0" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1490937373]
+position = Vector2(0, -225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip1" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1953558692]
+position = Vector2(0, -175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip2" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1236907049]
+position = Vector2(0, -125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip3" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1000823886]
+position = Vector2(0, -75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip4" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=387799906]
+position = Vector2(0, -25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip5" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1871809340]
+position = Vector2(0, 25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip6" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=351005712]
+position = Vector2(0, 75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip7" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=113766563]
+position = Vector2(0, 125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip8" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=724135259]
+position = Vector2(0, 175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip9" type="Polygon2D" parent="Platforms/FirstRightCrag" unique_id=1170704888]
+position = Vector2(0, 225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="CheckpointShelf" type="StaticBody2D" parent="Platforms" unique_id=243231526]
+position = Vector2(905, 940)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/CheckpointShelf" unique_id=1118633080]
+shape = SubResource("RectangleShape2D_6ypfc")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/CheckpointShelf" unique_id=274894524]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-205, -20, 205, -20, 205, 20, -205, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/CheckpointShelf" unique_id=1406773277]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-205, -20, 205, -20, 205, -14, -205, -14)
+
+[node name="LowerBonusShelf" type="StaticBody2D" parent="Platforms" unique_id=2035644333]
+position = Vector2(440, 940)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/LowerBonusShelf" unique_id=2147081623]
+shape = SubResource("RectangleShape2D_7rr8d")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/LowerBonusShelf" unique_id=870263574]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-80, -20, 80, -20, 80, 20, -80, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/LowerBonusShelf" unique_id=1858008440]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-80, -20, 80, -20, 80, -14, -80, -14)
+
+[node name="SecondLeftCrag" type="StaticBody2D" parent="Platforms" unique_id=1338874586 groups=["climbable_walls"]]
+position = Vector2(920, 590)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/SecondLeftCrag" unique_id=1592333965]
+shape = SubResource("RectangleShape2D_2fujc")
+
+[node name="Crag" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1968590612]
+color = Color(0.3137255, 0.52156866, 0.45882353, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, 250, -20, 250)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=894115079]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, -244, -20, -244)
+
+[node name="Grip0" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1936828474]
+position = Vector2(0, -225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip1" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=304284238]
+position = Vector2(0, -175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip2" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=949808714]
+position = Vector2(0, -125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip3" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1249454810]
+position = Vector2(0, -75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip4" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=987212889]
+position = Vector2(0, -25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip5" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1727392822]
+position = Vector2(0, 25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip6" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1329954411]
+position = Vector2(0, 75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip7" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1924891515]
+position = Vector2(0, 125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip8" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1795041882]
+position = Vector2(0, 175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip9" type="Polygon2D" parent="Platforms/SecondLeftCrag" unique_id=1773574358]
+position = Vector2(0, 225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="SecondRightCrag" type="StaticBody2D" parent="Platforms" unique_id=493493260 groups=["climbable_walls"]]
+position = Vector2(1080, 590)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/SecondRightCrag" unique_id=744324193]
+shape = SubResource("RectangleShape2D_nhhsy")
+
+[node name="Crag" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=606485221]
+color = Color(0.3137255, 0.52156866, 0.45882353, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, 250, -20, 250)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1636363996]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -250, 20, -250, 20, -244, -20, -244)
+
+[node name="Grip0" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=564065624]
+position = Vector2(0, -225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip1" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1782932108]
+position = Vector2(0, -175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip2" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1546271584]
+position = Vector2(0, -125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip3" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=2132418856]
+position = Vector2(0, -75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip4" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=189613449]
+position = Vector2(0, -25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip5" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1578128173]
+position = Vector2(0, 25)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip6" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1847779542]
+position = Vector2(0, 75)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip7" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1752311449]
+position = Vector2(0, 125)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip8" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=721036719]
+position = Vector2(0, 175)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="Grip9" type="Polygon2D" parent="Platforms/SecondRightCrag" unique_id=1186631722]
+position = Vector2(0, 225)
+color = Color(0.5921569, 0.78431374, 0.67058825, 1)
+polygon = PackedVector2Array(-20, -3, 20, 1, 20, 5, -20, 1)
+
+[node name="SummitShelf" type="StaticBody2D" parent="Platforms" unique_id=564490384]
+position = Vector2(1140, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/SummitShelf" unique_id=1146260002]
+shape = SubResource("RectangleShape2D_veoig")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/SummitShelf" unique_id=642469178]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-60, -20, 60, -20, 60, 20, -60, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/SummitShelf" unique_id=980808081]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-60, -20, 60, -20, 60, -14, -60, -14)
+
+[node name="UpperBonusShelf" type="StaticBody2D" parent="Platforms" unique_id=949545106]
+position = Vector2(825, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/UpperBonusShelf" unique_id=1519781845]
+shape = SubResource("RectangleShape2D_3macs")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/UpperBonusShelf" unique_id=2060575653]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-75, -20, 75, -20, 75, 20, -75, 20)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/UpperBonusShelf" unique_id=892122248]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-75, -20, 75, -20, 75, -14, -75, -14)
+
+[node name="WestBoundary" type="StaticBody2D" parent="Platforms" unique_id=837254942]
+position = Vector2(-20, 810)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/WestBoundary" unique_id=142140493]
+shape = SubResource("RectangleShape2D_v8smw")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/WestBoundary" unique_id=1176415895]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-20, -810, 20, -810, 20, 810, -20, 810)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/WestBoundary" unique_id=2135432258]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -810, 20, -810, 20, -804, -20, -804)
+
+[node name="EastBoundary" type="StaticBody2D" parent="Platforms" unique_id=1013845691]
+position = Vector2(1220, 810)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platforms/EastBoundary" unique_id=261765618]
+shape = SubResource("RectangleShape2D_an8ol")
+
+[node name="Stone" type="Polygon2D" parent="Platforms/EastBoundary" unique_id=302839374]
+color = Color(0.28235295, 0.3529412, 0.4117647, 1)
+polygon = PackedVector2Array(-20, -810, 20, -810, 20, 810, -20, 810)
+
+[node name="MossEdge" type="Polygon2D" parent="Platforms/EastBoundary" unique_id=394723783]
+color = Color(0.60784316, 0.7607843, 0.63529414, 1)
+polygon = PackedVector2Array(-20, -810, 20, -810, 20, -804, -20, -804)
+
+[node name="MidwayCheckpoint" parent="." unique_id=1937281390 instance=ExtResource("2_tixwk")]
+position = Vector2(770, 920)
+
+[node name="Goblin1" parent="." unique_id=181762694 instance=ExtResource("3_hqn6f")]
+position = Vector2(785, 1487)
+patrol_range = 18.0
+
+[node name="Goblin2" parent="." unique_id=1332008988 instance=ExtResource("3_hqn6f")]
+position = Vector2(865, 907)
+patrol_range = 18.0
+
+[node name="Goblin3" parent="." unique_id=863957333 instance=ExtResource("3_hqn6f")]
+position = Vector2(420, 907)
+patrol_range = 18.0
+
+[node name="Goblin4" parent="." unique_id=284800517 instance=ExtResource("3_hqn6f")]
+position = Vector2(805, 327)
+patrol_range = 18.0
+
+[node name="Coin1" parent="." unique_id=1743238446 instance=ExtResource("4_q1o3a")]
+position = Vector2(350, 1370)
+
+[node name="Coin2" parent="." unique_id=247239183 instance=ExtResource("4_q1o3a")]
+position = Vector2(620, 1310)
+
+[node name="Coin3" parent="." unique_id=83948874 instance=ExtResource("4_q1o3a")]
+position = Vector2(620, 1080)
+
+[node name="Coin4" parent="." unique_id=981451025 instance=ExtResource("4_q1o3a")]
+position = Vector2(785, 875)
+
+[node name="Coin5" parent="." unique_id=1160778678 instance=ExtResource("4_q1o3a")]
+position = Vector2(1000, 655)
+
+[node name="Coin6" parent="." unique_id=1248961918 instance=ExtResource("4_q1o3a")]
+position = Vector2(1000, 185)
+
+[node name="Goal" parent="." unique_id=984338017 instance=ExtResource("5_jhmfv")]
+position = Vector2(1160, 340)
+
+[node name="StartHint" type="Label" parent="." unique_id=895109342]
+offset_left = 30.0
+offset_top = 1330.0
+offset_right = 30.0
+offset_bottom = 1330.0
+theme_override_colors/font_color = Color(1, 0.94509804, 0.76862746, 1)
+theme_override_colors/font_outline_color = Color(0.08235294, 0.1764706, 0.24313726, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "FOOTHILL SCRAMBLE
+Jump, then jump again across the gap"
+
+[node name="WallHint" type="Label" parent="." unique_id=402310274]
+offset_left = 370.0
+offset_top = 1250.0
+offset_right = 370.0
+offset_bottom = 1250.0
+theme_override_colors/font_color = Color(1, 0.94509804, 0.76862746, 1)
+theme_override_colors/font_outline_color = Color(0.08235294, 0.1764706, 0.24313726, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "Green crags grip
+Hold toward the wall
+Jump to kick away"
+
+[node name="CheckpointHint" type="Label" parent="." unique_id=1178342508]
+offset_left = 720.0
+offset_top = 1000.0
+offset_right = 720.0
+offset_bottom = 1000.0
+theme_override_colors/font_color = Color(1, 0.94509804, 0.76862746, 1)
+theme_override_colors/font_outline_color = Color(0.08235294, 0.1764706, 0.24313726, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "Midway camp
+The flag remembers your footing"
+
+[node name="SummitHint" type="Label" parent="." unique_id=394708373]
+offset_left = 970.0
+offset_top = 250.0
+offset_right = 970.0
+offset_bottom = 250.0
+theme_override_colors/font_color = Color(1, 0.94509804, 0.76862746, 1)
+theme_override_colors/font_outline_color = Color(0.08235294, 0.1764706, 0.24313726, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "The vale below.
+The summit ahead."

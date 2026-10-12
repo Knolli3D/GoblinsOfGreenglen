@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://dheodfdrvn6uc"]
+
+[ext_resource type="Script" uid="uid://oy7aaf45qouu" path="res://scripts/prototypes/VerticalLab.gd" id="1_cuiaj"]
+[ext_resource type="PackedScene" uid="uid://daweadhrnw7d0" path="res://scenes/Player.tscn" id="2_4h3fy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hyh4a"]
+size = Vector2(900, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o7qmk"]
+size = Vector2(40, 720)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nh778"]
+size = Vector2(40, 720)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2vv0q"]
+size = Vector2(40, 360)
+
+[node name="WallJumpLab" type="Node2D" unique_id=1361474707]
+script = ExtResource("1_cuiaj")
+level_top = -540
+level_height = 1080
+
+[node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1793896571]
+position = Vector2(480, 455)
+
+[node name="Player" parent="." unique_id=378607525 instance=ExtResource("2_4h3fy")]
+position = Vector2(480, 455)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=992141917]
+position = Vector2(480, 500)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=413015677]
+shape = SubResource("RectangleShape2D_hyh4a")
+
+[node name="Blockout" type="Polygon2D" parent="Floor" unique_id=1831104829]
+color = Color(0.34509805, 0.40392157, 0.47058824, 1)
+polygon = PackedVector2Array(-450, -20, 450, -20, 450, 20, -450, 20)
+
+[node name="LeftCrag" type="StaticBody2D" parent="." unique_id=537043323 groups=["climbable_walls"]]
+position = Vector2(400, 120)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftCrag" unique_id=1486026090]
+shape = SubResource("RectangleShape2D_o7qmk")
+
+[node name="Blockout" type="Polygon2D" parent="LeftCrag" unique_id=1295713240]
+color = Color(0.32941177, 0.5411765, 0.4627451, 1)
+polygon = PackedVector2Array(-20, -360, 20, -360, 20, 360, -20, 360)
+
+[node name="RightCrag" type="StaticBody2D" parent="." unique_id=1105308829 groups=["climbable_walls"]]
+position = Vector2(560, 120)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightCrag" unique_id=1084800139]
+shape = SubResource("RectangleShape2D_nh778")
+
+[node name="Blockout" type="Polygon2D" parent="RightCrag" unique_id=1583916670]
+color = Color(0.32941177, 0.5411765, 0.4627451, 1)
+polygon = PackedVector2Array(-20, -360, 20, -360, 20, 360, -20, 360)
+
+[node name="PlainWall" type="StaticBody2D" parent="." unique_id=476344097]
+position = Vector2(800, 300)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlainWall" unique_id=1567454962]
+shape = SubResource("RectangleShape2D_2vv0q")
+
+[node name="Blockout" type="Polygon2D" parent="PlainWall" unique_id=1875003486]
+color = Color(0.34509805, 0.40392157, 0.47058824, 1)
+polygon = PackedVector2Array(-20, -180, 20, -180, 20, 180, -20, 180)

@@ -1,6 +1,12 @@
 extends Node2D
 
 @export var level_width: int = 960
+# Local authored bounds; defaults preserve all six existing levels.
+@export var level_top: int = 0
+@export_range(540, 10000, 1) var level_height: int = 540
+@export var fall_depth: float = 160.0
+@export var checkpoint_respawn_on_hit: bool = false
+
 @export var randomize_spawns: bool = false
 @export var goblin_count: int = 8
 @export var coin_count: int = 10
@@ -25,6 +31,23 @@ const BG_LAYERS := [
 ]
 var _bg_active := false
 
+func camera_bounds() -> Rect2:
+	return Rect2(global_position + Vector2(0, level_top), Vector2(level_width, level_height))
+
+func fall_limit() -> float:
+	return camera_bounds().end.y + fall_depth
+
+func configure_camera(camera: Camera2D) -> void:
+	var bounds := camera_bounds()
+	camera.limit_left = roundi(bounds.position.x)
+	camera.limit_top = roundi(bounds.position.y)
+	camera.limit_right = roundi(bounds.end.x)
+	camera.limit_bottom = roundi(bounds.end.y)
+	camera.position_smoothing_enabled = level_height > 540
+	camera.position_smoothing_speed = 8.0
+	# Hard limits remain authoritative while following smoothly.
+	camera.limit_smoothed = false
+
 func _ready() -> void:
 	_build_parallax_background()
 
@@ -42,6 +65,7 @@ func _build_parallax_background() -> void:
 
 		var px := Parallax2D.new()
 		var scroll: float = layer_def.scroll_scale
+		# Zero vertical scroll pins this full landscape to the viewport during ascent.
 		px.scroll_scale = Vector2(scroll, 0.0)
 		px.repeat_size = Vector2(scaled_width, 0.0)
 		px.z_index = -20 + i
@@ -60,7 +84,7 @@ func _build_parallax_background() -> void:
 func _draw() -> void:
 	if _bg_active:
 		return
-	draw_rect(Rect2(0, 0, level_width, 540), Color(0.45, 0.6, 0.85))
+	draw_rect(Rect2(0, level_top, level_width, level_height), Color(0.45, 0.6, 0.85))
 	draw_rect(Rect2(0, 360, level_width, 180), Color(0.3, 0.35, 0.5))
 
 func randomize_level_spawns() -> void:

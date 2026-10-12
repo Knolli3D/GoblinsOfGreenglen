@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Kompletter Test-Runner: führt beide Suiten (Save-System + Smoke/Verhalten) als
+# Kompletter Test-Runner: führt vier Suiten (Save, Campaign, Smoke, Vertical) als
 # isolierte Kind-Prozesse aus und beweist per Canary-Hashes, dass die echten Saves
 # unter user:// unverändert bleiben. DER eine dokumentierte Befehl:
 #
@@ -21,6 +21,7 @@ const SUITES := [
 	"res://tests/test_save_system.gd",
 	"res://tests/test_campaign_progress.gd",
 	"res://tests/test_smoke.gd",
+	"res://tests/test_vertical_platforming.gd",
 ]
 const CANARY_FILES := [
 	"highscore.cfg", "highscore.cfg.bak",

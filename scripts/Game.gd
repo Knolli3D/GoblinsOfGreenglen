@@ -38,6 +38,8 @@ var transition_gen := 0
 var invuln_until := 0.0
 var run_outcome := RunOutcome.NONE
 var level_root: Node2D
+var respawn_position := Vector2.ZERO
+var active_checkpoint: Area2D
 var player: CharacterBody2D
 var in_main_menu := true
 var took_damage_this_level := false
@@ -189,6 +191,8 @@ func _show_main_menu() -> void:
 	run_outcome = RunOutcome.NONE
 	run_timer_active = false
 	in_main_menu = true
+	active_checkpoint = null
+	respawn_position = Vector2.ZERO
 	get_tree().paused = false
 	menus.set_pause_visible(false)
 	menus.hide_result()
@@ -249,6 +253,8 @@ func _open_campaign_map(region_id: String) -> void:
 	run_outcome = RunOutcome.NONE
 	run_timer_active = false
 	in_main_menu = true
+	active_checkpoint = null
+	respawn_position = Vector2.ZERO
 	get_tree().paused = false
 	menus.hide_main_menu()
 	menus.set_pause_visible(false)
@@ -359,10 +365,14 @@ func _update_hud() -> void:
 	)
 
 
+func _record_quest(stat: String) -> void:
+	Progression.add_quest_progress(stat)
+
+
 func coin_collected() -> void:
 	coin_count += 1
 	play_sfx("coin", 0.06)
-	Progression.add_quest_progress("coin")
+	_record_quest("coin")
 	_update_hud()
 
 
@@ -385,13 +395,19 @@ func _load_level_by_id(level_id: String) -> void:
 	if packed == null:
 		push_warning("Campaign: level '%s' has no loadable scene" % level_id)
 		return
-	transition_gen += 1
-	_stop_player_damage_blink()
-	if level_root:
-		level_root.queue_free()
 	current_region_id = String(level_definition.get("region_id", ""))
 	current_level_id = level_id
 	current_level = int(campaign_catalog.call("get_main_level_index", level_id))
+	_mount_level(packed)
+
+
+# Shared lifecycle for catalog levels and the isolated development harness.
+func _mount_level(packed: PackedScene) -> void:
+	transition_gen += 1
+	active_checkpoint = null
+	_stop_player_damage_blink()
+	if level_root:
+		level_root.queue_free()
 	health = MAX_HEALTH
 	transitioning = false
 	took_damage_this_level = false
@@ -409,26 +425,31 @@ func _load_level_by_id(level_id: String) -> void:
 	var spawn_marker := level_root.find_child("PlayerSpawn", true, false) as Marker2D
 	var spawn_position := Vector2(60, 460)
 	if spawn_marker:
-		spawn_position = spawn_marker.position
+		spawn_position = level_root.to_local(spawn_marker.global_position)
 
 	player = preload("res://scenes/Player.tscn").instantiate() as CharacterBody2D
 	player.position = spawn_position
 	level_root.add_child(player)
+	respawn_position = player.global_position
+	for checkpoint: Node in level_root.find_children("*", "Area2D", true, false):
+		if checkpoint.is_in_group("checkpoints"):
+			checkpoint.activated.connect(activate_checkpoint)
 	player.stomped_enemy.connect(_on_player_stomped_enemy)
 	player.hit_enemy.connect(damage_player)
 	player.fell_off.connect(fell_off_world)
 	player.reached_goal.connect(reach_goal)
 	player.jumped.connect(play_sfx.bind("jump", 0.04))
 	player.double_jumped.connect(play_sfx.bind("double_jump", 0.04))
-	player.double_jumped.connect(Progression.add_quest_progress.bind("double_jump"))
+	player.double_jumped.connect(_record_quest.bind("double_jump"))
+	player.wall_jumped.connect(play_sfx.bind("double_jump", 0.02))
 	player.call("apply_skin", Progression.get_equipped_skin())
 
+	player.set("fall_limit_y", level_root.call("fall_limit"))
 	var camera := Camera2D.new()
-	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = level_root.level_width
-	camera.limit_bottom = 540
+	camera.name = "FollowCamera"
+	level_root.call("configure_camera", camera)
 	player.add_child(camera)
+	camera.reset_smoothing()
 	level_score_start = score
 	level_coins_start = coin_count
 	_update_hud()
@@ -441,7 +462,7 @@ func _on_player_stomped_enemy(enemy: CharacterBody2D) -> void:
 	enemy.call("kill")
 	enemy_killed()
 	play_sfx("stomp", 0.08)
-	Progression.add_quest_progress("stomp")
+	_record_quest("stomp")
 	hud.spawn_pow(position)
 
 
@@ -465,9 +486,12 @@ func damage_player() -> void:
 	if health <= 0:
 		_finish_run(RunOutcome.FAILED)
 	else:
-		_start_player_damage_blink()
 		play_sfx("hit")
-		player.velocity.y = 0
+		if bool(level_root.get("checkpoint_respawn_on_hit")):
+			_respawn_player()
+		else:
+			_start_player_damage_blink()
+			player.velocity.y = 0
 
 
 func fell_off_world() -> void:
@@ -482,12 +506,31 @@ func fell_off_world() -> void:
 		_finish_run(RunOutcome.FAILED)
 	else:
 		play_sfx("hit")
-		var spawn_marker := level_root.find_child("PlayerSpawn", true, false) as Marker2D
-		if spawn_marker:
-			player.position = spawn_marker.position
-			player.velocity = Vector2.ZERO
-			invuln_until = Time.get_ticks_msec() / 1000.0 + INVULNERABILITY_DURATION
-			_start_player_damage_blink()
+		_respawn_player()
+
+
+func activate_checkpoint(checkpoint: Area2D, body: Node2D) -> bool:
+	if in_main_menu or transitioning or run_outcome != RunOutcome.NONE:
+		return false
+	if not is_instance_valid(checkpoint) or not is_instance_valid(level_root) \
+			or body != player or not level_root.is_ancestor_of(checkpoint) \
+			or not checkpoint.is_in_group("checkpoints") or checkpoint.get("active"):
+		return false
+	active_checkpoint = checkpoint
+	respawn_position = checkpoint.get_node("RespawnPoint").global_position
+	checkpoint.call("activate")
+	play_sfx("coin")
+	return true
+
+
+func _respawn_player() -> void:
+	player.global_position = respawn_position
+	player.call("reset_movement")
+	var camera := player.get_node_or_null("FollowCamera") as Camera2D
+	if camera:
+		camera.reset_smoothing()
+	invuln_until = Time.get_ticks_msec() / 1000.0 + INVULNERABILITY_DURATION
+	_start_player_damage_blink()
 
 
 func _start_player_damage_blink() -> void:
@@ -511,8 +554,8 @@ func reach_goal() -> void:
 	)
 	if not took_damage_this_level:
 		_award_no_damage_level_trials(current_level_id)
-		Progression.add_quest_progress("no_damage_goal")
-	Progression.add_quest_progress("level_clear")
+		_record_quest("no_damage_goal")
+	_record_quest("level_clear")
 	var next_level_id := String(campaign_catalog.call("get_next_main_level_id", current_level_id))
 	if next_level_id != "":
 		play_sfx("level_clear")
@@ -550,9 +593,9 @@ func _finish_run(outcome: RunOutcome) -> void:
 		"new_best_time": false,
 	}
 	if outcome == RunOutcome.COMPLETED:
-		Progression.add_quest_progress("finish_run")
+		_record_quest("finish_run")
 		if not took_damage_this_run:
-			Progression.add_quest_progress("no_damage_run")
+			_record_quest("no_damage_run")
 		play_sfx("win")
 		record_result = _submit_run(calculate_final_score(score, coin_count), run_time_ms)
 	else:

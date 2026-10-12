@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://clrst26ixusc3"]
+
+[ext_resource type="Script" uid="uid://d16oo5woybv4x" path="res://scripts/Level.gd" id="1_ek3w8"]
+[ext_resource type="PackedScene" uid="uid://cr755a63q6fvf" path="res://scenes/Checkpoint.tscn" id="2_4miil"]
+[ext_resource type="PackedScene" uid="uid://c0krjl0wjbek4" path="res://scenes/Enemy.tscn" id="3_a8npd"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_alnv4"]
+size = Vector2(840, 40)
+
+[node name="CheckpointLab" type="Node2D" unique_id=2112073914]
+script = ExtResource("1_ek3w8")
+level_top = -540
+level_height = 1080
+checkpoint_respawn_on_hit = true
+
+[node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1418112002]
+position = Vector2(80, 460)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1333253413]
+position = Vector2(420, 500)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=1839933050]
+shape = SubResource("RectangleShape2D_alnv4")
+
+[node name="Checkpoint" parent="." unique_id=1937281390 instance=ExtResource("2_4miil")]
+position = Vector2(320, 480)
+
+[node name="Enemy" parent="." unique_id=181762694 instance=ExtResource("3_a8npd")]
+position = Vector2(580, 450)
+patrol_range = 25.0
+
+[node name="Platforms" type="Node2D" parent="." unique_id=120779361]
+
+[node name="FloorVisual" type="Polygon2D" parent="." unique_id=1208592820]
+position = Vector2(420, 500)
+color = Color(0.3254902, 0.40392157, 0.46666667, 1)
+polygon = PackedVector2Array(-420, -20, 420, -20, 420, 20, -420, 20)

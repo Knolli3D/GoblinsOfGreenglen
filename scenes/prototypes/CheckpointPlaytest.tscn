@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://c6s5dtsh54eua"]
+
+[ext_resource type="PackedScene" uid="uid://dh3trkvrd6uv8" path="res://scenes/Main.tscn" id="1_4kpfx"]
+[ext_resource type="Script" uid="uid://c3da48ks2dm50" path="res://scripts/prototypes/PrototypeGame.gd" id="2_3vbyj"]
+[ext_resource type="PackedScene" uid="uid://clrst26ixusc3" path="res://scenes/prototypes/CheckpointLab.tscn" id="3_8jokj"]
+
+[node name="CheckpointPlaytest" type="Node2D" unique_id=484006227]
+
+[node name="Game" parent="." unique_id=647499754 instance=ExtResource("1_4kpfx")]
+script = ExtResource("2_3vbyj")
+prototype_level = ExtResource("3_8jokj")

@@ -1,5 +1,10 @@
 # Goblins of Greenglen
 
+## Region-2-Prototyp (2026-10-12)
+
+Die vertikale Foundation ist als Entwicklungs-Prototyp vorhanden: authored Kamera-/Fallgrenzen in `Level.gd`, Wall-Slide/Wall-Jump nur an `climbable_walls`, Jump-Buffer/Wall-Coyote und versuchslokale Checkpoints. `Game._mount_level()` ist die gemeinsame Lade-/Reset-Grenze; Checkpoint-Level aktivieren Hit-Respawn explizit via `checkpoint_respawn_on_hit`. Region 1 behält sein bisheriges Hit-Verhalten. `scenes/prototypes/Region2Playtest.tscn` per F6 startet Foothill Scramble; Region 2 bleibt im Catalog unveröffentlicht. Der PrototypeGame-Wrapper vergibt keine Quest-/Campaign-/Highscore-Ergebnisse. Vollständige Bedienung, Tuning und Prüfergebnisse: [docs/region2-prototype.md](docs/region2-prototype.md). Aktuell **522 Checks** (95 Save + 68 Campaign + 311 Smoke + 48 Vertical) in vier isolierten Suiten; ältere Zählungen weiter unten stammen aus früheren Snapshots. Fennara hat einen schadenfreien kompletten Input-Playthrough sowie Kamera, Checkpoints und Retry verifiziert. Noch keine finalen Region-2-Art-/Audio-Assets und keine Veröffentlichung.
+
+
 Ein 2D-Platformer in Godot 4.6, handgeschrieben in GDScript. Kein C#.
 (GitHub-Repo: `GoblinsOfGreenglen`; der lokale Ordnername ist frei wählbar. "Goblins of Greenglen" ist der In-Game-Anzeigename
 via `config/name` in `project.godot`. Achtung: `config/name` bestimmt auch den `user://`-Save-Pfad —

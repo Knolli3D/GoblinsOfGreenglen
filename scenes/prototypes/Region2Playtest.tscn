@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://bkkhvij7ymdis"]
+
+[ext_resource type="PackedScene" uid="uid://dh3trkvrd6uv8" path="res://scenes/Main.tscn" id="1_jh7uc"]
+[ext_resource type="Script" uid="uid://c3da48ks2dm50" path="res://scripts/prototypes/PrototypeGame.gd" id="2_ekw6h"]
+[ext_resource type="PackedScene" uid="uid://d0y6rhq1fcp0s" path="res://scenes/prototypes/FoothillScramble.tscn" id="3_g2n7r"]
+
+[node name="Region2Playtest" type="Node2D" unique_id=359402237]
+
+[node name="Game" parent="." unique_id=647499754 instance=ExtResource("1_jh7uc")]
+script = ExtResource("2_ekw6h")
+prototype_level = ExtResource("3_g2n7r")
+
+[node name="PrototypeLabel" type="CanvasLayer" parent="." unique_id=747683429]
+layer = 7
+
+[node name="BuildLabel" type="Label" parent="PrototypeLabel" unique_id=911790438]
+offset_left = 16.0
+offset_top = 505.0
+offset_right = 16.0
+offset_bottom = 505.0
+theme_override_colors/font_outline_color = Color(0.08235294, 0.1764706, 0.24313726, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "STONEPEAK REACH  /  FOOTHILL SCRAMBLE  /  PROTOTYPE     R: retry"
