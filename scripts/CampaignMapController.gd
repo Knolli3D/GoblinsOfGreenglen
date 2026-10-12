@@ -316,6 +316,7 @@ func _update_node_styles() -> void:
 		var button := node_buttons[level_id] as Button
 		var level := catalog.call("get_level", level_id) as Dictionary
 		var released: bool = progress_store.is_region_released(String(level.get("region_id", "")))
+		var built: bool = bool(catalog.call("is_level_playable", level_id))
 		var unlocked: bool = progress_store.is_level_unlocked(level_id)
 		var completed: bool = progress_store.is_level_completed(level_id)
 		var bonus := bool(level.get("is_bonus", false))
@@ -327,7 +328,7 @@ func _update_node_styles() -> void:
 		if completed:
 			base = Color("#3F6A3F")
 			border = Color("#A8D87E")
-		elif not released or not unlocked:
+		elif not released or not built or not unlocked:
 			base = Color("#34383A")
 			border = Color("#77736B")
 		button.modulate = Color.WHITE if released else Color(0.72, 0.72, 0.72)
@@ -353,6 +354,8 @@ func _update_details(level: Dictionary) -> void:
 		location_status.text = "Coming Soon"
 	elif completed:
 		location_status.text = "Completed"
+	elif not bool(catalog.call("is_level_playable", level_id)):
+		location_status.text = "Coming Soon"
 	elif unlocked:
 		location_status.text = "Available"
 	else:

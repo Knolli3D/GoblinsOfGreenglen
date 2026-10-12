@@ -557,7 +557,8 @@ func reach_goal() -> void:
 		_record_quest("no_damage_goal")
 	_record_quest("level_clear")
 	var next_level_id := String(campaign_catalog.call("get_next_main_level_id", current_level_id))
-	if next_level_id != "":
+	# An unbuilt successor (released region still in progress) ends the run here.
+	if next_level_id != "" and campaign_progress.can_play_level(next_level_id):
 		play_sfx("level_clear")
 		_show_message("Level Cleared!")
 		var generation := transition_gen
@@ -597,7 +598,10 @@ func _finish_run(outcome: RunOutcome) -> void:
 		if not took_damage_this_run:
 			_record_quest("no_damage_run")
 		play_sfx("win")
-		record_result = _submit_run(calculate_final_score(score, coin_count), run_time_ms)
+		# Best Score/Time describe the Region-1 run; partial runs in newer regions
+		# must not overwrite them.
+		if current_region_id == CampaignCatalogScript.REGION_1_ID:
+			record_result = _submit_run(calculate_final_score(score, coin_count), run_time_ms)
 	else:
 		play_sfx("death")
 	_show_run_result(outcome, record_result)

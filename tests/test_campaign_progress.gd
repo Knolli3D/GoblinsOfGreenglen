@@ -87,13 +87,13 @@ func _test_catalog() -> void:
 		and not (catalog.call("get_level", "r05_level_14") as Dictionary).is_empty(),
 		"Platzhalter-IDs r03_level_01 bis r05_level_14 sind stabil adressierbar")
 	var future_locked := true
-	for future_number: int in [2, 3, 4, 5]:
+	for future_number: int in [3, 4, 5]:
 		var future_id := "region_%02d" % future_number
 		var future_entry := String((catalog.call("get_region", future_id) as Dictionary).get("entry_level_id", ""))
 		if bool(catalog.call("is_region_released", future_id)) \
 				or bool(catalog.call("is_level_playable", future_entry)):
 			future_locked = false
-	check(future_locked, "Regionen 2-5 bleiben unreleased und nicht startbar")
+	check(future_locked, "Regionen 3-5 bleiben unreleased und nicht startbar")
 	var future_required_only := true
 	var future_scenes_empty := true
 	for future_number: int in [3, 4, 5]:
@@ -115,8 +115,14 @@ func _test_catalog() -> void:
 		all_r1_scenes_exist = all_r1_scenes_exist \
 			and ResourceLoader.exists(String(level.scene_path), "PackedScene")
 	check(all_r1_scenes_exist, "alle Region-1-IDs lösen echte PackedScenes auf")
-	check(not bool(catalog.call("is_region_released", "region_02")), "Region 2 ist unreleased")
-	check(not bool(catalog.call("is_level_playable", "r02_level_01")), "Region-2-Platzhalter ist nicht spielbar")
+	check(bool(catalog.call("is_region_released", "region_02")), "Region 2 ist zum Playtest released")
+	check(bool(catalog.call("is_level_playable", "r02_level_01")) 		and String((catalog.call("get_level", "r02_level_01") as Dictionary).scene_path) 			== "res://scenes/prototypes/FoothillScramble.tscn",
+		"Region-2-Entry Foothill Scramble ist spielbar")
+	var r2_unbuilt := true
+	for r2_level_id: Variant in catalog.call("get_level_ids", "region_02", true):
+		if String(r2_level_id) != "r02_level_01" and bool(catalog.call("is_level_playable", String(r2_level_id))):
+			r2_unbuilt = false
+	check(r2_unbuilt, "ungebaute Region-2-Level bleiben trotz Release unspielbar")
 	var optional_count := 0
 	for connection: Dictionary in catalog.call("get_region_connections", "region_02"):
 		if connection.kind == CampaignCatalogScript.OPTIONAL_CONNECTION:
@@ -148,6 +154,17 @@ func _test_catalog() -> void:
 	var errors := bad_catalog.call("validate") as PackedStringArray
 	check(not errors.is_empty(), "Validator meldet doppelte IDs, Dangling Edges und fehlende Szenen")
 
+	check((CampaignCatalogScript.new().call("validate") as PackedStringArray).is_empty(),
+		"released Region mit ungebauten Leveln (leerer Szenenpfad) ist valide")
+	malformed = CampaignCatalogScript.default_regions()
+	malformed[1].levels[0].scene_path = ""
+	errors = CampaignCatalogScript.new(malformed).call("validate") as PackedStringArray
+	check(_contains_text(errors, "r02_level_01"), "released Region braucht ein gebautes Entry-Level")
+	malformed = CampaignCatalogScript.default_regions()
+	malformed[1].levels[1].scene_path = "res://scenes/missing_level.tscn"
+	errors = CampaignCatalogScript.new(malformed).call("validate") as PackedStringArray
+	check(_contains_text(errors, "r02_level_02"), "gesetzter, aber nicht ladbarer Szenenpfad bleibt ein Fehler")
+
 	malformed = CampaignCatalogScript.default_regions()
 	malformed[0].levels[0].prerequisites = ["r01_level_02"]
 	var cyclic_catalog: RefCounted = CampaignCatalogScript.new(malformed)
@@ -170,7 +187,7 @@ func _test_fresh_progression_and_records() -> void:
 	check(FileAccess.file_exists(path), "frischer Campaign-Save wird angelegt")
 	check(store.get_unlocked_region_ids() == ["region_01"], "frisch ist nur Region 1 freigeschaltet")
 	check(store.get_unlocked_level_ids() == ["r01_level_01"], "frisch ist nur Region-1-Level-1 freigeschaltet")
-	check(not store.is_region_unlocked("region_02"), "unreleased Region 2 bleibt gesperrt")
+	check(not store.is_region_unlocked("region_02"), "Region 2 bleibt ohne Region-1-Clear gesperrt")
 	var absent: Dictionary = store.get_level_record("r01_level_01")
 	check(not absent.has_record and absent.score == 0 and absent.coins == 0,
 		"kein Record ist von einem 0/0-Record unterscheidbar")
@@ -213,7 +230,8 @@ func _test_fresh_progression_and_records() -> void:
 	check(store.is_region_explored("region_01"), "Region ohne Bonus-Level gilt als explored")
 	check(store.is_region_mastered("region_01"),
 		"Region ohne Mastery-Trials wird mit dem Clear gemastert")
-	check(not store.is_region_unlocked("region_02"), "Clear lädt keine unreleased Region")
+	check(store.is_region_unlocked("region_02") and store.is_level_unlocked("r02_level_01") 		and not store.is_level_unlocked("r02_level_02"),
+		"Clear schaltet die released Region 2 samt Entry-Level frei")
 	store.add_region_trial_progress("r01_core_flawless_finale")
 	check(cleared_signals[0] == 1 \
 		and int(store.trial_progress.get("r01_core_flawless_finale", 0)) == 1,
@@ -241,7 +259,7 @@ func _test_save_normalization_and_recovery() -> void:
 	_write_cfg(malformed_path, {
 		"meta": {"version": 1},
 		"campaign": {
-			"unlocked_regions": ["ghost", "region_02"],
+			"unlocked_regions": ["ghost", "region_03"],
 			"unlocked_levels": "broken",
 			"completed_levels": ["ghost_level", 42],
 			"last_selected_region": 99,
@@ -308,6 +326,7 @@ func _test_trial_gate_and_future_release() -> void:
 	store.free()
 
 	regions = CampaignCatalogScript.default_regions()
+	regions[1].released = false
 	var old_catalog: RefCounted = CampaignCatalogScript.new(regions)
 	path = _path("release_later.cfg")
 	store = _load_store(old_catalog, path)

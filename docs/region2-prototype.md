@@ -6,7 +6,10 @@ This is a development blockout for review, not a released campaign region.
 ## Play it
 
 Open `scenes/prototypes/Region2Playtest.tscn` in Godot and press **F6**.
-F5 still opens the normal game. Region 2 remains unavailable on the public map.
+F5 opens the normal game. Region 2 is now released in the catalog: once Region 1 is
+cleared (all six levels plus Flawless Finale), Foothill Scramble can be started from the
+Map. The other Region 2 levels show "Coming Soon" until their scenes exist. Map runs in
+Region 2 never update Best Score/Best Time.
 
 - Move with A/D or arrows; Space/Up jumps and double-jumps.
 - Hold toward a green, striped crag while falling to slide. Press jump to kick away,

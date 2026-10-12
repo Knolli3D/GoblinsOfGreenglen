@@ -19,6 +19,11 @@ const REGION_1_SCENE_PATHS := [
 	"res://scenes/Level6.tscn",
 ]
 
+# Built Region-2 levels; empty scene paths in the catalog mark levels not built yet.
+const REGION_2_SCENE_PATHS := [
+	"res://scenes/prototypes/FoothillScramble.tscn",
+]
+
 static func default_regions() -> Array:
 	return [
 	{
@@ -59,13 +64,15 @@ static func default_regions() -> Array:
 	{
 		"id": REGION_2_ID,
 		"display_name": "Stonepeak Reach",
-		"released": false,
+		# Released for playtesting: only levels with a scene_path are playable; the
+		# rest stay "Coming Soon" until their scenes are built.
+		"released": true,
 		"entry_level_id": "r02_level_01",
 		"next_region_id": REGION_3_ID,
 		"fallback_color": Color("#35465C"),
 		"trials": [],
 		"levels": [
-			_level("r02_level_01", REGION_2_ID, "Foothill Scramble", "", Vector2(65, 280), false, [], {"right": "r02_level_02"}),
+			_level("r02_level_01", REGION_2_ID, "Foothill Scramble", REGION_2_SCENE_PATHS[0], Vector2(65, 280), false, [], {"right": "r02_level_02"}),
 			_level("r02_level_02", REGION_2_ID, "Rockjaw Ridge", "", Vector2(160, 320), false, ["r02_level_01"], {"left": "r02_level_01", "right": "r02_level_03"}),
 			_level("r02_level_03", REGION_2_ID, "Cragspite Climb", "", Vector2(260, 235), false, ["r02_level_02"], {"left": "r02_level_02", "right": "r02_level_04"}),
 			_level("r02_level_04", REGION_2_ID, "The Boulder Run", "", Vector2(155, 155), false, ["r02_level_03"], {"left": "r02_level_03", "right": "r02_level_05"}),
@@ -357,8 +364,11 @@ func validate() -> PackedStringArray:
 			if not (pos is Vector2) or not is_finite((pos as Vector2).x) \
 					or not is_finite((pos as Vector2).y) or not MAP_BOUNDS.has_point(pos):
 				errors.append("Level %s has an invalid map position" % level_id)
+			# Released regions may contain unbuilt levels (empty path, shown as Coming Soon),
+			# but every authored path must load and the entry level must be built.
 			var path := String(level.get("scene_path", ""))
-			if bool(region.get("released", false)) and (path == "" or not ResourceLoader.exists(path, "PackedScene")):
+			var is_entry := level_id == String(region.get("entry_level_id", ""))
+			if bool(region.get("released", false)) and (path != "" or is_entry) 					and (path == "" or not ResourceLoader.exists(path, "PackedScene")):
 				errors.append("Released level %s has no loadable PackedScene" % level_id)
 
 	for region_value: Variant in _regions:

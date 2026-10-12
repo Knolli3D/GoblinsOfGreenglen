@@ -745,36 +745,57 @@ func _test_campaign_map_shell() -> void:
 		and game.campaign_map.region_status_banner.text.contains("main levels 0/6") \
 		and game.campaign_map.region_status_banner.text.contains("Flawless Finale"),
 		"Region-2-Banner erklärt das Region-1-Gate (sechs Main-Level + Flawless Finale)")
-	check(game.campaign_map.node_buttons.size() == 10, "unreleased Region 2 rendert 8 Main- und 2 Bonus-Nodes")
+	check(game.campaign_map.node_buttons.size() == 10, "Region 2 rendert 8 Main- und 2 Bonus-Nodes")
 	check(_count_optional_segments(game.campaign_map.path_layer.segments) == 2,
 		"Region-2-Bonuspfad bleibt semantisch dotted/optional")
-	check(_count_locked_segments(game.campaign_map.path_layer.segments) \
-		== game.campaign_map.path_layer.segments.size(),
-		"unreleased Pfade bleiben über Unlock-State gedimmt")
-	check(game.campaign_map.location_status.text.begins_with("Coming Soon") \
-		and game.campaign_map.play_button.disabled,
-		"unreleased Region zeigt Coming Soon und deaktiviert Play")
+	check(_count_locked_segments(game.campaign_map.path_layer.segments) 		== game.campaign_map.path_layer.segments.size(),
+		"gesperrte Region-2-Pfade bleiben über Unlock-State gedimmt")
+	check(game.campaign_map.location_status.text.begins_with("Locked") 		and game.campaign_map.play_button.disabled,
+		"gesperrtes Region-2-Entry zeigt Locked und deaktiviert Play")
 	game.campaign_map.play_button.pressed.emit()
-	check(requested[0] == 0, "unreleased Node kann keinen Level-Request emittieren")
+	check(requested[0] == 0, "gesperrter Region-2-Node kann keinen Level-Request emittieren")
 	game._start_campaign_level("r02_level_01")
 	check(game.level_root == null and game.in_main_menu and game.campaign_map.menu.visible,
-		"unveröffentlichtes Level lädt nie eine leere Szene")
+		"gesperrtes Region-2-Level lädt ohne Region-1-Clear nichts")
 
-	# Erfüllte Region-1-Anforderungen (nur in-memory simuliert, kein Save/Event) wechseln
-	# das Region-2-Banner von Locked auf Coming Soon — spielbar wird sie dadurch nie.
+	# Echter Region-1-Clear (in-memory, ohne Events) schaltet die released Region 2 frei:
+	# Foothill Scramble ist spielbar, ungebaute Level bleiben Coming Soon.
+	var progress_snapshot := {}
+	for field: String in ["unlocked_region_ids", "unlocked_level_ids", "completed_level_ids",
+			"level_records", "trial_progress", "cleared_region_ids", "mastered_region_ids"]:
+		progress_snapshot[field] = (game.campaign_progress.get(field) as Variant).duplicate(true)
 	for i: int in 6:
 		game.campaign_progress.completed_level_ids.append("r01_level_%02d" % (i + 1))
 	game.campaign_progress.trial_progress["r01_core_flawless_finale"] = 1
+	game.campaign_progress._refresh_derived_state(false)
 	game.campaign_map.refresh()
-	check(game.campaign_map.region_status_banner.text == "Coming Soon" \
-		and game.campaign_map.play_button.disabled \
-		and game.campaign_map.node_buttons.size() == 10,
-		"erfüllte Vorgänger-Anforderungen zeigen Coming Soon, Region 2 bleibt unspielbar")
-	game.campaign_map.play_button.pressed.emit()
-	check(requested[0] == 0, "auch mit Coming-Soon-Banner emittiert Play keinen Request")
-	game.campaign_progress.completed_level_ids = []
-	game.campaign_progress.trial_progress = {}
-	game.campaign_map.refresh()
+	game.campaign_map.select_level("r02_level_01", false)
+	check(game.campaign_map.region_status_banner.text == "Available" 		and game.campaign_map.location_status.text.begins_with("Available") 		and not game.campaign_map.play_button.disabled,
+		"Region-1-Clear macht Region 2 verfügbar und Foothill Scramble startbar")
+	game.campaign_map.select_level("r02_level_02", false)
+	check(game.campaign_map.location_status.text.begins_with("Coming Soon") 		and game.campaign_map.play_button.disabled,
+		"ungebautes Region-2-Level zeigt Coming Soon und deaktiviert Play")
+	game._start_campaign_level("r02_level_02")
+	check(game.level_root == null and game.in_main_menu,
+		"ungebautes Level lädt nie eine leere Szene")
+
+	var best_before := [game.highscore_store.has_highscore, game.highscore_store.best_final_score,
+		game.highscore_store.has_best_time, game.highscore_store.best_time_ms]
+	game._start_campaign_level("r02_level_01")
+	check(game.level_root != null and game.level_root.name == "FoothillScramble" 		and game.current_region_id == "region_02" and game.current_level_id == "r02_level_01",
+		"Foothill Scramble startet über den echten Kampagnen-Pfad")
+	game.reach_goal()
+	check(game.run_outcome == game.RunOutcome.COMPLETED 		and game.campaign_progress.is_level_completed("r02_level_01"),
+		"Foothill-Ziel beendet den Run, da das nächste Level noch ungebaut ist")
+	check(best_before == [game.highscore_store.has_highscore, game.highscore_store.best_final_score,
+		game.highscore_store.has_best_time, game.highscore_store.best_time_ms],
+		"Region-2-Teilrun überschreibt weder Best Score noch Best Time")
+	game._show_main_menu()
+	await create_timer(0.05).timeout
+	for field: String in progress_snapshot:
+		game.campaign_progress.set(field, progress_snapshot[field])
+	game.show_campaign_map_preview("region_02")
+	await process_frame
 	check(game.campaign_map.region_status_banner.text.begins_with("Locked"),
 		"zurückgesetzter Fortschritt stellt den Locked-Zustand wieder her")
 
